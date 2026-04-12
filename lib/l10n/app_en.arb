@@ -749,7 +749,7 @@
   "@mapTileConsentTitle": {
     "description": "Title for the map tile consent dialog"
   },
-  "mapTileConsentBody": "Loading the map connects to OpenStreetMap tile servers. Your IP address and approximate location will be visible to the tile server.\n\nDo you agree to load map tiles?",
+  "mapTileConsentBody": "Loading the map connects to OpenTopoMap tile servers. Your IP address and approximate location will be visible to the tile server.\n\nDo you agree to load map tiles?",
   "@mapTileConsentBody": {
     "description": "Body text for the map tile consent dialog"
   },
@@ -765,7 +765,7 @@
   "@mapLoadButton": {
     "description": "Button to load the map after granting consent"
   },
-  "mapLoadHint": "Requires connecting to OpenStreetMap tile servers.",
+  "mapLoadHint": "Requires connecting to OpenTopoMap tile servers.",
   "@mapLoadHint": {
     "description": "Hint shown below the Load Map button"
   },

@@ -3,9 +3,10 @@
 // =============================================================================
 //
 // Reusable widget used by both file analysis and point count setup to let the
-// user tap on an OpenStreetMap map to pick a geographic coordinate.  Respects
-// the map tile consent preference — a consent dialog is shown before loading
-// any external tiles.
+// user tap on an OpenTopoMap map to pick a geographic coordinate.  Uses
+// topographic tiles that show hiking trails, forest paths, and contour lines.
+// Respects the map tile consent preference — a consent dialog is shown before
+// loading any external tiles.
 //
 // Returns the selected [LatLng] via [Navigator.pop].
 // =============================================================================
@@ -21,7 +22,7 @@ import '../providers/app_providers.dart';
 
 /// Full-screen map for picking a location by tapping.
 ///
-/// Uses OpenStreetMap tiles via [flutter_map].  Respects the map tile consent
+/// Uses OpenTopoMap tiles via [flutter_map].  Respects the map tile consent
 /// preference — if the user hasn't consented yet, a placeholder is shown first.
 ///
 /// Pop result: the selected [LatLng], or `null` if cancelled.
@@ -111,7 +112,7 @@ class _MapPickerScreenState extends ConsumerState<MapPickerScreen> {
       ),
       children: [
         TileLayer(
-          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          urlTemplate: 'https://tile.opentopomap.org/{z}/{x}/{y}.png',
           userAgentPackageName: 'birdnet_live',
         ),
         if (_picked != null)
@@ -131,6 +132,10 @@ class _MapPickerScreenState extends ConsumerState<MapPickerScreen> {
           ),
         RichAttributionWidget(
           attributions: [
+            TextSourceAttribution(
+              'OpenTopoMap (CC-BY-SA)',
+              onTap: () {},
+            ),
             TextSourceAttribution(
               'OpenStreetMap contributors',
               onTap: () {},
