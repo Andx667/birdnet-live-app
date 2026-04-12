@@ -112,7 +112,7 @@ class _MapPickerScreenState extends ConsumerState<MapPickerScreen> {
       ),
       children: [
         TileLayer(
-          urlTemplate: 'https://tile.opentopomap.org/{z}/{x}/{y}.png',
+          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
           userAgentPackageName: 'birdnet_live',
         ),
         if (_picked != null)
@@ -133,7 +133,7 @@ class _MapPickerScreenState extends ConsumerState<MapPickerScreen> {
         RichAttributionWidget(
           attributions: [
             TextSourceAttribution(
-              'OpenTopoMap (CC-BY-SA)',
+              'OpenStreetMap (ODbL)',
               onTap: () {},
             ),
             TextSourceAttribution(
