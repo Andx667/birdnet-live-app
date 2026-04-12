@@ -4,7 +4,7 @@ Browse and manage your past recording sessions.
 
 ## Overview
 
-The Session Library shows all saved sessions from Live Mode. Each session stores the detection list, recording audio, annotations, and session settings.
+The Session Library shows all saved sessions from Live Mode, Point Count Mode, and File Analysis. Each session stores the detection list, recording audio, annotations, and session settings.
 
 ## Session List
 
@@ -12,7 +12,7 @@ Each row in the library displays:
 
 | Field | Description |
 |-------|-------------|
-| **Session name** | Editable name (auto-numbered: "Live Session #1", "#2", etc.) |
+| **Session name** | Editable name (auto-numbered: "Live Session #1", "Point Count #1", etc.) |
 | **Date** | When the session was recorded |
 | **Duration** | Total session length |
 | **Species** | Number of unique species detected |

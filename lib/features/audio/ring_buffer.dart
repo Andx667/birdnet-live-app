@@ -140,6 +140,36 @@ class RingBuffer {
     return result;
   }
 
+  /// Read the most recent [count] samples into an existing [target] buffer.
+  ///
+  /// The [target] must have at least [count] elements.  Unlike [readLast]
+  /// this method does not allocate — ideal for hot paths like the
+  /// spectrogram that read every frame.
+  void readLastInto(Float32List target, int count) {
+    final avail = available;
+
+    if (avail == 0) {
+      target.fillRange(0, count, 0);
+      return;
+    }
+
+    final toRead = count > avail ? avail : count;
+    final offset = count - toRead;
+
+    // Zero-fill the padding region if needed.
+    if (offset > 0) target.fillRange(0, offset, 0);
+
+    final start = (_writePos - toRead + capacity) % capacity;
+
+    if (start + toRead <= capacity) {
+      target.setRange(offset, count, _buffer, start);
+    } else {
+      final firstChunk = capacity - start;
+      target.setRange(offset, offset + firstChunk, _buffer, start);
+      target.setRange(offset + firstChunk, count, _buffer, 0);
+    }
+  }
+
   /// Read all available samples (up to [capacity]).
   Float32List readAll() => readLast(available);
 

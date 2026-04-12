@@ -266,10 +266,27 @@ class _PointCountLiveScreenState extends ConsumerState<PointCountLiveScreen>
     session.type = SessionType.pointCount;
   }
 
+  /// Whether the spectrogram was suppressed due to the app going to
+  /// background.  Audio capture and inference keep running.
+  bool _spectrogramPaused = false;
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Point counts don't pause — keep running in background silently.
-    // The countdown continues regardless.
+    // Point counts keep audio capture + inference running in background,
+    // but suspend the spectrogram ticker (60 fps FFT + GPU texture rebuilds)
+    // to save battery when the screen is not visible.
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      if (!_spectrogramPaused) {
+        _spectrogramPaused = true;
+        setState(() {});
+      }
+    } else if (state == AppLifecycleState.resumed) {
+      if (_spectrogramPaused) {
+        _spectrogramPaused = false;
+        setState(() {});
+      }
+    }
   }
 
   @override
@@ -323,7 +340,9 @@ class _PointCountLiveScreenState extends ConsumerState<PointCountLiveScreen>
                 flex: 2,
                 child: Container(
                   color: theme.colorScheme.surfaceContainerLowest,
-                  child: _PointCountSpectrogram(isCapturing: isCapturing),
+                  child: _PointCountSpectrogram(
+                    isCapturing: isCapturing && !_spectrogramPaused,
+                  ),
                 ),
               ),
 

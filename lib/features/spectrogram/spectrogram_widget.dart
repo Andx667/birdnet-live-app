@@ -157,6 +157,12 @@ class _SpectrogramWidgetState extends State<SpectrogramWidget>
   /// the bursty column generation that caused visible jumping.
   int _columnsEmitted = 0;
 
+  /// Pre-allocated buffer for reading samples from the ring buffer.
+  ///
+  /// Avoids ~31 allocations/s of `Float32List(fftSize)` on the hot path.
+  /// Recreated lazily when [fftSize] changes.
+  late Float32List _readBuffer = Float32List(widget.fftSize);
+
   /// Effective hop size (user-supplied or default 50 % overlap).
   int get _hopSize => widget.hopSize ?? (widget.fftSize ~/ 2);
 
@@ -240,6 +246,11 @@ class _SpectrogramWidgetState extends State<SpectrogramWidget>
     );
 
     _columnsEmitted = 0;
+
+    // Resize pre-allocated read buffer if FFT size changed.
+    if (_readBuffer.length != widget.fftSize) {
+      _readBuffer = Float32List(widget.fftSize);
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -269,9 +280,9 @@ class _SpectrogramWidgetState extends State<SpectrogramWidget>
       _columnsEmitted = targetColumns - 1;
     }
 
-    // Read the most recent fftSize samples and add a single column.
-    final samples = widget.ringBuffer.readLast(widget.fftSize);
-    final column = _fft.process(samples);
+    // Read the most recent fftSize samples into pre-allocated buffer.
+    widget.ringBuffer.readLastInto(_readBuffer, widget.fftSize);
+    final column = _fft.process(_readBuffer);
 
     // The FFT processor already outputs Decibels (a logarithmic scale).
     // An additional log curve here compresses dynamic range too aggressively

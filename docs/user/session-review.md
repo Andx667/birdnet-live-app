@@ -1,6 +1,6 @@
 # Session Review
 
-After ending a Live Mode session, the Session Review screen lets you examine, edit, and export your bird detection data. Think of it as a research-grade tool for creating accurate species reports from audio recordings.
+After ending a Live Mode, Point Count, or File Analysis session, the Session Review screen lets you examine, edit, and export your bird detection data. Think of it as a research-grade tool for creating accurate species reports from audio recordings.
 
 ## Screen Layout
 

@@ -111,6 +111,64 @@ void main() {
       });
     });
 
+    group('readLastInto', () {
+      test('reads into pre-allocated buffer without allocation', () {
+        final buf = RingBuffer(capacity: 100);
+        buf.write(Float32List.fromList([0.1, 0.2, 0.3, 0.4, 0.5]));
+
+        final target = Float32List(5);
+        buf.readLastInto(target, 5);
+        expect(target[0], closeTo(0.1, 1e-6));
+        expect(target[4], closeTo(0.5, 1e-6));
+      });
+
+      test('zero-pads when requesting more than available', () {
+        final buf = RingBuffer(capacity: 100);
+        buf.write(Float32List.fromList([0.1, 0.2]));
+
+        final target = Float32List(5);
+        buf.readLastInto(target, 5);
+        expect(target[0], 0.0);
+        expect(target[1], 0.0);
+        expect(target[2], 0.0);
+        expect(target[3], closeTo(0.1, 1e-6));
+        expect(target[4], closeTo(0.2, 1e-6));
+      });
+
+      test('handles wrap-around correctly', () {
+        final buf = RingBuffer(capacity: 4);
+        buf.write(Float32List.fromList([1, 2, 3, 4]));
+        buf.write(Float32List.fromList([5, 6]));
+
+        final target = Float32List(4);
+        buf.readLastInto(target, 4);
+        expect(target[0], closeTo(3, 1e-6));
+        expect(target[1], closeTo(4, 1e-6));
+        expect(target[2], closeTo(5, 1e-6));
+        expect(target[3], closeTo(6, 1e-6));
+      });
+
+      test('matches readLast output', () {
+        final buf = RingBuffer(capacity: 8);
+        buf.write(Float32List.fromList([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]));
+
+        final fromReadLast = buf.readLast(6);
+        final target = Float32List(6);
+        buf.readLastInto(target, 6);
+
+        for (var i = 0; i < 6; i++) {
+          expect(target[i], fromReadLast[i]);
+        }
+      });
+
+      test('fills zeros for empty buffer', () {
+        final buf = RingBuffer(capacity: 100);
+        final target = Float32List.fromList([1, 2, 3]);
+        buf.readLastInto(target, 3);
+        expect(target.every((s) => s == 0.0), true);
+      });
+    });
+
     group('readAll', () {
       test('returns all written samples', () {
         final buf = RingBuffer(capacity: 100);

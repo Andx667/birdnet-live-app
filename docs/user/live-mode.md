@@ -40,7 +40,7 @@ Live Mode supports geographic species filtering via the BirdNET+ geo-model:
 
 | Filter Mode | Behavior |
 |-------------|----------|
-| **Off** | No filtering — all 11,000+ species are eligible |
+| **Off** | No filtering — all 5,250 species are eligible |
 | **Geo Exclude** | Keep only species the geo-model predicts at your location (above threshold) |
 | **Geo Merge** | Multiply audio confidence by geo-model probability |
 | **Custom List** | Keep only species you have manually selected |

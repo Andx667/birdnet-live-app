@@ -2,10 +2,10 @@
 // Session Map Screen
 // =============================================================================
 //
-// Displays the recording location on an interactive OpenStreetMap-based map.
+// Displays the recording location on an interactive OpenTopoMap-based map.
 //
 // Privacy: Before loading map tiles the user must consent to connecting to
-// the OpenStreetMap tile servers (GDPR compliance).  The consent flag is
+// the OpenTopoMap tile servers (GDPR compliance).  The consent flag is
 // persisted in SharedPreferences so the dialog appears only once.
 //
 // Offline: If tiles cannot be loaded (no internet), flutter_map shows blank
@@ -26,7 +26,7 @@ import '../../shared/providers/app_providers.dart';
 
 /// Map screen showing the recording location with a pin marker.
 ///
-/// Requires user consent before fetching OpenStreetMap tiles.  Consent is
+/// Requires user consent before fetching OpenTopoMap tiles.  Consent is
 /// stored via [PrefKeys.mapTileConsent] and is valid across sessions.
 class SessionMapScreen extends ConsumerStatefulWidget {
   const SessionMapScreen({
@@ -110,7 +110,7 @@ class _SessionMapScreenState extends ConsumerState<SessionMapScreen> {
       ),
       children: [
         TileLayer(
-          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          urlTemplate: 'https://tile.opentopomap.org/{z}/{x}/{y}.png',
           userAgentPackageName: 'birdnet_live',
           tileProvider: _CachingTileProvider(),
         ),
@@ -130,6 +130,10 @@ class _SessionMapScreenState extends ConsumerState<SessionMapScreen> {
         ),
         RichAttributionWidget(
           attributions: [
+            TextSourceAttribution(
+              'OpenTopoMap (CC-BY-SA)',
+              onTap: () {},
+            ),
             TextSourceAttribution(
               'OpenStreetMap contributors',
               onTap: () {},

@@ -325,9 +325,11 @@ class LiveController {
     _inferenceCycleCount = 0;
     ringBuffer.clear();
 
-    // Start memory monitoring for this session.
-    MemoryMonitor.startPeriodic(intervalSeconds: 10);
-    MemoryMonitor.logOnce(tag: 'session-start');
+    // Start memory monitoring for this session (debug builds only).
+    if (kDebugMode) {
+      MemoryMonitor.startPeriodic(intervalSeconds: 10);
+      MemoryMonitor.logOnce(tag: 'session-start');
+    }
 
     // Store geo-filter state for this session.
     _geoScores = geoScores;
@@ -437,10 +439,12 @@ class LiveController {
       _session!.recordingPath = recordingPath;
     }
 
-    // Stop memory monitoring and print summary.
-    MemoryMonitor.logOnce(tag: 'session-end');
-    MemoryMonitor.printSummary();
-    MemoryMonitor.stop();
+    // Stop memory monitoring (debug builds only).
+    if (kDebugMode) {
+      MemoryMonitor.logOnce(tag: 'session-end');
+      MemoryMonitor.printSummary();
+      MemoryMonitor.stop();
+    }
 
     _session!.end();
     final completedSession = _session!;
@@ -511,7 +515,7 @@ class LiveController {
       final audioSamples = ringBuffer.readLast(windowSamples);
 
       // Log memory every 10 cycles (~10s at 1Hz) to track growth.
-      if (_inferenceCycleCount % 10 == 0) {
+      if (kDebugMode && _inferenceCycleCount % 10 == 0) {
         MemoryMonitor.logOnce(tag: 'cycle-$_inferenceCycleCount');
       }
 

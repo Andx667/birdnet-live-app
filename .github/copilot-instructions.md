@@ -28,9 +28,11 @@ lib/
     explore/     # Species exploration by location
     inference/   # ONNX model wrappers (classifier, geo-model)
     audio/       # Audio capture, ring buffer, spectrogram
+    file_analysis/ # Offline file analysis wizard
+    history/     # Session persistence, library, review, export
     settings/    # Settings screen
     home/        # Home screen / main menu
-    ...
+    about/       # Credits, links, legal
   l10n/          # ARB localization files (EN, DE)
 ```
 
@@ -48,7 +50,7 @@ lib/
 |-------|---------|------|
 | `BirdNET+_V3.0-preview3_Global_5K-pruned_FP16.onnx` | Audio classifier (5,250 species, pruned) | ~152 MB |
 | `BirdNET+_Geomodel_V3.0.1_Global_5K-pruned_FP16.onnx` | Location-based species prediction | ~6 MB |
-| `labels.csv` | Audio classifier labels (semicolon-delimited, UTF-8 BOM) | |
+| `BirdNET+_V3.0-preview3_Global_5K-pruned_Labels.csv` | Audio classifier labels (semicolon-delimited, UTF-8 BOM) | |
 | `BirdNET+_Geomodel_V3.0.1_Global_5K-pruned_Labels.txt` | Geo-model labels (tab-delimited: `id\tsci_name\tcom_name`) | |
 | `taxonomy.csv` | Rich species metadata (comma-delimited with header) | |
 | `model_config.json` | JSON config for both ONNX models | |

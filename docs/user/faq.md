@@ -30,7 +30,18 @@ A: Accuracy depends on recording quality, distance, background noise, and the sp
 A: In the app's documents directory under `recordings/<session-id>/`. Full recordings are saved as WAV files.
 
 **Q: Can I analyze existing recordings?**
-A: File Analysis mode (coming soon) will support offline analysis of WAV/MP3 files.
+A: Yes. Open File Analysis from the home screen, pick an audio file, set location and parameters, and tap Analyze. Supported formats include WAV, FLAC, MP3, OGG, Opus, M4A, AAC, WMA, and AMR.
+
+## Point Count
+
+**Q: What is Point Count Mode?**
+A: A timed survey mode for formal avian point-count observations. You set a fixed duration (3–20 minutes) and location, then the app runs continuously and auto-stops when the timer reaches zero.
+
+**Q: Can I pause a point count?**
+A: No. Protocol compliance requires uninterrupted recording. You can end early via the stop button.
+
+**Q: Where do point count results go?**
+A: They appear in the Session Library as "Point Count #1", "#2", etc. You can review, edit, and export them like any other session.
 
 ## Performance
 

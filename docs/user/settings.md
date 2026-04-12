@@ -65,14 +65,3 @@ Configure audio, inference, recording, and display preferences. Access settings 
 |--------|-------------|
 | **Reset Onboarding** | Show onboarding screens again on next launch (confirmation dialog) |
 | **Clear All Data** | Delete all sessions, recordings, and settings. Requires typing "DELETE" to confirm. |
-| **dB Floor** | -80 dB | Lower bound of the spectrogram dynamic range |
-| **dB Ceiling** | 0 dB | Upper bound of the spectrogram dynamic range |
-| **Max Frequency** | 15,000 Hz | Maximum frequency displayed (0 = full Nyquist) |
-| **Log Amplitude** | Off | Apply logarithmic amplitude scaling for quieter sounds |
-
-## Language Settings
-
-| Setting | Default | Description |
-|---------|---------|-------------|
-| **UI Language** | System | App interface language (English, German) |
-| **Species Language** | System | Language for common species names |

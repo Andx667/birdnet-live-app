@@ -10,9 +10,9 @@ BirdNET Live is a Flutter app built for field researchers, conservationists, and
 - **Explore** — Browse species expected at your location using the geo-model
 - **Session Library** — Review, edit, and export past sessions with audio playback
 - **Export** — Raven Pro, CSV, JSON, and ZIP bundle formats
+- **Point Count Mode** — Timed survey sessions with countdown timer and station metadata
+- **File Analysis** — Offline analysis of existing audio recordings (WAV, FLAC, MP3, and more)
 - **Survey Mode** — Background biodiversity monitoring with GPS tracking *(planned)*
-- **Point Count Mode** — Timed survey sessions with station metadata *(planned)*
-- **File Analysis** — Offline analysis of existing audio recordings *(planned)*
 
 <p align="center">
   <img src="assets/screenshots/live-mode.png" alt="Live Mode" width="150">
