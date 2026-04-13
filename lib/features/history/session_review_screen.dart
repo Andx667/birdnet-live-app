@@ -49,6 +49,8 @@ import 'dart:ui' as ui;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:fftea/fftea.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -71,6 +73,7 @@ import '../spectrogram/color_maps.dart';
 import 'session_export.dart';
 import 'session_map_screen.dart';
 import '../settings/settings_screen.dart';
+import '../survey/survey_live_screen.dart';
 import '../survey/widgets/survey_map_widget.dart';
 import '../../core/services/reverse_geocoding_service.dart';
 
@@ -139,6 +142,14 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
 
   /// Cached reverse-geocoded location name for display.
   String? _locationName;
+
+  /// Detection highlighted on the map (set by tapping a species/cluster).
+  DetectionRecord? _highlightedDetection;
+
+  /// Current visible map bounds (updated by camera move callback).
+  /// When non-null, the species list is filtered to only show detections
+  /// within these bounds.
+  LatLngBounds? _visibleMapBounds;
 
   _ReviewSnapshot _takeSnapshot() => _ReviewSnapshot(
         detections: List.of(_detections),
@@ -615,6 +626,22 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
     if (mounted) Navigator.of(context).pop();
   }
 
+  /// Resume an unfinished survey session.
+  void _continueSurvey() {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute<void>(
+        builder: (_) => SurveyLiveScreen(
+          customName: widget.session.customName,
+          transectId: widget.session.transectId,
+          observerName: widget.session.observerName,
+          startLatitude: widget.session.latitude,
+          startLongitude: widget.session.longitude,
+          resumeSession: widget.session,
+        ),
+      ),
+    );
+  }
+
   Future<void> _share() async {
     // Save pending changes before sharing so the export is up to date.
     if (_isDirty) await _save();
@@ -819,6 +846,39 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
       context: context,
       isScrollControlled: true,
       builder: (_) => const _SessionHelpSheet(),
+    );
+  }
+
+  /// Update visible map bounds and rebuild the filtered species list.
+  void _onMapCameraMove(LatLngBounds bounds) {
+    if (!mounted) return;
+    setState(() {
+      _visibleMapBounds = bounds;
+    });
+  }
+
+  /// Highlight a detection on the map and scroll to show it.
+  void _showDetectionOnMap(DetectionRecord detection) {
+    if (detection.latitude == null || detection.longitude == null) return;
+    setState(() {
+      _highlightedDetection = detection;
+    });
+  }
+
+  /// Filter species groups to only include detections visible on the map.
+  List<_SpeciesGroup> get _filteredSpeciesGroups {
+    if (widget.session.type != SessionType.survey ||
+        _visibleMapBounds == null) {
+      return _speciesGroups;
+    }
+    final bounds = _visibleMapBounds!;
+    final visible = _detections.where((d) {
+      if (d.latitude == null || d.longitude == null) return true;
+      return bounds.contains(LatLng(d.latitude!, d.longitude!));
+    }).toList();
+    return _buildSpeciesGroups(
+      visible,
+      widget.session.settings.windowDuration,
     );
   }
 
@@ -1157,6 +1217,15 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
                     tooltip: l10n.sessionDiscard,
                     onPressed: _discard,
                   ),
+                  // Continue button for unfinished survey sessions.
+                  if (widget.session.type == SessionType.survey &&
+                      widget.session.isActive)
+                    IconButton(
+                      icon: Icon(Icons.play_arrow_rounded,
+                          color: theme.colorScheme.primary),
+                      tooltip: l10n.surveyContinue,
+                      onPressed: _continueSurvey,
+                    ),
                   IconButton(
                     icon: const Icon(Icons.help_outline),
                     tooltip: l10n.sessionHelpTitle,
@@ -1188,11 +1257,14 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
             if (widget.session.type == SessionType.survey &&
                 widget.session.gpsTrack.isNotEmpty)
               SizedBox(
-                height: 200,
+                height: MediaQuery.of(context).size.height * 0.35,
                 child: SurveyMapWidget(
                   gpsTrack: widget.session.gpsTrack,
                   detections: _detections,
                   autoFollow: false,
+                  fitAllPoints: true,
+                  highlightedDetection: _highlightedDetection,
+                  onCameraMove: _onMapCameraMove,
                 ),
               ),
 
@@ -1306,7 +1378,7 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
 
             // ── Species list ────────────────────────────────
             Expanded(
-              child: _speciesGroups.isEmpty
+              child: _filteredSpeciesGroups.isEmpty
                   ? Center(
                       child: Text(
                         l10n.sessionNoDetections,
@@ -1317,9 +1389,9 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
                     )
                   : ListView.builder(
                       padding: const EdgeInsets.only(bottom: 80),
-                      itemCount: _speciesGroups.length,
+                      itemCount: _filteredSpeciesGroups.length,
                       itemBuilder: (context, index) {
-                        final group = _speciesGroups[index];
+                        final group = _filteredSpeciesGroups[index];
                         final isExpanded =
                             _expandedSpecies.contains(group.scientificName);
                         final isActive = _isSpeciesActive(group);
@@ -1329,6 +1401,8 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
                           sessionStart: widget.session.startTime,
                           isExpanded: isExpanded,
                           isActive: isActive,
+                          isSurvey:
+                              widget.session.type == SessionType.survey,
                           onToggleExpand: () => setState(() {
                             if (isExpanded) {
                               _expandedSpecies.remove(group.scientificName);
@@ -1346,6 +1420,7 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
                           onDeleteCluster: (cluster) =>
                               _confirmDeleteDetection(group, cluster),
                           onReplaceCluster: _replaceDetection,
+                          onShowOnMap: _showDetectionOnMap,
                         );
                       },
                     ),

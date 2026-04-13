@@ -2,14 +2,15 @@
 // Survey Live Screen — Dashboard shown during an active survey
 // =============================================================================
 //
-// Lightweight, glanceable UI for an active survey.  Optimized for battery:
-// no spectrogram by default, no wake lock (screen can turn off).
+// Tabbed UI for an active survey with three tabs: Map, Spectrogram, Summary.
+// Map is the default tab and shows 50% of screen height.
 //
 // Layout (top → bottom):
-//   1. App bar with survey name, stop button
-//   2. Live map with GPS track and detection pins (flex: 3)
-//   3. Stats bar (duration, distance, detections, species)
-//   4. Recent detections list (flex: 2)
+//   1. Status bar with elapsed time, stop button, settings
+//   2. Tab bar: Map | Spectrogram | Summary
+//   3. Tab content (50% of screen)
+//   4. Stats bar (distance, detections, species, audio level)
+//   5. Recent detections list (remaining space)
 //
 // The survey runs primarily in the background.  When the user opens this
 // screen, the map and stats update live.
@@ -22,9 +23,11 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 
 import '../../shared/providers/settings_providers.dart';
 import '../audio/audio_providers.dart';
+import '../audio/ring_buffer.dart';
 import '../explore/explore_providers.dart';
 import '../explore/widgets/species_info_overlay.dart';
 import '../history/session_review_screen.dart';
@@ -33,6 +36,7 @@ import '../live/live_session.dart';
 import '../live/widgets/detection_list_widget.dart';
 import '../recording/recording_service.dart';
 import '../settings/settings_screen.dart';
+import '../spectrogram/spectrogram_widget.dart';
 import 'detection_sampler.dart';
 import 'survey_controller.dart';
 import 'survey_providers.dart';
@@ -49,6 +53,7 @@ class SurveyLiveScreen extends ConsumerStatefulWidget {
     this.startLatitude,
     this.startLongitude,
     this.backgroundGps = true,
+    this.resumeSession,
   });
 
   final String? customName;
@@ -58,19 +63,24 @@ class SurveyLiveScreen extends ConsumerStatefulWidget {
   final double? startLongitude;
   final bool backgroundGps;
 
+  /// If non-null, resume this unfinished session instead of starting fresh.
+  final LiveSession? resumeSession;
+
   @override
   ConsumerState<SurveyLiveScreen> createState() => _SurveyLiveScreenState();
 }
 
 class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   bool _started = false;
   bool _finalizing = false;
   Timer? _uiUpdateTimer;
+  late final TabController _tabController;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 3, vsync: this);
     WidgetsBinding.instance.addObserver(this);
 
     final controller = ref.read(surveyControllerProvider);
@@ -143,30 +153,53 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
     final geoScores = await ref.read(geoScoresProvider.future);
     final geoSpeciesNames = await ref.read(geoModelSpeciesNamesProvider.future);
 
-    await controller.startSurvey(
-      windowDuration: windowDuration,
-      inferenceRate: inferenceRate,
-      confidenceThreshold: confidenceThreshold,
-      speciesFilterMode: filterMode,
-      recordingMode: recordingMode,
-      recordingFormat: recordingFormat,
-      geoScores: geoScores,
-      geoThreshold: geoThreshold,
-      geoModelSpeciesNames: geoSpeciesNames,
-      gpsIntervalSeconds: gpsInterval,
-      maxDurationHours: maxDuration,
-      samplingMode: samplingMode,
-      topNPerSpecies: topN,
-      transectId: widget.transectId,
-      observerName: widget.observerName,
-      customName: widget.customName,
-      startLatitude: widget.startLatitude,
-      startLongitude: widget.startLongitude,
-      backgroundGps: widget.backgroundGps,
-      clipPreBuffer: clipPreBuffer,
-      clipPostBuffer: clipPostBuffer,
-      autoStopBattery: autoStopBattery,
-    );
+    if (widget.resumeSession != null) {
+      await controller.resumeSurvey(
+        existingSession: widget.resumeSession!,
+        windowDuration: windowDuration,
+        inferenceRate: inferenceRate,
+        confidenceThreshold: confidenceThreshold,
+        speciesFilterMode: filterMode,
+        recordingMode: recordingMode,
+        recordingFormat: recordingFormat,
+        geoScores: geoScores,
+        geoThreshold: geoThreshold,
+        geoModelSpeciesNames: geoSpeciesNames,
+        gpsIntervalSeconds: gpsInterval,
+        maxDurationHours: maxDuration,
+        samplingMode: samplingMode,
+        topNPerSpecies: topN,
+        backgroundGps: widget.backgroundGps,
+        clipPreBuffer: clipPreBuffer,
+        clipPostBuffer: clipPostBuffer,
+        autoStopBattery: autoStopBattery,
+      );
+    } else {
+      await controller.startSurvey(
+        windowDuration: windowDuration,
+        inferenceRate: inferenceRate,
+        confidenceThreshold: confidenceThreshold,
+        speciesFilterMode: filterMode,
+        recordingMode: recordingMode,
+        recordingFormat: recordingFormat,
+        geoScores: geoScores,
+        geoThreshold: geoThreshold,
+        geoModelSpeciesNames: geoSpeciesNames,
+        gpsIntervalSeconds: gpsInterval,
+        maxDurationHours: maxDuration,
+        samplingMode: samplingMode,
+        topNPerSpecies: topN,
+        transectId: widget.transectId,
+        observerName: widget.observerName,
+        customName: widget.customName,
+        startLatitude: widget.startLatitude,
+        startLongitude: widget.startLongitude,
+        backgroundGps: widget.backgroundGps,
+        clipPreBuffer: clipPreBuffer,
+        clipPostBuffer: clipPostBuffer,
+        autoStopBattery: autoStopBattery,
+      );
+    }
 
     _started = true;
     _onControllerStateChanged();
@@ -243,6 +276,7 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
     WidgetsBinding.instance.removeObserver(this);
     FlutterForegroundTask.removeTaskDataCallback(_onNotificationData);
     _uiUpdateTimer?.cancel();
+    _tabController.dispose();
     super.dispose();
   }
 
@@ -253,6 +287,8 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
     final controller = ref.read(surveyControllerProvider);
     final ringBuffer = ref.read(ringBufferProvider);
     final isActive = surveyState == SurveyState.active;
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
 
     return PopScope(
       canPop: false,
@@ -276,12 +312,49 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
                 onStop: _confirmStop,
               ),
 
-              // ── Live map ──────────────────────────────────────
+              // ── Tab bar ───────────────────────────────────────
+              TabBar(
+                controller: _tabController,
+                tabs: [
+                  Tab(
+                    icon: const Icon(Icons.map_outlined, size: 18),
+                    text: l10n.surveyTabMap,
+                  ),
+                  Tab(
+                    icon: const Icon(Icons.graphic_eq, size: 18),
+                    text: l10n.surveyTabSpectrogram,
+                  ),
+                  Tab(
+                    icon: Icon(MdiIcons.chartBar, size: 18),
+                    text: l10n.surveyTabSummary,
+                  ),
+                ],
+                labelPadding: const EdgeInsets.symmetric(horizontal: 8),
+                indicatorWeight: 2,
+                labelStyle: theme.textTheme.labelSmall,
+              ),
+
+              // ── Tab content (50% of screen) ───────────────────
               Expanded(
                 flex: 1,
-                child: SurveyMapWidget(
-                  gpsTrack: controller.gpsTracker?.track ?? [],
-                  detections: session?.detections ?? [],
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    // Map tab.
+                    SurveyMapWidget(
+                      gpsTrack: controller.gpsTracker?.track ?? [],
+                      detections: session?.detections ?? [],
+                    ),
+
+                    // Spectrogram tab.
+                    _SurveySpectrogram(
+                      ringBuffer: ringBuffer,
+                      isActive: isActive,
+                    ),
+
+                    // Summary tab.
+                    _SurveySummaryTab(session: session),
+                  ],
                 ),
               ),
 
@@ -291,6 +364,7 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
                 detectionCount: session?.detections.length ?? 0,
                 speciesCount: session?.uniqueSpeciesCount ?? 0,
                 audioLevel: ringBuffer.rmsLevel(),
+                peakLevel: ringBuffer.peakLevel(),
               ),
 
               // ── Recent detections ─────────────────────────────
@@ -411,6 +485,220 @@ class _SurveyStatusBar extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Survey Spectrogram Tab
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _SurveySpectrogram extends ConsumerWidget {
+  const _SurveySpectrogram({
+    required this.ringBuffer,
+    required this.isActive,
+  });
+
+  final RingBuffer ringBuffer;
+  final bool isActive;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final fftSize = ref.watch(fftSizeProvider);
+    final colorMap = ref.watch(colorMapProvider);
+    final dbFloor = ref.watch(dbFloorProvider);
+    final dbCeiling = ref.watch(dbCeilingProvider);
+    final durationSec = ref.watch(spectrogramDurationProvider);
+    final maxFreq = ref.watch(spectrogramMaxFreqProvider);
+    final logAmplitude = ref.watch(logAmplitudeProvider);
+
+    final hopSize = fftSize ~/ 2;
+    const sampleRate = 32000;
+    final maxColumns = (durationSec * sampleRate / hopSize).round();
+
+    return SpectrogramWidget(
+      ringBuffer: ringBuffer,
+      isActive: isActive,
+      fftSize: fftSize,
+      colorMapName: colorMap,
+      dbFloor: dbFloor,
+      dbCeiling: dbCeiling,
+      maxColumns: maxColumns,
+      showFrequencyAxis: false,
+      showTimeAxis: false,
+      maxDisplayFrequency: maxFreq,
+      logAmplitude: logAmplitude,
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Survey Summary Tab
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _SurveySummaryTab extends StatelessWidget {
+  const _SurveySummaryTab({required this.session});
+
+  final LiveSession? session;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+
+    if (session == null) {
+      return Center(
+        child: Text(
+          l10n.surveyStarting,
+          style: theme.textTheme.bodyLarge?.copyWith(
+            color: theme.colorScheme.onSurface.withAlpha(120),
+          ),
+        ),
+      );
+    }
+
+    final detections = session!.detections;
+    final speciesCounts = <String, _SpeciesSummary>{};
+    for (final d in detections) {
+      final existing = speciesCounts[d.scientificName];
+      if (existing == null) {
+        speciesCounts[d.scientificName] = _SpeciesSummary(
+          scientificName: d.scientificName,
+          commonName: d.commonName,
+          count: 1,
+          bestConfidence: d.confidence,
+        );
+      } else {
+        existing.count++;
+        if (d.confidence > existing.bestConfidence) {
+          existing.bestConfidence = d.confidence;
+        }
+      }
+    }
+
+    final sorted = speciesCounts.values.toList()
+      ..sort((a, b) => b.count.compareTo(a.count));
+
+    final elapsed = DateTime.now().difference(session!.startTime);
+    final rate = elapsed.inSeconds > 0
+        ? (detections.length / (elapsed.inMinutes.clamp(1, 999999)))
+            .toStringAsFixed(1)
+        : '0';
+
+    return ListView(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      children: [
+        // Quick stats row.
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _SummaryChip(
+              label: l10n.surveyTabSummarySpecies,
+              value: '${speciesCounts.length}',
+              theme: theme,
+            ),
+            _SummaryChip(
+              label: l10n.surveyTabSummaryDetections,
+              value: '${detections.length}',
+              theme: theme,
+            ),
+            _SummaryChip(
+              label: l10n.surveyTabSummaryRate,
+              value: '$rate/min',
+              theme: theme,
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+
+        // Species list.
+        for (final sp in sorted)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 28,
+                  child: Text(
+                    '${sp.count}×',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: theme.colorScheme.primary,
+                    ),
+                    textAlign: TextAlign.right,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    sp.commonName,
+                    style: theme.textTheme.bodySmall,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Text(
+                  '${(sp.bestConfidence * 100).toStringAsFixed(0)}%',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: sp.bestConfidence >= 0.7
+                        ? Colors.green
+                        : sp.bestConfidence >= 0.4
+                            ? Colors.amber
+                            : Colors.red,
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _SpeciesSummary {
+  _SpeciesSummary({
+    required this.scientificName,
+    required this.commonName,
+    required this.count,
+    required this.bestConfidence,
+  });
+
+  final String scientificName;
+  final String commonName;
+  int count;
+  double bestConfidence;
+}
+
+class _SummaryChip extends StatelessWidget {
+  const _SummaryChip({
+    required this.label,
+    required this.value,
+    required this.theme,
+  });
+
+  final String label;
+  final String value;
+  final ThemeData theme;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          value,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: theme.colorScheme.primary,
+          ),
+        ),
+        Text(
+          label,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: theme.colorScheme.onSurface.withAlpha(150),
+          ),
+        ),
+      ],
     );
   }
 }

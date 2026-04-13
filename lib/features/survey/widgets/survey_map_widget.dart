@@ -2,8 +2,8 @@
 // Survey Map Widget — Live map with GPS track and detection pins
 // =============================================================================
 //
-// Displays an OpenTopoMap tile layer with the GPS track as a polyline and
-// detection locations as colored markers.  Used both during an active survey
+// Displays OpenStreetMap tiles with the GPS track as a polyline and detection
+// locations as species-icon markers.  Used both during an active survey
 // and in session review.
 //
 // Privacy: Requires map tile consent (checked via SharedPreferences).
@@ -19,15 +19,29 @@ import 'package:latlong2/latlong.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../shared/models/gps_point.dart';
 import '../../../shared/providers/app_providers.dart';
+import '../../../shared/services/taxonomy_service.dart';
 import '../../live/live_session.dart';
 
 /// Live map showing GPS track and detection markers.
+///
+/// [fitAllPoints] — if true, auto-fits the camera to show the entire track
+/// and all detection markers (used in session review).  When false, the camera
+/// auto-follows the latest GPS point (used during active survey).
+///
+/// [highlightedDetection] — if non-null, the map centers on this detection
+/// and shows a pulsing ring around its marker.
+///
+/// [onCameraMove] — called whenever the camera moves, with the current
+/// visible bounds.  Used by the review screen for map-based filtering.
 class SurveyMapWidget extends ConsumerStatefulWidget {
   const SurveyMapWidget({
     super.key,
     required this.gpsTrack,
     required this.detections,
     this.autoFollow = true,
+    this.fitAllPoints = false,
+    this.highlightedDetection,
+    this.onCameraMove,
   });
 
   /// GPS track points.
@@ -39,6 +53,15 @@ class SurveyMapWidget extends ConsumerStatefulWidget {
   /// Whether the map auto-centers on the latest GPS point.
   final bool autoFollow;
 
+  /// If true, fit camera to show all track points and detections.
+  final bool fitAllPoints;
+
+  /// Detection to highlight (center + pulsing ring).
+  final DetectionRecord? highlightedDetection;
+
+  /// Called when the camera moves with the visible bounds.
+  final void Function(LatLngBounds bounds)? onCameraMove;
+
   @override
   ConsumerState<SurveyMapWidget> createState() => _SurveyMapWidgetState();
 }
@@ -47,6 +70,7 @@ class _SurveyMapWidgetState extends ConsumerState<SurveyMapWidget> {
   final MapController _mapController = MapController();
   bool? _hasConsent;
   int _lastTrackLength = 0;
+  bool _initialFitDone = false;
 
   @override
   void initState() {
@@ -57,8 +81,23 @@ class _SurveyMapWidgetState extends ConsumerState<SurveyMapWidget> {
   @override
   void didUpdateWidget(covariant SurveyMapWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
+
+    // Handle highlight change — center on highlighted detection.
+    if (widget.highlightedDetection != null &&
+        widget.highlightedDetection != oldWidget.highlightedDetection) {
+      final d = widget.highlightedDetection!;
+      if (d.latitude != null && d.longitude != null) {
+        _mapController.move(
+          LatLng(d.latitude!, d.longitude!),
+          18,
+        );
+      }
+      return;
+    }
+
     // Auto-follow: move camera when new GPS points arrive.
     if (widget.autoFollow &&
+        !widget.fitAllPoints &&
         widget.gpsTrack.length != _lastTrackLength &&
         widget.gpsTrack.isNotEmpty) {
       _lastTrackLength = widget.gpsTrack.length;
@@ -103,6 +142,28 @@ class _SurveyMapWidgetState extends ConsumerState<SurveyMapWidget> {
     }
   }
 
+  /// Compute bounds that contain all track points and detection locations.
+  LatLngBounds? _allPointsBounds() {
+    final points = <LatLng>[
+      ...widget.gpsTrack.map((p) => LatLng(p.latitude, p.longitude)),
+      ...widget.detections
+          .where((d) => d.latitude != null && d.longitude != null)
+          .map((d) => LatLng(d.latitude!, d.longitude!)),
+    ];
+    if (points.length < 2) return null;
+    var minLat = points.first.latitude;
+    var maxLat = points.first.latitude;
+    var minLon = points.first.longitude;
+    var maxLon = points.first.longitude;
+    for (final p in points) {
+      if (p.latitude < minLat) minLat = p.latitude;
+      if (p.latitude > maxLat) maxLat = p.latitude;
+      if (p.longitude < minLon) minLon = p.longitude;
+      if (p.longitude > maxLon) maxLon = p.longitude;
+    }
+    return LatLngBounds(LatLng(minLat, minLon), LatLng(maxLat, maxLon));
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_hasConsent != true) {
@@ -118,16 +179,39 @@ class _SurveyMapWidgetState extends ConsumerState<SurveyMapWidget> {
     final trackPoints =
         widget.gpsTrack.map((p) => LatLng(p.latitude, p.longitude)).toList();
 
-    // Build detection markers.
+    // Build detection markers with species icons.
     final markers = <Marker>[];
+
+    // Group detections by location to prevent overlapping.
+    // We show each unique species at each location once.
+    final detectionsByLocation = <String, DetectionRecord>{};
     for (final det in widget.detections) {
       if (det.latitude == null || det.longitude == null) continue;
+      // Key by rounded position + species to avoid duplicate icons.
+      final key =
+          '${det.latitude!.toStringAsFixed(5)}_${det.longitude!.toStringAsFixed(5)}_${det.scientificName}';
+      final existing = detectionsByLocation[key];
+      if (existing == null || det.confidence > existing.confidence) {
+        detectionsByLocation[key] = det;
+      }
+    }
+
+    for (final det in detectionsByLocation.values) {
+      final isHighlighted = widget.highlightedDetection != null &&
+          det.scientificName ==
+              widget.highlightedDetection!.scientificName &&
+          det.timestamp == widget.highlightedDetection!.timestamp;
+
       markers.add(
         Marker(
           point: LatLng(det.latitude!, det.longitude!),
-          width: 24,
-          height: 24,
-          child: _DetectionPin(confidence: det.confidence, theme: theme),
+          width: isHighlighted ? 44 : 32,
+          height: isHighlighted ? 44 : 32,
+          child: _SpeciesMarker(
+            scientificName: det.scientificName,
+            confidence: det.confidence,
+            isHighlighted: isHighlighted,
+          ),
         ),
       );
     }
@@ -138,20 +222,20 @@ class _SurveyMapWidgetState extends ConsumerState<SurveyMapWidget> {
         0,
         Marker(
           point: trackPoints.first,
-          width: 32,
-          height: 32,
+          width: 28,
+          height: 28,
           child:
-              Icon(Icons.flag_rounded, color: Colors.green.shade700, size: 32),
+              Icon(Icons.flag_rounded, color: Colors.green.shade700, size: 28),
         ),
       );
-      if (trackPoints.length > 1) {
+      if (trackPoints.length > 1 && !widget.fitAllPoints) {
         markers.add(
           Marker(
             point: trackPoints.last,
-            width: 32,
-            height: 32,
+            width: 28,
+            height: 28,
             child: Icon(Icons.person_pin_circle_rounded,
-                color: theme.colorScheme.primary, size: 32),
+                color: theme.colorScheme.primary, size: 28),
           ),
         );
       }
@@ -160,7 +244,13 @@ class _SurveyMapWidgetState extends ConsumerState<SurveyMapWidget> {
     // Determine center and zoom.
     LatLng center;
     double zoom;
-    if (trackPoints.isNotEmpty) {
+    if (widget.fitAllPoints) {
+      // Will be adjusted via fitBounds after first frame.
+      center = trackPoints.isNotEmpty
+          ? trackPoints.first
+          : const LatLng(52.52, 13.405);
+      zoom = 14;
+    } else if (trackPoints.isNotEmpty) {
       center = trackPoints.last;
       zoom = 18;
     } else {
@@ -173,6 +263,21 @@ class _SurveyMapWidgetState extends ConsumerState<SurveyMapWidget> {
       options: MapOptions(
         initialCenter: center,
         initialZoom: zoom,
+        maxZoom: 19,
+        onMapReady: () {
+          if (widget.fitAllPoints && !_initialFitDone) {
+            _fitBoundsIfNeeded();
+          }
+          // Report initial bounds.
+          if (widget.onCameraMove != null) {
+            widget.onCameraMove!(_mapController.camera.visibleBounds);
+          }
+        },
+        onPositionChanged: (pos, hasGesture) {
+          if (widget.onCameraMove != null) {
+            widget.onCameraMove!(_mapController.camera.visibleBounds);
+          }
+        },
       ),
       children: [
         TileLayer(
@@ -198,6 +303,19 @@ class _SurveyMapWidgetState extends ConsumerState<SurveyMapWidget> {
           ],
         ),
       ],
+    );
+  }
+
+  void _fitBoundsIfNeeded() {
+    final bounds = _allPointsBounds();
+    if (bounds == null) return;
+    _initialFitDone = true;
+    _mapController.fitCamera(
+      CameraFit.bounds(
+        bounds: bounds,
+        padding: const EdgeInsets.all(32),
+        maxZoom: 17,
+      ),
     );
   }
 
@@ -234,36 +352,62 @@ class _SurveyMapWidgetState extends ConsumerState<SurveyMapWidget> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Detection pin marker
+// Species marker with thumbnail image
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _DetectionPin extends StatelessWidget {
-  const _DetectionPin({required this.confidence, required this.theme});
+class _SpeciesMarker extends StatelessWidget {
+  const _SpeciesMarker({
+    required this.scientificName,
+    required this.confidence,
+    this.isHighlighted = false,
+  });
+
+  final String scientificName;
   final double confidence;
-  final ThemeData theme;
+  final bool isHighlighted;
 
   @override
   Widget build(BuildContext context) {
-    final color = confidence >= 0.8
+    final borderColor = confidence >= 0.8
         ? Colors.green
         : confidence >= 0.5
             ? Colors.amber.shade700
             : Colors.red;
 
+    final size = isHighlighted ? 40.0 : 28.0;
+
     return Container(
-      width: 12,
-      height: 12,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
-        color: color.withAlpha(180),
         shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 1.5),
+        border: Border.all(
+          color: isHighlighted ? Colors.blue : borderColor,
+          width: isHighlighted ? 3 : 2,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(40),
-            blurRadius: 2,
+            color: isHighlighted
+                ? Colors.blue.withAlpha(100)
+                : Colors.black.withAlpha(50),
+            blurRadius: isHighlighted ? 8 : 3,
             offset: const Offset(0, 1),
           ),
         ],
+      ),
+      child: ClipOval(
+        child: CachedNetworkImage(
+          imageUrl: TaxonomyService.thumbUrl(scientificName),
+          fit: BoxFit.cover,
+          placeholder: (_, __) => Container(
+            color: borderColor.withAlpha(60),
+            child: Icon(Icons.music_note, size: size * 0.45, color: borderColor),
+          ),
+          errorWidget: (_, __, ___) => Container(
+            color: borderColor.withAlpha(60),
+            child: Icon(Icons.music_note, size: size * 0.45, color: borderColor),
+          ),
+        ),
       ),
     );
   }

@@ -1427,5 +1427,37 @@
         "type": "int"
       }
     }
+  },
+  "surveyContinue": "Continue Survey",
+  "@surveyContinue": {
+    "description": "Tooltip for resume/continue button on unfinished survey sessions"
+  },
+  "surveyTabMap": "Map",
+  "@surveyTabMap": {
+    "description": "Tab label for map view in survey live screen"
+  },
+  "surveyTabSpectrogram": "Spectrogram",
+  "@surveyTabSpectrogram": {
+    "description": "Tab label for spectrogram view in survey live screen"
+  },
+  "surveyTabSummary": "Summary",
+  "@surveyTabSummary": {
+    "description": "Tab label for summary view in survey live screen"
+  },
+  "surveyTabSummarySpecies": "Species",
+  "@surveyTabSummarySpecies": {
+    "description": "Label for species count in survey summary"
+  },
+  "surveyTabSummaryDetections": "Detections",
+  "@surveyTabSummaryDetections": {
+    "description": "Label for detection count in survey summary"
+  },
+  "surveyTabSummaryRate": "Rate",
+  "@surveyTabSummaryRate": {
+    "description": "Label for detection rate in survey summary"
+  },
+  "sessionShowOnMap": "Show on map",
+  "@sessionShowOnMap": {
+    "description": "Tooltip for showing a detection on the map in session review"
   }
 }

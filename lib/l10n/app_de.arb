@@ -354,5 +354,13 @@
   "surveyStarting": "Startet...",
   "surveyJustNow": "gerade eben",
   "surveyAutoStopped": "Erhebung automatisch gestoppt: {reason}",
-  "surveyMinutesAgo": "vor {count} Min."
+  "surveyMinutesAgo": "vor {count} Min.",
+  "surveyContinue": "Erhebung fortsetzen",
+  "surveyTabMap": "Karte",
+  "surveyTabSpectrogram": "Spektrogramm",
+  "surveyTabSummary": "Zusammenfassung",
+  "surveyTabSummarySpecies": "Arten",
+  "surveyTabSummaryDetections": "Erkennungen",
+  "surveyTabSummaryRate": "Rate",
+  "sessionShowOnMap": "Auf Karte zeigen"
 }

@@ -544,17 +544,21 @@ class _SpeciesTile extends ConsumerWidget {
     required this.onSeekCluster,
     required this.onDeleteCluster,
     required this.onReplaceCluster,
+    this.isSurvey = false,
+    this.onShowOnMap,
   });
 
   final _SpeciesGroup group;
   final DateTime sessionStart;
   final bool isExpanded;
   final bool isActive;
+  final bool isSurvey;
   final VoidCallback onToggleExpand;
   final VoidCallback onSpeciesInfo;
   final ValueChanged<_DetectionCluster> onSeekCluster;
   final ValueChanged<_DetectionCluster> onDeleteCluster;
   final ValueChanged<_DetectionCluster> onReplaceCluster;
+  final ValueChanged<DetectionRecord>? onShowOnMap;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -750,6 +754,10 @@ class _SpeciesTile extends ConsumerWidget {
                       onSeek: () => onSeekCluster(cluster),
                       onDelete: () => onDeleteCluster(cluster),
                       onReplace: () => onReplaceCluster(cluster),
+                      isSurvey: isSurvey,
+                      onShowOnMap: onShowOnMap != null
+                          ? () => onShowOnMap!(cluster.records.first)
+                          : null,
                     ),
                 ],
               ),
@@ -791,6 +799,8 @@ class _ClusterRow extends StatelessWidget {
     required this.onSeek,
     required this.onDelete,
     required this.onReplace,
+    this.isSurvey = false,
+    this.onShowOnMap,
   });
 
   final _DetectionCluster cluster;
@@ -798,6 +808,8 @@ class _ClusterRow extends StatelessWidget {
   final VoidCallback onSeek;
   final VoidCallback onDelete;
   final VoidCallback onReplace;
+  final bool isSurvey;
+  final VoidCallback? onShowOnMap;
 
   @override
   Widget build(BuildContext context) {
@@ -854,6 +866,19 @@ class _ClusterRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 4),
+          if (isSurvey && onShowOnMap != null)
+            InkWell(
+              onTap: onShowOnMap,
+              borderRadius: BorderRadius.circular(24),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Icon(
+                  Icons.location_on_outlined,
+                  size: 24,
+                  color: theme.colorScheme.onSurface.withAlpha(100),
+                ),
+              ),
+            ),
           InkWell(
             onTap: onReplace,
             borderRadius: BorderRadius.circular(24),
