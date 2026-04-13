@@ -9,6 +9,8 @@ import '../live/live_screen.dart';
 import '../file_analysis/file_analysis_screen.dart';
 import '../point_count/point_count_setup_screen.dart';
 import '../settings/settings_screen.dart';
+import '../survey/survey_setup_screen.dart';
+import 'help_screen.dart';
 
 // =============================================================================
 // Home Screen — Main Menu
@@ -78,8 +80,8 @@ class _LogoHeader extends ConsumerWidget {
       children: [
         // Circular logo with subtle glow.
         Container(
-          width: 96,
-          height: 96,
+          width: 120,
+          height: 120,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             boxShadow: [
@@ -93,8 +95,8 @@ class _LogoHeader extends ConsumerWidget {
           child: ClipOval(
             child: Image.asset(
               'assets/images/app-icon.png',
-              width: 96,
-              height: 96,
+              width: 120,
+              height: 120,
               fit: BoxFit.cover,
             ),
           ),
@@ -170,7 +172,7 @@ class _ModeGrid extends StatelessWidget {
             label: l10n.surveyMode,
             description: l10n.surveyModeDescription,
             color: theme.colorScheme.tertiary,
-            comingSoon: true,
+            onTap: () => _openSurvey(context),
           ),
           _ModeCard(
             icon: Icons.audio_file_rounded,
@@ -200,6 +202,14 @@ class _ModeGrid extends StatelessWidget {
     );
   }
 
+  void _openSurvey(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => const SurveySetupScreen(),
+      ),
+    );
+  }
+
   void _openFileAnalysis(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -219,7 +229,6 @@ class _ModeCard extends StatelessWidget {
     required this.label,
     required this.description,
     required this.color,
-    this.comingSoon = false,
     this.onTap,
   });
 
@@ -227,14 +236,12 @@ class _ModeCard extends StatelessWidget {
   final String label;
   final String description;
   final Color color;
-  final bool comingSoon;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final l10n = AppLocalizations.of(context)!;
 
     return Material(
       color: isDark
@@ -243,69 +250,41 @@ class _ModeCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
-        onTap: comingSoon ? null : onTap,
-        child: Stack(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Icon in a tinted circle.
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: color.withAlpha(isDark ? 50 : 30),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Icon(icon, color: color, size: 24),
-                  ),
-                  const Spacer(),
-                  Text(
-                    label,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: comingSoon
-                          ? theme.colorScheme.onSurface.withAlpha(100)
-                          : theme.colorScheme.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    description,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withAlpha(100),
-                      fontSize: 11,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Icon in a tinted circle.
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: color.withAlpha(isDark ? 50 : 30),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, color: color, size: 24),
               ),
-            ),
-            // "Coming Soon" badge.
-            if (comingSoon)
-              Positioned(
-                top: 8,
-                right: 8,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    l10n.comingSoon,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      fontSize: 9,
-                      color: theme.colorScheme.onSurface.withAlpha(120),
-                    ),
-                  ),
+              const Spacer(),
+              Text(
+                label,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-          ],
+              const SizedBox(height: 2),
+              Text(
+                description,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurface.withAlpha(100),
+                  fontSize: 11,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -313,7 +292,7 @@ class _ModeCard extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Footer — Settings & About
+// Footer — 5 items in two rows (3 + 2)
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _Footer extends StatelessWidget {
@@ -323,96 +302,91 @@ class _Footer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          TextButton.icon(
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const SettingsScreen(),
-                ),
-              );
-            },
-            icon: Icon(
-              Icons.tune_rounded,
-              size: 18,
-              color: theme.colorScheme.onSurface.withAlpha(153),
-            ),
-            label: Text(
-              l10n.settings,
-              style: TextStyle(
-                color: theme.colorScheme.onSurface.withAlpha(153),
+    final color = theme.colorScheme.onSurface.withAlpha(153);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // ── Row 1: Settings, Explore, Sessions ──
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _FooterButton(
+              icon: Icons.tune_rounded,
+              label: l10n.settings,
+              color: color,
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const SettingsScreen()),
               ),
             ),
-          ),
-          const SizedBox(width: 16),
-          TextButton.icon(
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const ExploreScreen(),
-                ),
-              );
-            },
-            icon: Icon(
-              Icons.search_rounded,
-              size: 18,
-              color: theme.colorScheme.onSurface.withAlpha(153),
-            ),
-            label: Text(
-              l10n.exploreMode,
-              style: TextStyle(
-                color: theme.colorScheme.onSurface.withAlpha(153),
+            const SizedBox(width: 12),
+            _FooterButton(
+              icon: Icons.search_rounded,
+              label: l10n.exploreMode,
+              color: color,
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const ExploreScreen()),
               ),
             ),
-          ),
-          const SizedBox(width: 16),
-          TextButton.icon(
-            onPressed: () {
-              Navigator.of(context).push(
+            const SizedBox(width: 12),
+            _FooterButton(
+              icon: Icons.library_music_outlined,
+              label: l10n.sessionLibraryTitle,
+              color: color,
+              onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute<void>(
-                  builder: (_) => const SessionLibraryScreen(),
-                ),
-              );
-            },
-            icon: Icon(
-              Icons.library_music_outlined,
-              size: 18,
-              color: theme.colorScheme.onSurface.withAlpha(153),
-            ),
-            label: Text(
-              l10n.sessionLibraryTitle,
-              style: TextStyle(
-                color: theme.colorScheme.onSurface.withAlpha(153),
+                    builder: (_) => const SessionLibraryScreen()),
               ),
             ),
-          ),
-          const SizedBox(width: 16),
-          TextButton.icon(
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const AboutScreen(),
-                ),
-              );
-            },
-            icon: Icon(
-              Icons.info_outline,
-              size: 18,
-              color: theme.colorScheme.onSurface.withAlpha(153),
-            ),
-            label: Text(
-              l10n.about,
-              style: TextStyle(
-                color: theme.colorScheme.onSurface.withAlpha(153),
+          ],
+        ),
+        const SizedBox(height: 4),
+        // ── Row 2: Help, About ──
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _FooterButton(
+              icon: Icons.help_outline_rounded,
+              label: l10n.helpTitle,
+              color: color,
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const HelpScreen()),
               ),
             ),
-          ),
-        ],
-      ),
+            const SizedBox(width: 12),
+            _FooterButton(
+              icon: Icons.info_outline,
+              label: l10n.about,
+              color: color,
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const AboutScreen()),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _FooterButton extends StatelessWidget {
+  const _FooterButton({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon, size: 18, color: color),
+      label: Text(label, style: TextStyle(color: color)),
     );
   }
 }

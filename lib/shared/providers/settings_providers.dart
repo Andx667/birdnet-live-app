@@ -252,6 +252,96 @@ final pointCountDurationProvider =
   return IntSettingNotifier(prefs, PrefKeys.pointCountDuration, 5);
 });
 
+// ---------------------------------------------------------------------------
+// Survey Mode
+// ---------------------------------------------------------------------------
+
+/// Survey inference rate in Hz (default 0.25).
+final surveyInferenceRateProvider =
+    StateNotifierProvider<DoubleSettingNotifier, double>((ref) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return DoubleSettingNotifier(prefs, PrefKeys.surveyInferenceRate, 0.3);
+});
+
+/// GPS logging interval in seconds (default 10).
+final surveyGpsIntervalProvider =
+    StateNotifierProvider<IntSettingNotifier, int>((ref) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return IntSettingNotifier(prefs, PrefKeys.surveyGpsInterval, 10);
+});
+
+/// Maximum survey duration in hours (default 12).
+final surveyMaxDurationProvider =
+    StateNotifierProvider<IntSettingNotifier, int>((ref) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return IntSettingNotifier(prefs, PrefKeys.surveyMaxDuration, 8);
+});
+
+/// Auto-stop battery threshold in percent (default 0 = off).
+final surveyAutoStopBatteryProvider =
+    StateNotifierProvider<IntSettingNotifier, int>((ref) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return IntSettingNotifier(prefs, PrefKeys.surveyAutoStopBattery, 0);
+});
+
+/// Survey recording mode ('full', 'detections', 'off' — default 'detections').
+final surveyRecordingModeProvider =
+    StateNotifierProvider<StringSettingNotifier, String>((ref) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return StringSettingNotifier(
+      prefs, PrefKeys.surveyRecordingMode, 'detections');
+});
+
+/// Survey clip pre-buffer in seconds (additive, default 3).
+final surveyClipPreBufferProvider =
+    StateNotifierProvider<IntSettingNotifier, int>((ref) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return IntSettingNotifier(prefs, PrefKeys.surveyClipPreBuffer, 3);
+});
+
+/// Survey clip post-buffer in seconds (additive, default 3).
+final surveyClipPostBufferProvider =
+    StateNotifierProvider<IntSettingNotifier, int>((ref) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return IntSettingNotifier(prefs, PrefKeys.surveyClipPostBuffer, 3);
+});
+
+/// Detection sampling mode ('all', 'topN', 'smart' — default 'smart').
+final surveyDetectionSamplingProvider =
+    StateNotifierProvider<StringSettingNotifier, String>((ref) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return StringSettingNotifier(
+      prefs, PrefKeys.surveyDetectionSampling, 'smart');
+});
+
+/// Top N detections per species to keep (default 10).
+final surveyTopNPerSpeciesProvider =
+    StateNotifierProvider<IntSettingNotifier, int>((ref) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return IntSettingNotifier(prefs, PrefKeys.surveyTopNPerSpecies, 10);
+});
+
+/// Preferred microphone device ID (empty = system default).
+final surveyMicDeviceIdProvider =
+    StateNotifierProvider<StringSettingNotifier, String>((ref) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return StringSettingNotifier(prefs, PrefKeys.surveyMicDeviceId, '');
+});
+
+/// Last used observer name (persisted for convenience).
+final surveyLastObserverProvider =
+    StateNotifierProvider<StringSettingNotifier, String>((ref) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return StringSettingNotifier(prefs, PrefKeys.surveyLastObserver, '');
+});
+
+/// Last used transect ID (persisted for convenience).
+final surveyLastTransectIdProvider =
+    StateNotifierProvider<StringSettingNotifier, String>((ref) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return StringSettingNotifier(prefs, PrefKeys.surveyLastTransectId, '');
+});
+
 // ===========================================================================
 // Generic setting notifiers
 // ===========================================================================

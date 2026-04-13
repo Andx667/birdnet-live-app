@@ -10,17 +10,23 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../shared/providers/settings_providers.dart';
+import '../explore/explore_providers.dart';
 import '../live/live_providers.dart';
 import '../live/live_session.dart';
 import 'session_review_screen.dart';
 
 /// How sessions are ordered in the library.
 enum _SortMode { dateDesc, dateAsc, nameAsc, nameDesc }
+
+/// How sessions are presented in the library.
+enum _ViewMode { detailed, compact, bySpecies }
 
 /// Displays a list of all saved sessions from the session repository.
 class SessionLibraryScreen extends ConsumerStatefulWidget {
@@ -35,6 +41,7 @@ class _SessionLibraryScreenState extends ConsumerState<SessionLibraryScreen> {
   final _searchController = TextEditingController();
   bool _showSearch = false;
   _SortMode _sortMode = _SortMode.dateDesc;
+  _ViewMode _viewMode = _ViewMode.detailed;
 
   @override
   void dispose() {
@@ -98,6 +105,38 @@ class _SessionLibraryScreenState extends ConsumerState<SessionLibraryScreen> {
     );
   }
 
+  PopupMenuItem<_ViewMode> _viewMenuItem(
+    _ViewMode mode,
+    String label,
+    AppLocalizations l10n,
+  ) {
+    return PopupMenuItem<_ViewMode>(
+      value: mode,
+      child: Row(
+        children: [
+          if (mode == _viewMode)
+            Icon(Icons.check,
+                size: 18, color: Theme.of(context).colorScheme.primary)
+          else
+            const SizedBox(width: 18),
+          const SizedBox(width: 8),
+          Text(label),
+        ],
+      ),
+    );
+  }
+
+  static IconData _viewModeIcon(_ViewMode mode) {
+    switch (mode) {
+      case _ViewMode.detailed:
+        return Icons.view_agenda_outlined;
+      case _ViewMode.compact:
+        return Icons.view_list_outlined;
+      case _ViewMode.bySpecies:
+        return Icons.category_outlined;
+    }
+  }
+
   List<LiveSession> _applySorting(List<LiveSession> sessions) {
     final l10n = AppLocalizations.of(context)!;
     final sorted = List.of(sessions);
@@ -149,6 +188,18 @@ class _SessionLibraryScreenState extends ConsumerState<SessionLibraryScreen> {
             IconButton(
               icon: const Icon(Icons.search),
               onPressed: () => setState(() => _showSearch = true),
+            ),
+            PopupMenuButton<_ViewMode>(
+              icon: Icon(_viewModeIcon(_viewMode)),
+              tooltip: l10n.sessionViewTooltip,
+              onSelected: (mode) => setState(() => _viewMode = mode),
+              itemBuilder: (_) => [
+                _viewMenuItem(
+                    _ViewMode.detailed, l10n.sessionViewDetailed, l10n),
+                _viewMenuItem(_ViewMode.compact, l10n.sessionViewCompact, l10n),
+                _viewMenuItem(
+                    _ViewMode.bySpecies, l10n.sessionViewBySpecies, l10n),
+              ],
             ),
             PopupMenuButton<_SortMode>(
               icon: const Icon(Icons.swap_vert),
@@ -209,11 +260,26 @@ class _SessionLibraryScreenState extends ConsumerState<SessionLibraryScreen> {
             );
           }
 
+          if (_viewMode == _ViewMode.bySpecies) {
+            return _SpeciesGroupedView(
+              sessions: filtered,
+              onTap: _openReview,
+              onDelete: _confirmDelete,
+            );
+          }
+
           return ListView.builder(
             padding: const EdgeInsets.symmetric(vertical: 8),
             itemCount: filtered.length,
             itemBuilder: (context, index) {
               final session = filtered[index];
+              if (_viewMode == _ViewMode.compact) {
+                return _CompactSessionTile(
+                  session: session,
+                  onTap: () => _openReview(session),
+                  onDelete: () => _confirmDelete(session),
+                );
+              }
               return _SessionTile(
                 session: session,
                 onTap: () => _openReview(session),
@@ -263,7 +329,7 @@ class _SessionLibraryScreenState extends ConsumerState<SessionLibraryScreen> {
 // Session Tile
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _SessionTile extends StatelessWidget {
+class _SessionTile extends ConsumerWidget {
   const _SessionTile({
     required this.session,
     required this.onTap,
@@ -275,7 +341,7 @@ class _SessionTile extends StatelessWidget {
   final VoidCallback onDelete;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final dateStr = DateFormat.yMMMd().format(session.startTime);
     final timeStr = DateFormat.jm().format(session.startTime);
@@ -378,21 +444,28 @@ class _SessionTile extends StatelessWidget {
                   ),
                 ],
               ),
-              if (_topSpecies(session).isNotEmpty) ...[
+              if (_topSpeciesSci(session).isNotEmpty) ...[
                 const SizedBox(height: 10),
                 Wrap(
                   spacing: 8,
                   runSpacing: 4,
-                  children: _topSpecies(session)
-                      .map((name) => Chip(
-                            materialTapTargetSize:
-                                MaterialTapTargetSize.shrinkWrap,
-                            visualDensity: VisualDensity.compact,
-                            label:
-                                Text(name, style: theme.textTheme.labelSmall),
-                            padding: EdgeInsets.zero,
-                          ))
-                      .toList(),
+                  children: _topSpeciesSci(session).map((entry) {
+                    final speciesLocale =
+                        ref.watch(effectiveSpeciesLocaleProvider);
+                    final taxonomy =
+                        ref.watch(taxonomyServiceProvider).valueOrNull;
+                    final displayName = taxonomy
+                            ?.lookup(entry.key)
+                            ?.commonNameForLocale(speciesLocale) ??
+                        entry.value;
+                    return Chip(
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      visualDensity: VisualDensity.compact,
+                      label:
+                          Text(displayName, style: theme.textTheme.labelSmall),
+                      padding: EdgeInsets.zero,
+                    );
+                  }).toList(),
                 ),
               ],
               const SizedBox(height: 12),
@@ -429,6 +502,196 @@ class _SessionTile extends StatelessWidget {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Compact Session Tile
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _CompactSessionTile extends ConsumerWidget {
+  const _CompactSessionTile({
+    required this.session,
+    required this.onTap,
+    required this.onDelete,
+  });
+
+  final LiveSession session;
+  final VoidCallback onTap;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final dateStr = DateFormat.yMMMd().format(session.startTime);
+
+    final duration = session.duration;
+    final speciesCount = session.uniqueSpeciesCount;
+
+    return ListTile(
+      leading: Icon(
+        _sessionTypeIcon(session.type),
+        color: theme.colorScheme.primary,
+      ),
+      title: Text(
+        _sessionCardTitle(l10n, session),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      subtitle: Text(
+        '$dateStr · ${_formatCompactDuration(duration)} · $speciesCount spp.',
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+      ),
+      trailing: IconButton(
+        icon: Icon(Icons.delete_outline,
+            size: 20, color: theme.colorScheme.error),
+        onPressed: onDelete,
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints(),
+      ),
+      onTap: onTap,
+    );
+  }
+
+  String _formatCompactDuration(Duration d) {
+    final hours = d.inHours;
+    final minutes = d.inMinutes.remainder(60);
+    if (hours > 0) return '${hours}h ${minutes}m';
+    return '${minutes}m';
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Species-Grouped View
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _SpeciesGroupedView extends ConsumerWidget {
+  const _SpeciesGroupedView({
+    required this.sessions,
+    required this.onTap,
+    required this.onDelete,
+  });
+
+  final List<LiveSession> sessions;
+  final void Function(LiveSession) onTap;
+  final void Function(LiveSession) onDelete;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final speciesLocale = ref.watch(effectiveSpeciesLocaleProvider);
+    final taxonomy = ref.watch(taxonomyServiceProvider).valueOrNull;
+
+    // Group: scientificName → set of sessions containing it.
+    final speciesMap = <String, _SpeciesGroup>{};
+    for (final session in sessions) {
+      for (final d in session.detections) {
+        final group = speciesMap.putIfAbsent(
+          d.scientificName,
+          () => _SpeciesGroup(
+            scientificName: d.scientificName,
+            commonName: d.commonName,
+          ),
+        );
+        group.sessionIds.add(session.id);
+      }
+    }
+
+    // Sort by number of sessions (descending), then alphabetically.
+    final sorted = speciesMap.values.toList()
+      ..sort((a, b) {
+        final cmp = b.sessionIds.length.compareTo(a.sessionIds.length);
+        if (cmp != 0) return cmp;
+        return a.commonName.compareTo(b.commonName);
+      });
+
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      itemCount: sorted.length,
+      itemBuilder: (context, index) {
+        final group = sorted[index];
+        final taxon = taxonomy?.lookup(group.scientificName);
+        final displayName =
+            taxon?.commonNameForLocale(speciesLocale) ?? group.commonName;
+        final sessionCount = group.sessionIds.length;
+
+        return ExpansionTile(
+          leading: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: SizedBox(
+              width: 40,
+              height: 30,
+              child: taxon != null
+                  ? CachedNetworkImage(
+                      imageUrl: taxon.thumbUrl,
+                      fit: BoxFit.cover,
+                      placeholder: (_, __) => ColoredBox(
+                        color: theme.colorScheme.surfaceContainerHighest,
+                        child: Icon(MdiIcons.bird,
+                            size: 18,
+                            color: theme.colorScheme.onSurfaceVariant),
+                      ),
+                      errorWidget: (_, __, ___) => ColoredBox(
+                        color: theme.colorScheme.surfaceContainerHighest,
+                        child: Icon(MdiIcons.bird,
+                            size: 18,
+                            color: theme.colorScheme.onSurfaceVariant),
+                      ),
+                    )
+                  : ColoredBox(
+                      color: theme.colorScheme.surfaceContainerHighest,
+                      child: Icon(MdiIcons.bird,
+                          size: 18, color: theme.colorScheme.onSurfaceVariant),
+                    ),
+            ),
+          ),
+          title: Text(displayName, style: theme.textTheme.titleSmall),
+          subtitle: Text(
+            '${group.scientificName} · ${l10n.sessionSpeciesSessionCount(sessionCount)}',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          children: [
+            for (final session
+                in sessions.where((s) => group.sessionIds.contains(s.id)))
+              ListTile(
+                dense: true,
+                leading: Icon(
+                  _sessionTypeIcon(session.type),
+                  size: 20,
+                  color: theme.colorScheme.primary,
+                ),
+                title: Text(
+                  _sessionCardTitle(l10n, session),
+                  style: theme.textTheme.bodyMedium,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: Text(
+                  DateFormat.yMMMd().format(session.startTime),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                onTap: () => onTap(session),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _SpeciesGroup {
+  _SpeciesGroup({required this.scientificName, required this.commonName});
+  final String scientificName;
+  final String commonName;
+  final Set<String> sessionIds = {};
+}
+
+/// Displays a single stat (icon + label) for the session tile.
 class _StatBadge extends StatelessWidget {
   const _StatBadge({required this.icon, required this.label});
 
@@ -483,15 +746,19 @@ IconData _sessionTypeIcon(SessionType type) {
   }
 }
 
-/// Returns the common names of the top 5 most-detected species.
-List<String> _topSpecies(LiveSession session) {
+/// Returns the top 5 most-detected species as (scientificName, commonName)
+/// pairs, ordered by detection count.  The common name is the raw English
+/// fallback — callers should translate via [TaxonomyService] if available.
+List<MapEntry<String, String>> _topSpeciesSci(LiveSession session) {
   final counts = <String, int>{};
+  final names = <String, String>{};
   for (final d in session.detections) {
-    counts[d.commonName] = (counts[d.commonName] ?? 0) + 1;
+    counts[d.scientificName] = (counts[d.scientificName] ?? 0) + 1;
+    names.putIfAbsent(d.scientificName, () => d.commonName);
   }
   final sorted = counts.entries.toList()
     ..sort((a, b) => b.value.compareTo(a.value));
-  return sorted.take(5).map((e) => e.key).toList();
+  return sorted.take(5).map((e) => MapEntry(e.key, names[e.key]!)).toList();
 }
 
 /// Returns a numbered card title such as "Live Session #3".

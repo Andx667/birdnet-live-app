@@ -95,4 +95,18 @@ abstract final class PrefKeys {
 
   // Point count settings
   static const String pointCountDuration = 'point_count_duration';
+
+  // Survey settings
+  static const String surveyInferenceRate = 'survey_inference_rate';
+  static const String surveyGpsInterval = 'survey_gps_interval';
+  static const String surveyMaxDuration = 'survey_max_duration';
+  static const String surveyAutoStopBattery = 'survey_auto_stop_battery';
+  static const String surveyRecordingMode = 'survey_recording_mode';
+  static const String surveyClipPreBuffer = 'survey_clip_pre_buffer';
+  static const String surveyClipPostBuffer = 'survey_clip_post_buffer';
+  static const String surveyDetectionSampling = 'survey_detection_sampling';
+  static const String surveyTopNPerSpecies = 'survey_top_n_per_species';
+  static const String surveyMicDeviceId = 'survey_mic_device_id';
+  static const String surveyLastObserver = 'survey_last_observer';
+  static const String surveyLastTransectId = 'survey_last_transect_id';
 }

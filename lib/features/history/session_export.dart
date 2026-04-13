@@ -163,6 +163,10 @@ Future<String?> buildSessionExport(
       fileContent = buildJsonExport(session);
       extension = '.json';
       break;
+    case 'gpx':
+      fileContent = buildGpxExport(session);
+      extension = '.gpx';
+      break;
     case 'raven':
     default:
       fileContent = buildRavenSelectionTable(session);
@@ -231,4 +235,77 @@ String _buildAnnotationsText(LiveSession session) {
   }
 
   return buf.toString();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GPX Export — GPS track + detection waypoints
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Generates a GPX 1.1 document from a survey session.
+///
+/// Contains:
+///   • `<trk>` with `<trkseg>` of GPS track points
+///   • `<wpt>` for each detection with lat/lon coordinates
+String buildGpxExport(LiveSession session) {
+  final buf = StringBuffer();
+
+  buf.writeln('<?xml version="1.0" encoding="UTF-8"?>');
+  buf.writeln('<gpx version="1.1" creator="BirdNET Live"');
+  buf.writeln('  xmlns="http://www.topografix.com/GPX/1/1"');
+  buf.writeln('  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"');
+  buf.writeln('  xsi:schemaLocation="http://www.topografix.com/GPX/1/1 '
+      'http://www.topografix.com/GPX/1/1/gpx.xsd">');
+
+  // Metadata.
+  buf.writeln('  <metadata>');
+  buf.writeln('    <name>${_xmlEscape(session.displayName)}</name>');
+  buf.writeln(
+      '    <time>${session.startTime.toUtc().toIso8601String()}</time>');
+  if (session.observerName != null && session.observerName!.isNotEmpty) {
+    buf.writeln(
+        '    <author><name>${_xmlEscape(session.observerName!)}</name></author>');
+  }
+  buf.writeln('  </metadata>');
+
+  // Detection waypoints.
+  for (final d in session.detections) {
+    if (d.latitude == null || d.longitude == null) continue;
+    buf.writeln('  <wpt lat="${d.latitude}" lon="${d.longitude}">');
+    buf.writeln('    <time>${d.timestamp.toUtc().toIso8601String()}</time>');
+    buf.writeln('    <name>${_xmlEscape(d.commonName)}</name>');
+    buf.writeln(
+        '    <desc>${_xmlEscape(d.scientificName)} (${(d.confidence * 100).toStringAsFixed(1)}%)</desc>');
+    buf.writeln('  </wpt>');
+  }
+
+  // GPS track.
+  if (session.gpsTrack.isNotEmpty) {
+    final trackName = session.transectId ?? session.displayName;
+    buf.writeln('  <trk>');
+    buf.writeln('    <name>${_xmlEscape(trackName)}</name>');
+    buf.writeln('    <trkseg>');
+    for (final pt in session.gpsTrack) {
+      buf.write('      <trkpt lat="${pt.latitude}" lon="${pt.longitude}">');
+      if (pt.altitude != null) {
+        buf.write('<ele>${pt.altitude!.toStringAsFixed(1)}</ele>');
+      }
+      buf.write('<time>${pt.timestamp.toUtc().toIso8601String()}</time>');
+      buf.writeln('</trkpt>');
+    }
+    buf.writeln('    </trkseg>');
+    buf.writeln('  </trk>');
+  }
+
+  buf.writeln('</gpx>');
+  return buf.toString();
+}
+
+/// XML-safe escaping for attribute and text content.
+String _xmlEscape(String input) {
+  return input
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&apos;');
 }

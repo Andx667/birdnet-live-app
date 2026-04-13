@@ -381,7 +381,8 @@ class SettingsScreen extends ConsumerWidget {
               options: const {
                 'raven': 'Raven Selection Table',
                 'csv': 'CSV',
-                'json': 'JSON'
+                'json': 'JSON',
+                'gpx': 'GPX (track + waypoints)',
               },
               onChanged: (v) => ref.read(exportFormatProvider.notifier).set(v),
             ),

@@ -15,6 +15,7 @@
 
 import 'package:intl/intl.dart';
 
+import '../../shared/models/gps_point.dart';
 import '../inference/models/detection.dart';
 import '../inference/models/species.dart';
 
@@ -98,6 +99,8 @@ class DetectionRecord {
     required this.timestamp,
     this.audioClipPath,
     this.source = DetectionSource.auto,
+    this.latitude,
+    this.longitude,
   });
 
   /// Scientific name of the detected species.
@@ -119,6 +122,12 @@ class DetectionRecord {
 
   /// How this detection was created.
   final DetectionSource source;
+
+  /// GPS latitude at the time of detection (null if unavailable).
+  final double? latitude;
+
+  /// GPS longitude at the time of detection (null if unavailable).
+  final double? longitude;
 
   /// Scientific name placeholder for unknown / unidentifiable species.
   static const String unknownSpeciesName = 'Unknown species';
@@ -156,6 +165,8 @@ class DetectionRecord {
         'manualGlobal' => DetectionSource.manualGlobal,
         _ => DetectionSource.auto,
       },
+      latitude: (json['detLat'] as num?)?.toDouble(),
+      longitude: (json['detLon'] as num?)?.toDouble(),
     );
   }
 
@@ -167,6 +178,8 @@ class DetectionRecord {
         'timestamp': timestamp.toIso8601String(),
         if (audioClipPath != null) 'audioClipPath': audioClipPath,
         if (source != DetectionSource.auto) 'source': source.name,
+        if (latitude != null) 'detLat': latitude,
+        if (longitude != null) 'detLon': longitude,
       };
 
   /// Confidence expressed as a percentage string, e.g. "87.3 %".
@@ -242,8 +255,13 @@ class LiveSession {
     this.latitude,
     this.longitude,
     this.locationName,
+    List<GpsPoint>? gpsTrack,
+    this.distanceMeters,
+    this.transectId,
+    this.observerName,
   })  : detections = detections ?? [],
-        annotations = annotations ?? [];
+        annotations = annotations ?? [],
+        gpsTrack = gpsTrack ?? [];
 
   /// Unique session identifier (ISO 8601 timestamp-based).
   final String id;
@@ -302,6 +320,18 @@ class LiveSession {
   ///
   /// Populated on first review when internet is available.
   String? locationName;
+
+  /// GPS track recorded during a survey (empty for other session types).
+  final List<GpsPoint> gpsTrack;
+
+  /// Total distance walked in meters (computed from gpsTrack).
+  double? distanceMeters;
+
+  /// Transect / route identifier for repeat surveys.
+  String? transectId;
+
+  /// Name of the observer (remembered across sessions).
+  String? observerName;
 
   /// Whether this session is still active (no end time).
   bool get isActive => endTime == null;
@@ -382,6 +412,13 @@ class LiveSession {
       longitude: (json['longitude'] as num?)?.toDouble(),
       locationName: json['locationName'] as String?,
       customName: json['customName'] as String?,
+      gpsTrack: (json['gpsTrack'] as List<dynamic>?)
+              ?.map((p) => GpsPoint.fromJson(p as Map<String, dynamic>))
+              .toList() ??
+          [],
+      distanceMeters: (json['distanceMeters'] as num?)?.toDouble(),
+      transectId: json['transectId'] as String?,
+      observerName: json['observerName'] as String?,
     );
   }
 
@@ -403,6 +440,11 @@ class LiveSession {
         if (longitude != null) 'longitude': longitude,
         if (locationName != null) 'locationName': locationName,
         if (customName != null) 'customName': customName,
+        if (gpsTrack.isNotEmpty)
+          'gpsTrack': gpsTrack.map((p) => p.toJson()).toList(),
+        if (distanceMeters != null) 'distanceMeters': distanceMeters,
+        if (transectId != null) 'transectId': transectId,
+        if (observerName != null) 'observerName': observerName,
       };
 
   @override

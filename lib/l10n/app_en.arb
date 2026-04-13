@@ -156,7 +156,7 @@
   "@consentMapTilesTitle": {
     "description": "Map tile consent title"
   },
-  "consentMapTilesDescription": "Download map tiles from OpenTopoMap for GPS visualization. This requires an internet connection.",
+  "consentMapTilesDescription": "Download map tiles from OpenStreetMap for GPS visualization. This requires an internet connection.",
   "@consentMapTilesDescription": {
     "description": "Map tile consent description"
   },
@@ -749,7 +749,7 @@
   "@mapTileConsentTitle": {
     "description": "Title for the map tile consent dialog"
   },
-  "mapTileConsentBody": "Loading the map connects to OpenTopoMap tile servers. Your IP address and approximate location will be visible to the tile server.\n\nDo you agree to load map tiles?",
+  "mapTileConsentBody": "Loading the map connects to OpenStreetMap tile servers. Your IP address and approximate location will be visible to the tile server.\n\nDo you agree to load map tiles?",
   "@mapTileConsentBody": {
     "description": "Body text for the map tile consent dialog"
   },
@@ -765,7 +765,7 @@
   "@mapLoadButton": {
     "description": "Button to load the map after granting consent"
   },
-  "mapLoadHint": "Requires connecting to OpenTopoMap tile servers.",
+  "mapLoadHint": "Requires connecting to OpenStreetMap tile servers.",
   "@mapLoadHint": {
     "description": "Hint shown below the Load Map button"
   },
@@ -1236,5 +1236,418 @@
   "mapPickerConfirm": "Use this location",
   "@mapPickerConfirm": {
     "description": "Button to confirm map-picked location"
+  },
+
+  "surveySetupTitle": "Survey Setup",
+  "@surveySetupTitle": {
+    "description": "Title of the survey setup wizard"
+  },
+  "surveyBack": "Back",
+  "@surveyBack": {
+    "description": "Back button in survey wizard"
+  },
+  "surveyNext": "Next",
+  "@surveyNext": {
+    "description": "Next button in survey wizard"
+  },
+  "surveyStart": "Start Survey",
+  "@surveyStart": {
+    "description": "Start survey button"
+  },
+  "surveyName": "Survey Name",
+  "@surveyName": {
+    "description": "Label for survey name field"
+  },
+  "surveyNameHint": "e.g. Morning Transect A",
+  "@surveyNameHint": {
+    "description": "Hint for survey name field"
+  },
+  "surveyTransectId": "Transect ID",
+  "@surveyTransectId": {
+    "description": "Label for transect ID field"
+  },
+  "surveyTransectIdHint": "e.g. T-001",
+  "@surveyTransectIdHint": {
+    "description": "Hint for transect ID field"
+  },
+  "surveyObserverName": "Observer Name",
+  "@surveyObserverName": {
+    "description": "Label for observer name field"
+  },
+  "surveyObserverNameHint": "e.g. Jane Doe",
+  "@surveyObserverNameHint": {
+    "description": "Hint for observer name field"
+  },
+  "surveyLocation": "Location Tracking",
+  "@surveyLocation": {
+    "description": "Label for location tracking mode selector"
+  },
+  "surveyLocationGps": "GPS",
+  "@surveyLocationGps": {
+    "description": "Continuous GPS tracking option"
+  },
+  "surveyLocationManual": "Manual",
+  "@surveyLocationManual": {
+    "description": "Manual GPS capture option"
+  },
+  "surveyLocationSkip": "Skip",
+  "@surveyLocationSkip": {
+    "description": "No GPS tracking option"
+  },
+  "surveyLocationUnavailable": "Location permission not granted",
+  "@surveyLocationUnavailable": {
+    "description": "Warning when location permission is not available"
+  },
+  "surveyManualGpsWarning": "Manual mode captures GPS only when you open the app. Detection locations will be interpolated between captures.",
+  "@surveyManualGpsWarning": {
+    "description": "Warning about manual GPS mode limitations"
+  },
+  "surveyLatitude": "Latitude",
+  "@surveyLatitude": {
+    "description": "Latitude label"
+  },
+  "surveyLongitude": "Longitude",
+  "@surveyLongitude": {
+    "description": "Longitude label"
+  },
+  "surveyPickOnMap": "Pick on map",
+  "@surveyPickOnMap": {
+    "description": "Button to pick location on map"
+  },
+  "surveyLocationSkipNote": "No GPS track will be recorded.",
+  "@surveyLocationSkipNote": {
+    "description": "Note when skipping location tracking"
+  },
+  "surveyParametersTitle": "Parameters",
+  "@surveyParametersTitle": {
+    "description": "Title for survey parameters step"
+  },
+  "surveyInferenceRate": "Inference Rate",
+  "@surveyInferenceRate": {
+    "description": "Label for inference rate slider"
+  },
+  "surveyGpsInterval": "GPS Interval",
+  "@surveyGpsInterval": {
+    "description": "Label for GPS interval selector"
+  },
+  "surveyMaxDuration": "Max Duration",
+  "@surveyMaxDuration": {
+    "description": "Label for max duration slider"
+  },
+  "surveyHours": "hours",
+  "@surveyHours": {
+    "description": "Unit label for hours"
+  },
+  "surveyRecordingMode": "Recording",
+  "@surveyRecordingMode": {
+    "description": "Label for recording mode selector"
+  },
+  "surveyRecordingFull": "Full",
+  "@surveyRecordingFull": {
+    "description": "Full continuous recording option"
+  },
+  "surveyRecordingDetections": "Clips",
+  "@surveyRecordingDetections": {
+    "description": "Record only around detections option"
+  },
+  "surveyRecordingOff": "Off",
+  "@surveyRecordingOff": {
+    "description": "No recording option"
+  },
+  "surveyDetectionSampling": "Detection Sampling",
+  "@surveyDetectionSampling": {
+    "description": "Label for detection sampling mode selector"
+  },
+  "surveySamplingAll": "All",
+  "@surveySamplingAll": {
+    "description": "Keep all detections sampling mode"
+  },
+  "surveySamplingTopN": "Top N",
+  "@surveySamplingTopN": {
+    "description": "Keep top N per species sampling mode"
+  },
+  "surveySamplingSmart": "Smart",
+  "@surveySamplingSmart": {
+    "description": "Spatially distributed sampling mode"
+  },
+  "surveyTopNPerSpecies": "Top N per Species",
+  "@surveyTopNPerSpecies": {
+    "description": "Label for top N slider"
+  },
+  "surveyMicrophone": "Microphone",
+  "@surveyMicrophone": {
+    "description": "Label for microphone selector in survey setup"
+  },
+  "surveyMicSystemDefault": "System default",
+  "@surveyMicSystemDefault": {
+    "description": "Default microphone option"
+  },
+  "surveyMicSelect": "Select microphone",
+  "@surveyMicSelect": {
+    "description": "Title for microphone picker bottom sheet"
+  },
+  "surveyReadyTitle": "Ready",
+  "@surveyReadyTitle": {
+    "description": "Title for the ready step"
+  },
+  "surveyManualGpsReadyWarning": "Manual GPS mode — open the app periodically to capture location fixes.",
+  "@surveyManualGpsReadyWarning": {
+    "description": "Warning on ready screen about manual GPS"
+  },
+  "surveyStopTitle": "Stop Survey?",
+  "@surveyStopTitle": {
+    "description": "Title of stop survey confirmation dialog"
+  },
+  "surveyStopMessage": "This will finalize the survey and save results.",
+  "@surveyStopMessage": {
+    "description": "Body of stop survey confirmation dialog"
+  },
+  "surveyStopConfirm": "Stop & Save",
+  "@surveyStopConfirm": {
+    "description": "Confirm button in stop survey dialog"
+  },
+  "surveyStop": "Stop",
+  "@surveyStop": {
+    "description": "Stop button label"
+  },
+  "surveyListening": "Listening...",
+  "@surveyListening": {
+    "description": "Status text while survey is actively listening"
+  },
+  "surveyStarting": "Starting...",
+  "@surveyStarting": {
+    "description": "Status text while survey is loading"
+  },
+  "surveyJustNow": "just now",
+  "@surveyJustNow": {
+    "description": "Time label for very recent detection"
+  },
+  "surveyAutoStopped": "Survey auto-stopped: {reason}",
+  "@surveyAutoStopped": {
+    "description": "Snackbar message when survey auto-stops",
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "surveyMinutesAgo": "{count} min ago",
+  "@surveyMinutesAgo": {
+    "description": "Time label for minutes ago",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "surveyContinue": "Continue Survey",
+  "@surveyContinue": {
+    "description": "Tooltip for resume/continue button on unfinished survey sessions"
+  },
+  "surveyTabMap": "Map",
+  "@surveyTabMap": {
+    "description": "Tab label for map view in survey live screen"
+  },
+  "surveyTabSpectrogram": "Spectrogram",
+  "@surveyTabSpectrogram": {
+    "description": "Tab label for spectrogram view in survey live screen"
+  },
+  "surveyTabSummary": "Summary",
+  "@surveyTabSummary": {
+    "description": "Tab label for summary view in survey live screen"
+  },
+  "surveyTabSummarySpecies": "Species",
+  "@surveyTabSummarySpecies": {
+    "description": "Label for species count in survey summary"
+  },
+  "surveyTabSummaryDetections": "Detections",
+  "@surveyTabSummaryDetections": {
+    "description": "Label for detection count in survey summary"
+  },
+  "surveyTabSummaryRate": "Rate",
+  "@surveyTabSummaryRate": {
+    "description": "Label for detection rate in survey summary"
+  },
+  "sessionShowOnMap": "Show on map",
+  "@sessionShowOnMap": {
+    "description": "Tooltip for showing a detection on the map in session review"
+  },
+  "surveyTrackMap": "Survey Track",
+  "@surveyTrackMap": {
+    "description": "Title for the fullscreen survey track map screen"
+  },
+  "surveyFieldTips": "Field Tips",
+  "@surveyFieldTips": {
+    "description": "Section title for survey best-practice tips"
+  },
+  "surveyTipWalkSteady": "Walk at a steady, slow pace. Stopping frequently helps the classifier capture clean 3-second audio windows.",
+  "@surveyTipWalkSteady": {
+    "description": "Survey tip about walking pace"
+  },
+  "surveyTipWind": "Avoid windy conditions — wind noise masks bird calls and reduces detection accuracy.",
+  "@surveyTipWind": {
+    "description": "Survey tip about wind"
+  },
+  "surveyTipMic": "Keep the microphone unobstructed. Don\u2019t cover it with your hand or put the phone in a pocket.",
+  "@surveyTipMic": {
+    "description": "Survey tip about microphone placement"
+  },
+  "surveyTipSilence": "Stay quiet during the survey. Talking, music, and other human sounds create false positives.",
+  "@surveyTipSilence": {
+    "description": "Survey tip about silence"
+  },
+  "surveyTipTime": "Survey during dawn chorus (first 3 hours after sunrise) for peak bird activity and species diversity.",
+  "@surveyTipTime": {
+    "description": "Survey tip about timing"
+  },
+  "surveyTipRepeat": "Repeat the same route under similar conditions for comparable results across sessions.",
+  "@surveyTipRepeat": {
+    "description": "Survey tip about repeatability"
+  },
+  "surveyTipBattery": "Enable battery saver or plug in for long surveys. GPS and inference can drain the battery quickly.",
+  "@surveyTipBattery": {
+    "description": "Survey tip about battery"
+  },
+  "surveyResumeTitle": "Resume Survey?",
+  "@surveyResumeTitle": {
+    "description": "Title for the resume survey confirmation dialog"
+  },
+  "surveyResumeMessage": "This will continue the survey from where it left off. New detections will be appended to the existing session.",
+  "@surveyResumeMessage": {
+    "description": "Body text for the resume survey confirmation dialog"
+  },
+  "surveyResumeConfirm": "Resume",
+  "@surveyResumeConfirm": {
+    "description": "Confirm button for resume survey dialog"
+  },
+  "sessionViewDetailed": "Detailed",
+  "@sessionViewDetailed": {
+    "description": "Label for detailed session list view mode"
+  },
+  "sessionViewCompact": "Compact",
+  "@sessionViewCompact": {
+    "description": "Label for compact session list view mode"
+  },
+  "sessionViewBySpecies": "By Species",
+  "@sessionViewBySpecies": {
+    "description": "Label for group-by-species session view mode"
+  },
+  "sessionViewTooltip": "View mode",
+  "@sessionViewTooltip": {
+    "description": "Tooltip for the session list view-mode toggle"
+  },
+  "sessionSpeciesSessionCount": "{count, plural, =1{1 session} other{{count} sessions}}",
+  "@sessionSpeciesSessionCount": {
+    "description": "Number of sessions containing a species",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "surveyLiveHelpTitle": "Survey Dashboard",
+  "@surveyLiveHelpTitle": {
+    "description": "Title of the survey live screen help sheet"
+  },
+  "surveyLiveHelpOverview": "The survey runs in the background while you walk. GPS, audio capture, and bird detection continue even if you switch apps.",
+  "@surveyLiveHelpOverview": {
+    "description": "General overview help text"
+  },
+  "surveyLiveHelpSignal": "The signal bars next to the mic icon show audio quality: 3 green bars = good conditions for bird detection, 2 amber bars = marginal (too quiet or somewhat loud), 1 red bar = poor (silence, clipping, or heavy noise).",
+  "@surveyLiveHelpSignal": {
+    "description": "Help text explaining the audio quality signal bars"
+  },
+  "surveyLiveHelpStats": "The stats bar shows distance walked, number of detections, and unique species count. Tap the tabs above to switch between the live map, spectrogram, and summary views.",
+  "@surveyLiveHelpStats": {
+    "description": "Help text for the stats bar and tabs"
+  },
+  "surveyLiveHelpDetections": "Detected species appear in the list below the stats. Tap a species to see detailed information. The survey automatically records GPS coordinates for each detection.",
+  "@surveyLiveHelpDetections": {
+    "description": "Help text for the detections list"
+  },
+  "surveyLiveHelpStop": "Press the stop button (top left) to end the survey. Your session will be saved automatically and you can review it immediately.",
+  "@surveyLiveHelpStop": {
+    "description": "Help text for the stop button"
+  },
+
+  "helpTitle": "Help",
+  "@helpTitle": {
+    "description": "Help screen title and menu label"
+  },
+  "helpIntro": "BirdNET Live identifies species in real time using on-device AI. Point your phone at animal sounds, and the app will tell you what you're hearing — no internet needed.",
+  "@helpIntro": {
+    "description": "Introduction paragraph on the help screen"
+  },
+  "helpLiveTitle": "Live Mode",
+  "@helpLiveTitle": {
+    "description": "Section title for Live mode help"
+  },
+  "helpLiveBody": "Opens the microphone and shows real-time species detections as they happen. A scrolling spectrogram visualizes the audio. Tap any detected species for detailed information.\n\nConfidence scores indicate how certain the model is. Higher thresholds mean fewer but more reliable results.",
+  "@helpLiveBody": {
+    "description": "Help body text for Live mode"
+  },
+  "helpPointCountTitle": "Point Count Mode",
+  "@helpPointCountTitle": {
+    "description": "Section title for Point Count help"
+  },
+  "helpPointCountBody": "Timed point-count surveys, a standard bioacoustic monitoring method. Set a duration and the app records detections at a fixed location. Your GPS coordinates are saved with the session.\n\nIdeal for monitoring species abundance at study sites over time.",
+  "@helpPointCountBody": {
+    "description": "Help body text for Point Count mode"
+  },
+  "helpSurveyTitle": "Survey Mode",
+  "@helpSurveyTitle": {
+    "description": "Section title for Survey mode help"
+  },
+  "helpSurveyBody": "Walk a transect while the app continuously identifies species in the background. GPS tracks your route and pins each detection on the map.\n\nA signal quality indicator shows whether audio conditions are good. After the survey, review your track, detections, and species on an interactive map.",
+  "@helpSurveyBody": {
+    "description": "Help body text for Survey mode"
+  },
+  "helpFileAnalysisTitle": "File Analysis",
+  "@helpFileAnalysisTitle": {
+    "description": "Section title for File Analysis help"
+  },
+  "helpFileAnalysisBody": "Analyze pre-recorded audio files offline. Select a WAV or FLAC file, choose the geographic context, and the app processes it in 3-second chunks — the same way it handles live audio.\n\nUseful for analyzing field recordings made with external recorders.",
+  "@helpFileAnalysisBody": {
+    "description": "Help body text for File Analysis mode"
+  },
+  "helpExploreTitle": "Explore",
+  "@helpExploreTitle": {
+    "description": "Section title for Explore help"
+  },
+  "helpExploreBody": "See which species are predicted at your location based on geography and time of year. Uses the BirdNET geo-model trained on GBIF occurrence data.\n\nTap any species to learn more about it, see photos, and hear reference recordings.",
+  "@helpExploreBody": {
+    "description": "Help body text for Explore feature"
+  },
+  "helpSessionsTitle": "Sessions & Review",
+  "@helpSessionsTitle": {
+    "description": "Section title for Sessions help"
+  },
+  "helpSessionsBody": "All your sessions are saved automatically. In the session library you can review detections, play back audio, view spectrograms, and export results.\n\nEditing tools let you add or remove species, annotate recordings, and trim audio. Export bundles include CSV, JSON, Raven Pro selection tables, and the recording.",
+  "@helpSessionsBody": {
+    "description": "Help body text for Sessions feature"
+  },
+  "helpTipsTitle": "Tips for Best Results",
+  "@helpTipsTitle": {
+    "description": "Section title for general tips"
+  },
+  "helpTipQuiet": "Keep the environment quiet — human speech, music, and wind noise reduce detection accuracy.",
+  "@helpTipQuiet": {
+    "description": "Tip about keeping quiet"
+  },
+  "helpTipMic": "Keep the microphone unobstructed. Don't cover it or put the phone in a pocket.",
+  "@helpTipMic": {
+    "description": "Tip about microphone placement"
+  },
+  "helpTipDawn": "For birds, survey during dawn chorus (first 3 hours after sunrise) for maximum species diversity. Other taxa may peak at different times.",
+  "@helpTipDawn": {
+    "description": "Tip about timing"
+  },
+  "helpTipThreshold": "Lower the confidence threshold in settings to see more detections, or raise it for higher precision.",
+  "@helpTipThreshold": {
+    "description": "Tip about confidence threshold"
+  },
+  "helpTipGeoFilter": "Enable the species filter in settings to limit results to species expected at your location.",
+  "@helpTipGeoFilter": {
+    "description": "Tip about geographic filtering"
   }
 }

@@ -231,21 +231,72 @@ class _LocationHeaderState extends State<_LocationHeader> {
   }
 
   void _showExploreHelp(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
-
-    showDialog<void>(
+    showModalBottomSheet<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.exploreHelpTitle),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+      isScrollControlled: true,
+      builder: (_) => const _ExploreHelpSheet(),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Help bottom sheet (matches session review style)
+// ---------------------------------------------------------------------------
+
+class _ExploreHelpSheet extends StatelessWidget {
+  const _ExploreHelpSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.55,
+      minChildSize: 0.3,
+      maxChildSize: 0.9,
+      expand: false,
+      builder: (context, scrollController) {
+        return Container(
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+          ),
+          child: ListView(
+            controller: scrollController,
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
             children: [
+              // Drag handle.
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.onSurface.withAlpha(60),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
               Text(
-                l10n.exploreHelpBody,
-                style: theme.textTheme.bodyMedium?.copyWith(height: 1.5),
+                l10n.exploreHelpTitle,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.info_outline,
+                      size: 22, color: theme.colorScheme.primary),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(l10n.exploreHelpBody,
+                        style:
+                            theme.textTheme.bodyMedium?.copyWith(height: 1.5)),
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
               InkWell(
@@ -257,11 +308,10 @@ class _LocationHeaderState extends State<_LocationHeader> {
                   }
                 },
                 child: Row(
-                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(Icons.open_in_new,
-                        size: 16, color: theme.colorScheme.primary),
-                    const SizedBox(width: 6),
+                        size: 18, color: theme.colorScheme.primary),
+                    const SizedBox(width: 8),
                     Flexible(
                       child: Text(
                         l10n.exploreHelpLearnMore,
@@ -276,14 +326,8 @@ class _LocationHeaderState extends State<_LocationHeader> {
               ),
             ],
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
