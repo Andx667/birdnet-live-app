@@ -8,9 +8,9 @@ This file tracks development progress. Update after each work session.
 
 | Item | Status |
 |------|--------|
-| Current Step | Session Library & Explore UX |
+| Current Step | Help Screen & Home Footer |
 | Last Updated | 2026-04-13 |
-| Version | 0.2.3+32 |
+| Version | 0.2.4+33 |
 | Unit Tests | 480 passing |
 | Integration Tests | 3 (geo_soundscape, memory_stress, model_output) |
 | Blockers | None |
@@ -18,6 +18,33 @@ This file tracks development progress. Update after each work session.
 ---
 
 ## Progress Log
+
+### 2026-04-13 — Help Screen & Home Footer
+
+**Completed:**
+- Help screen: dedicated screen (`help_screen.dart`) accessible from home footer — comprehensive guide with expandable ExpansionTile sections for each mode (Live, Point Count, Survey, File Analysis, Explore, Sessions) plus general tips
+- Home footer restructured: 5 items in two rows (3: Settings, Explore, Sessions + 2: Help, About) replacing horizontal-scrolling single row
+- Inline survey map interactivity: removed `IgnorePointer`, map now supports pinch-zoom, pinch-move, and double-tap zoom in session review
+- Map tile loading fix: deferred `fitCamera` in `SurveyMapWidget.onMapReady` to post-frame callback so tiles render correctly on first load
+- Audio quality indicator: replaced emoji with mic icon + 3 ascending signal bars (green/amber/red)
+- Survey live help overlay: added help button (?) to `_SurveyStatusBar` with DraggableScrollableSheet explaining dashboard icons
+- 30+ new l10n keys (EN + DE): help screen content (18), survey live help (6), signal bars context
+- All 480 tests passing, `flutter analyze` clean (zero errors)
+
+**Files Created:**
+- `lib/features/home/help_screen.dart` — HelpScreen with mode-clustered ExpansionTile sections and tips
+
+**Files Modified:**
+- `lib/features/home/home_screen.dart` — footer restructured to 3+2 rows, `_FooterButton` extracted, Help import added
+- `lib/features/survey/widgets/survey_map_widget.dart` — `interactionOptions` parameter, deferred `fitCamera` to post-frame callback
+- `lib/features/history/session_review_screen.dart` — removed `IgnorePointer` from inline map, added `ClipRRect`
+- `lib/features/survey/widgets/survey_stats_bar.dart` — signal bars (mic + 3 ascending bars) replacing emoji
+- `lib/features/survey/survey_live_screen.dart` — help button + `_SurveyLiveHelpSheet`
+- `lib/l10n/app_en.arb` — 30+ new keys
+- `lib/l10n/app_de.arb` — 30+ new keys (German)
+- `pubspec.yaml` — version 0.2.4+33
+- `CHANGELOG.md` — v0.2.4 entry
+- `README.md` — version badge synced
 
 ### 2026-04-13 — Session Library & Explore UX
 

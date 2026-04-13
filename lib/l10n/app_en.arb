@@ -1532,5 +1532,110 @@
         "type": "int"
       }
     }
+  },
+  "surveyLiveHelpTitle": "Survey Dashboard",
+  "@surveyLiveHelpTitle": {
+    "description": "Title of the survey live screen help sheet"
+  },
+  "surveyLiveHelpOverview": "The survey runs in the background while you walk. GPS, audio capture, and bird detection continue even if you switch apps.",
+  "@surveyLiveHelpOverview": {
+    "description": "General overview help text"
+  },
+  "surveyLiveHelpSignal": "The signal bars next to the mic icon show audio quality: 3 green bars = good conditions for bird detection, 2 amber bars = marginal (too quiet or somewhat loud), 1 red bar = poor (silence, clipping, or heavy noise).",
+  "@surveyLiveHelpSignal": {
+    "description": "Help text explaining the audio quality signal bars"
+  },
+  "surveyLiveHelpStats": "The stats bar shows distance walked, number of detections, and unique species count. Tap the tabs above to switch between the live map, spectrogram, and summary views.",
+  "@surveyLiveHelpStats": {
+    "description": "Help text for the stats bar and tabs"
+  },
+  "surveyLiveHelpDetections": "Detected species appear in the list below the stats. Tap a species to see detailed information. The survey automatically records GPS coordinates for each detection.",
+  "@surveyLiveHelpDetections": {
+    "description": "Help text for the detections list"
+  },
+  "surveyLiveHelpStop": "Press the stop button (top left) to end the survey. Your session will be saved automatically and you can review it immediately.",
+  "@surveyLiveHelpStop": {
+    "description": "Help text for the stop button"
+  },
+
+  "helpTitle": "Help",
+  "@helpTitle": {
+    "description": "Help screen title and menu label"
+  },
+  "helpIntro": "BirdNET Live identifies bird species in real time using on-device AI. Point your phone at birdsong, and the app will tell you what you're hearing — no internet needed.",
+  "@helpIntro": {
+    "description": "Introduction paragraph on the help screen"
+  },
+  "helpLiveTitle": "Live Mode",
+  "@helpLiveTitle": {
+    "description": "Section title for Live mode help"
+  },
+  "helpLiveBody": "Opens the microphone and shows real-time bird detections as they happen. A scrolling spectrogram visualizes the audio. Tap any detected species for detailed information.\n\nConfidence scores indicate how certain the model is. Higher thresholds mean fewer but more reliable results.",
+  "@helpLiveBody": {
+    "description": "Help body text for Live mode"
+  },
+  "helpPointCountTitle": "Point Count Mode",
+  "@helpPointCountTitle": {
+    "description": "Section title for Point Count help"
+  },
+  "helpPointCountBody": "Timed point-count surveys, a standard ornithological method. Set a duration and the app records detections at a fixed location. Your GPS coordinates are saved with the session.\n\nIdeal for monitoring bird abundance at study sites over time.",
+  "@helpPointCountBody": {
+    "description": "Help body text for Point Count mode"
+  },
+  "helpSurveyTitle": "Survey Mode",
+  "@helpSurveyTitle": {
+    "description": "Section title for Survey mode help"
+  },
+  "helpSurveyBody": "Walk a transect while the app continuously identifies birds in the background. GPS tracks your route and pins each detection on the map.\n\nA signal quality indicator shows whether audio conditions are good. After the survey, review your track, detections, and species on an interactive map.",
+  "@helpSurveyBody": {
+    "description": "Help body text for Survey mode"
+  },
+  "helpFileAnalysisTitle": "File Analysis",
+  "@helpFileAnalysisTitle": {
+    "description": "Section title for File Analysis help"
+  },
+  "helpFileAnalysisBody": "Analyze pre-recorded audio files offline. Select a WAV or FLAC file, choose the geographic context, and the app processes it in 3-second chunks — the same way it handles live audio.\n\nUseful for analyzing field recordings made with external recorders.",
+  "@helpFileAnalysisBody": {
+    "description": "Help body text for File Analysis mode"
+  },
+  "helpExploreTitle": "Explore",
+  "@helpExploreTitle": {
+    "description": "Section title for Explore help"
+  },
+  "helpExploreBody": "See which bird species are predicted at your location based on geography and time of year. Uses the BirdNET geo-model trained on GBIF occurrence data.\n\nTap any species to learn more about it, see photos, and hear reference recordings.",
+  "@helpExploreBody": {
+    "description": "Help body text for Explore feature"
+  },
+  "helpSessionsTitle": "Sessions & Review",
+  "@helpSessionsTitle": {
+    "description": "Section title for Sessions help"
+  },
+  "helpSessionsBody": "All your sessions are saved automatically. In the session library you can review detections, play back audio, view spectrograms, and export results.\n\nEditing tools let you add or remove species, annotate recordings, and trim audio. Export bundles include CSV, JSON, Raven Pro selection tables, and the recording.",
+  "@helpSessionsBody": {
+    "description": "Help body text for Sessions feature"
+  },
+  "helpTipsTitle": "Tips for Best Results",
+  "@helpTipsTitle": {
+    "description": "Section title for general tips"
+  },
+  "helpTipQuiet": "Keep the environment quiet — human speech, music, and wind noise reduce detection accuracy.",
+  "@helpTipQuiet": {
+    "description": "Tip about keeping quiet"
+  },
+  "helpTipMic": "Keep the microphone unobstructed. Don't cover it or put the phone in a pocket.",
+  "@helpTipMic": {
+    "description": "Tip about microphone placement"
+  },
+  "helpTipDawn": "Survey during dawn chorus (first 3 hours after sunrise) for maximum species diversity.",
+  "@helpTipDawn": {
+    "description": "Tip about timing"
+  },
+  "helpTipThreshold": "Lower the confidence threshold in settings to see more detections, or raise it for higher precision.",
+  "@helpTipThreshold": {
+    "description": "Tip about confidence threshold"
+  },
+  "helpTipGeoFilter": "Enable the species filter in settings to limit results to species expected at your location.",
+  "@helpTipGeoFilter": {
+    "description": "Tip about geographic filtering"
   }
 }

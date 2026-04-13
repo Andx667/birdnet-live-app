@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.4] — 2026-04-13
+
+### Added
+- Help screen accessible from the home screen footer — comprehensive guide clustered by mode (Live, Point Count, Survey, File Analysis, Explore, Sessions) with expandable sections and general tips
+- Home screen footer reorganized: 5 items in two rows (3 + 2) replacing the horizontal scroll
+
+### Changed
+- Inline survey map in session review is now interactive (pinch-zoom, pan, double-tap zoom) instead of static
+- Deferred map `fitCamera` to post-frame callback to fix tiles not rendering until first touch
+
+### Fixed
+- Survey live help overlay with signal quality bar explanation and dashboard icons
+
+## [0.2.3] — 2026-04-13
+
 ### Added
 - Project foundation: Flutter project setup, folder structure, dependencies
 - Dark theme with teal accent (field-optimized)

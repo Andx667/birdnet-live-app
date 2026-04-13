@@ -1284,7 +1284,7 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
                 children: [
                   SizedBox(
                     height: MediaQuery.of(context).size.height * 0.25,
-                    child: IgnorePointer(
+                    child: ClipRRect(
                       child: SurveyMapWidget(
                         gpsTrack: widget.session.gpsTrack,
                         detections: _detections,

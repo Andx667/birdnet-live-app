@@ -469,6 +469,19 @@ class _SurveyStatusBar extends StatelessWidget {
             ),
           ),
 
+          // Help button.
+          IconButton(
+            icon: Icon(
+              Icons.help_outline_rounded,
+              size: 20,
+              color: theme.colorScheme.onSurface.withAlpha(180),
+            ),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+            onPressed: () => _showSurveyHelp(context),
+            tooltip: l10n.surveyLiveHelpTitle,
+          ),
+
           // Settings gear (matches point count).
           IconButton(
             icon: Icon(
@@ -716,4 +729,94 @@ List<DetectionRecord> _recentDetections(LiveSession? session) {
     return all.sublist(all.length - 10).reversed.toList();
   }
   return all.reversed.toList();
+}
+
+void _showSurveyHelp(BuildContext context) {
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    builder: (_) => const _SurveyLiveHelpSheet(),
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Survey Help Sheet
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _SurveyLiveHelpSheet extends StatelessWidget {
+  const _SurveyLiveHelpSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.6,
+      minChildSize: 0.3,
+      maxChildSize: 0.9,
+      expand: false,
+      builder: (context, scrollController) {
+        return Container(
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+          ),
+          child: ListView(
+            controller: scrollController,
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+            children: [
+              // Drag handle.
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.onSurface.withAlpha(60),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Text(
+                l10n.surveyLiveHelpTitle,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 16),
+              _helpSection(theme,
+                  icon: Icons.info_outline, body: l10n.surveyLiveHelpOverview),
+              _helpSection(theme,
+                  icon: Icons.mic, body: l10n.surveyLiveHelpSignal),
+              _helpSection(theme,
+                  icon: Icons.bar_chart, body: l10n.surveyLiveHelpStats),
+              _helpSection(theme,
+                  icon: MdiIcons.feather, body: l10n.surveyLiveHelpDetections),
+              _helpSection(theme,
+                  icon: Icons.stop_circle_outlined,
+                  body: l10n.surveyLiveHelpStop),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _helpSection(ThemeData theme,
+      {required IconData icon, required String body}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 22, color: theme.colorScheme.primary),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(body, style: theme.textTheme.bodyMedium),
+          ),
+        ],
+      ),
+    );
+  }
 }

@@ -260,8 +260,7 @@ class _ExploreHelpSheet extends StatelessWidget {
         return Container(
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
-            borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(16)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
           ),
           child: ListView(
             controller: scrollController,
@@ -294,8 +293,8 @@ class _ExploreHelpSheet extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(l10n.exploreHelpBody,
-                        style: theme.textTheme.bodyMedium
-                            ?.copyWith(height: 1.5)),
+                        style:
+                            theme.textTheme.bodyMedium?.copyWith(height: 1.5)),
                   ),
                 ],
               ),
@@ -305,8 +304,7 @@ class _ExploreHelpSheet extends StatelessWidget {
                   final uri =
                       Uri.parse('https://birdnet-team.github.io/geomodel/');
                   if (await canLaunchUrl(uri)) {
-                    await launchUrl(uri,
-                        mode: LaunchMode.externalApplication);
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
                   }
                 },
                 child: Row(

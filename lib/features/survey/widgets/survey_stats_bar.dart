@@ -129,11 +129,11 @@ class _StatChip extends StatelessWidget {
   }
 }
 
-/// Small emoji indicating audio health.
+/// Audio signal-strength bars (1–3 filled bars) colored by quality.
 ///
-///   👍 = good ambient signal (typical birdsong environment)
-///   👉 = marginal (very quiet or moderately loud)
-///   👎 = bad (silence / no signal, or clipping / wind noise)
+///   3 green bars = good ambient signal (typical birdsong environment)
+///   2 amber bars = marginal (very quiet or moderately loud)
+///   1 red bar    = bad (silence / no signal, or clipping / wind noise)
 class _AudioLevelChip extends StatelessWidget {
   const _AudioLevelChip({
     required this.level,
@@ -147,14 +147,33 @@ class _AudioLevelChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String emoji;
+    final theme = Theme.of(context);
+    final int filledBars;
     if (color == Colors.green) {
-      emoji = '👍';
+      filledBars = 3;
     } else if (color == Colors.amber) {
-      emoji = '👉';
+      filledBars = 2;
     } else {
-      emoji = '👎';
+      filledBars = 1;
     }
-    return Text(emoji, style: const TextStyle(fontSize: 16));
+    final muted = theme.colorScheme.onSurface.withAlpha(40);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Icon(Icons.mic, size: 16, color: color),
+        const SizedBox(width: 3),
+        for (int i = 0; i < 3; i++)
+          Container(
+            width: 4,
+            height: 6.0 + i * 4, // 6, 10, 14
+            margin: const EdgeInsets.only(right: 1.5),
+            decoration: BoxDecoration(
+              color: i < filledBars ? color : muted,
+              borderRadius: BorderRadius.circular(1),
+            ),
+          ),
+      ],
+    );
   }
 }

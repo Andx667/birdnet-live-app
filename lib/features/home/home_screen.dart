@@ -10,6 +10,7 @@ import '../file_analysis/file_analysis_screen.dart';
 import '../point_count/point_count_setup_screen.dart';
 import '../settings/settings_screen.dart';
 import '../survey/survey_setup_screen.dart';
+import 'help_screen.dart';
 
 // =============================================================================
 // Home Screen — Main Menu
@@ -291,7 +292,7 @@ class _ModeCard extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Footer — Settings & About
+// Footer — 5 items in two rows (3 + 2)
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _Footer extends StatelessWidget {
@@ -301,96 +302,91 @@ class _Footer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          TextButton.icon(
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const SettingsScreen(),
-                ),
-              );
-            },
-            icon: Icon(
-              Icons.tune_rounded,
-              size: 18,
-              color: theme.colorScheme.onSurface.withAlpha(153),
-            ),
-            label: Text(
-              l10n.settings,
-              style: TextStyle(
-                color: theme.colorScheme.onSurface.withAlpha(153),
+    final color = theme.colorScheme.onSurface.withAlpha(153);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // ── Row 1: Settings, Explore, Sessions ──
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _FooterButton(
+              icon: Icons.tune_rounded,
+              label: l10n.settings,
+              color: color,
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const SettingsScreen()),
               ),
             ),
-          ),
-          const SizedBox(width: 16),
-          TextButton.icon(
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const ExploreScreen(),
-                ),
-              );
-            },
-            icon: Icon(
-              Icons.search_rounded,
-              size: 18,
-              color: theme.colorScheme.onSurface.withAlpha(153),
-            ),
-            label: Text(
-              l10n.exploreMode,
-              style: TextStyle(
-                color: theme.colorScheme.onSurface.withAlpha(153),
+            const SizedBox(width: 12),
+            _FooterButton(
+              icon: Icons.search_rounded,
+              label: l10n.exploreMode,
+              color: color,
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const ExploreScreen()),
               ),
             ),
-          ),
-          const SizedBox(width: 16),
-          TextButton.icon(
-            onPressed: () {
-              Navigator.of(context).push(
+            const SizedBox(width: 12),
+            _FooterButton(
+              icon: Icons.library_music_outlined,
+              label: l10n.sessionLibraryTitle,
+              color: color,
+              onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute<void>(
-                  builder: (_) => const SessionLibraryScreen(),
-                ),
-              );
-            },
-            icon: Icon(
-              Icons.library_music_outlined,
-              size: 18,
-              color: theme.colorScheme.onSurface.withAlpha(153),
-            ),
-            label: Text(
-              l10n.sessionLibraryTitle,
-              style: TextStyle(
-                color: theme.colorScheme.onSurface.withAlpha(153),
+                    builder: (_) => const SessionLibraryScreen()),
               ),
             ),
-          ),
-          const SizedBox(width: 16),
-          TextButton.icon(
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const AboutScreen(),
-                ),
-              );
-            },
-            icon: Icon(
-              Icons.info_outline,
-              size: 18,
-              color: theme.colorScheme.onSurface.withAlpha(153),
-            ),
-            label: Text(
-              l10n.about,
-              style: TextStyle(
-                color: theme.colorScheme.onSurface.withAlpha(153),
+          ],
+        ),
+        const SizedBox(height: 4),
+        // ── Row 2: Help, About ──
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _FooterButton(
+              icon: Icons.help_outline_rounded,
+              label: l10n.helpTitle,
+              color: color,
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const HelpScreen()),
               ),
             ),
-          ),
-        ],
-      ),
+            const SizedBox(width: 12),
+            _FooterButton(
+              icon: Icons.info_outline,
+              label: l10n.about,
+              color: color,
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const AboutScreen()),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _FooterButton extends StatelessWidget {
+  const _FooterButton({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon, size: 18, color: color),
+      label: Text(label, style: TextStyle(color: color)),
     );
   }
 }

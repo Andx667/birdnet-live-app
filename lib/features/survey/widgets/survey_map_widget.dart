@@ -43,6 +43,7 @@ class SurveyMapWidget extends ConsumerStatefulWidget {
     this.highlightedDetection,
     this.onCameraMove,
     this.initialCenter,
+    this.interactionOptions,
   });
 
   /// GPS track points.
@@ -66,6 +67,10 @@ class SurveyMapWidget extends ConsumerStatefulWidget {
   /// Starting center when no GPS track points are available yet.
   /// Falls back to Berlin (52.52, 13.405) if null.
   final LatLng? initialCenter;
+
+  /// Custom interaction options for controlling which gestures the map
+  /// responds to.  When null, all gestures are enabled (the default).
+  final InteractionOptions? interactionOptions;
 
   @override
   ConsumerState<SurveyMapWidget> createState() => _SurveyMapWidgetState();
@@ -268,9 +273,16 @@ class _SurveyMapWidgetState extends ConsumerState<SurveyMapWidget> {
         initialCenter: center,
         initialZoom: zoom,
         maxZoom: 19,
+        interactionOptions:
+            widget.interactionOptions ?? const InteractionOptions(),
         onMapReady: () {
           if (widget.fitAllPoints && !_initialFitDone) {
-            _fitBoundsIfNeeded();
+            // Defer fitCamera to the next frame so the tile layer has
+            // finished its initial layout and will request tiles for the
+            // fitted bounds immediately.
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) _fitBoundsIfNeeded();
+            });
           }
           // Report initial bounds.
           if (widget.onCameraMove != null) {

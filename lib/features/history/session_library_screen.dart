@@ -196,8 +196,7 @@ class _SessionLibraryScreenState extends ConsumerState<SessionLibraryScreen> {
               itemBuilder: (_) => [
                 _viewMenuItem(
                     _ViewMode.detailed, l10n.sessionViewDetailed, l10n),
-                _viewMenuItem(
-                    _ViewMode.compact, l10n.sessionViewCompact, l10n),
+                _viewMenuItem(_ViewMode.compact, l10n.sessionViewCompact, l10n),
                 _viewMenuItem(
                     _ViewMode.bySpecies, l10n.sessionViewBySpecies, l10n),
               ],
@@ -544,7 +543,8 @@ class _CompactSessionTile extends ConsumerWidget {
         ),
       ),
       trailing: IconButton(
-        icon: Icon(Icons.delete_outline, size: 20, color: theme.colorScheme.error),
+        icon: Icon(Icons.delete_outline,
+            size: 20, color: theme.colorScheme.error),
         onPressed: onDelete,
         padding: EdgeInsets.zero,
         constraints: const BoxConstraints(),
@@ -642,8 +642,7 @@ class _SpeciesGroupedView extends ConsumerWidget {
                   : ColoredBox(
                       color: theme.colorScheme.surfaceContainerHighest,
                       child: Icon(MdiIcons.bird,
-                          size: 18,
-                          color: theme.colorScheme.onSurfaceVariant),
+                          size: 18, color: theme.colorScheme.onSurfaceVariant),
                     ),
             ),
           ),
@@ -655,8 +654,8 @@ class _SpeciesGroupedView extends ConsumerWidget {
             ),
           ),
           children: [
-            for (final session in sessions
-                .where((s) => group.sessionIds.contains(s.id)))
+            for (final session
+                in sessions.where((s) => group.sessionIds.contains(s.id)))
               ListTile(
                 dense: true,
                 leading: Icon(
