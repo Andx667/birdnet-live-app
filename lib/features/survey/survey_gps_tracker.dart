@@ -53,6 +53,25 @@ class SurveyGpsTracker {
   /// Called whenever a new GPS point is recorded.
   void Function(GpsPoint point)? onPoint;
 
+  /// Pre-populate the track with points from an existing session (resume).
+  ///
+  /// Also recalculates total distance so the tracker continues seamlessly.
+  void seedTrack(List<GpsPoint> existingTrack) {
+    track
+      ..clear()
+      ..addAll(existingTrack);
+    distanceMeters = 0;
+    for (var i = 1; i < track.length; i++) {
+      distanceMeters += const Distance().as(
+        LengthUnit.Meter,
+        LatLng(track[i - 1].latitude, track[i - 1].longitude),
+        LatLng(track[i].latitude, track[i].longitude),
+      );
+    }
+    debugPrint('[SurveyGpsTracker] seeded ${track.length} points, '
+        '${distanceMeters.toStringAsFixed(0)} m');
+  }
+
   /// Start continuous GPS tracking.
   Future<void> startTracking() async {
     if (_positionSub != null) return;

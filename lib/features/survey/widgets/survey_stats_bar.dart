@@ -18,6 +18,7 @@ class SurveyStatsBar extends StatelessWidget {
     required this.detectionCount,
     required this.speciesCount,
     this.audioLevel = 0,
+    this.peakLevel = 0,
   });
 
   /// Distance walked in meters.
@@ -32,6 +33,9 @@ class SurveyStatsBar extends StatelessWidget {
   /// Current RMS audio level (0.0 – 1.0).
   final double audioLevel;
 
+  /// Current peak audio level (0.0 – 1.0).
+  final double peakLevel;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -40,14 +44,26 @@ class SurveyStatsBar extends StatelessWidget {
       fontFeatures: const [FontFeature.tabularFigures()],
     );
 
-    // Audio level → color: green (good signal), amber (low), red (silence).
+    // Audio quality assessment:
+    //   green  = good ambient signal (typical birdsong environment)
+    //   amber  = marginal (very quiet or moderately loud)
+    //   red    = bad (silence / no signal, or clipping / wind noise)
     final Color levelColor;
-    if (audioLevel > 0.01) {
-      levelColor = Colors.green;
-    } else if (audioLevel > 0.002) {
+    if (audioLevel < 0.0005) {
+      // Silence or mic not working.
+      levelColor = Colors.red;
+    } else if (peakLevel > 0.95) {
+      // Clipping — wind, handling noise, or mic overload.
+      levelColor = Colors.red;
+    } else if (audioLevel > 0.15) {
+      // Very loud sustained noise (wind, traffic).
+      levelColor = Colors.red;
+    } else if (audioLevel < 0.001 || audioLevel > 0.08) {
+      // Marginal: too quiet or somewhat loud.
       levelColor = Colors.amber;
     } else {
-      levelColor = Colors.red;
+      // Good range for birdsong detection (RMS ~0.001–0.08).
+      levelColor = Colors.green;
     }
 
     return Container(

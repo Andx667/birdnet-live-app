@@ -337,7 +337,7 @@ class SurveyController {
 
       // Start foreground service notification.
       await _notificationService.start(
-        title: 'BirdNET Live — Survey Recording',
+        title: 'Survey Recording',
         text: _buildNotificationText(),
       );
 
@@ -349,6 +349,135 @@ class SurveyController {
           'sampling=${samplingMode.name})');
     } catch (e, st) {
       debugPrint('[SurveyController] startSurvey error: $e\n$st');
+      _state = SurveyState.error;
+      _errorMessage = e.toString();
+      _notifyListeners();
+    }
+  }
+
+  /// Resume an unfinished survey from an existing [LiveSession].
+  ///
+  /// Restores detections and GPS track from the saved session, then starts
+  /// a fresh inference + GPS pipeline that appends to the existing data.
+  Future<void> resumeSurvey({
+    required LiveSession existingSession,
+    required int windowDuration,
+    required double inferenceRate,
+    required int confidenceThreshold,
+    required String speciesFilterMode,
+    required RecordingMode recordingMode,
+    String recordingFormat = 'flac',
+    Map<String, double>? geoScores,
+    double geoThreshold = 0.03,
+    Set<String>? geoModelSpeciesNames,
+    required int gpsIntervalSeconds,
+    required int maxDurationHours,
+    required SamplingMode samplingMode,
+    int topNPerSpecies = 10,
+    bool backgroundGps = true,
+    int clipPreBuffer = 3,
+    int clipPostBuffer = 3,
+    int autoStopBattery = 0,
+  }) async {
+    if (_state == SurveyState.active) return;
+    _state = SurveyState.starting;
+    _notifyListeners();
+
+    try {
+      if (!_isolate.isRunning) {
+        await loadModel();
+        if (_state == SurveyState.error) return;
+      }
+
+      // Restore the existing session.
+      _session = existingSession;
+
+      // Restore in-memory detection list (newest first).
+      _sessionDetections.clear();
+      _sessionDetections.addAll(existingSession.detections.reversed);
+      _currentLiveDetections = const [];
+      _activeCardSpecies.clear();
+      _isolate.resetPooling();
+      _inferenceCycleCount = 0;
+      ringBuffer.clear();
+
+      if (kDebugMode) {
+        MemoryMonitor.startPeriodic(intervalSeconds: 30);
+        MemoryMonitor.logOnce(tag: 'survey-resume');
+      }
+
+      _geoScores = geoScores;
+      _geoThreshold = geoThreshold;
+      _geoModelSpeciesNames = geoModelSpeciesNames;
+      _filterMode = switch (speciesFilterMode) {
+        'geoExclude' => SpeciesFilterMode.geoExclude,
+        'geoMerge' => SpeciesFilterMode.geoMerge,
+        'customList' => SpeciesFilterMode.customList,
+        _ => SpeciesFilterMode.off,
+      };
+
+      _sampler = DetectionSampler(
+        mode: samplingMode,
+        topN: topNPerSpecies,
+      );
+
+      // Recording: start a new recording segment.
+      _saveDetectionClips = recordingMode == RecordingMode.detectionsOnly;
+      if (recordingMode != RecordingMode.off) {
+        final dir = await recordingService.startRecording(
+          sessionId: existingSession.id,
+          mode: recordingMode,
+          format: recordingFormat,
+        );
+        _session!.recordingPath = dir;
+      }
+
+      // GPS tracking: seed with existing track data.
+      _gpsTracker = SurveyGpsTracker(
+        intervalSeconds: gpsIntervalSeconds,
+      );
+      _gpsTracker!.onPoint = _onGpsPoint;
+      _gpsTracker!.seedTrack(existingSession.gpsTrack);
+      if (backgroundGps) {
+        await _gpsTracker!.startTracking();
+      } else {
+        await _gpsTracker!.captureOnce();
+      }
+
+      _maxEndTime = DateTime.now().add(Duration(hours: maxDurationHours));
+      _autoStopBattery = autoStopBattery;
+
+      final intervalMs = (1000.0 / inferenceRate).round();
+      _inferenceTimer = Timer.periodic(
+        Duration(milliseconds: intervalMs),
+        (_) => _runInference(
+          windowDuration: windowDuration,
+          confidenceThreshold: confidenceThreshold,
+        ),
+      );
+
+      _persistTimer = Timer.periodic(
+        const Duration(seconds: _persistIntervalSeconds),
+        (_) {
+          _persistSession();
+          _updateNotification();
+          _checkBatteryAutoStop();
+        },
+      );
+
+      await _notificationService.start(
+        title: 'Survey Recording',
+        text: _buildNotificationText(),
+      );
+
+      _state = SurveyState.active;
+      _notifyListeners();
+
+      debugPrint('[SurveyController] survey resumed '
+          '(${existingSession.detections.length} existing detections, '
+          '${existingSession.gpsTrack.length} GPS points)');
+    } catch (e, st) {
+      debugPrint('[SurveyController] resumeSurvey error: $e\n$st');
       _state = SurveyState.error;
       _errorMessage = e.toString();
       _notifyListeners();
@@ -666,7 +795,7 @@ class SurveyController {
   /// Push updated stats to the foreground notification.
   Future<void> _updateNotification() async {
     await _notificationService.update(
-      title: 'BirdNET Live — Survey Recording',
+      title: 'Survey Recording',
       text: _buildNotificationText(),
     );
   }

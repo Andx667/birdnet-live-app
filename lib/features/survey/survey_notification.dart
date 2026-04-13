@@ -64,6 +64,8 @@ class _SurveyTaskHandler extends TaskHandler {
   void onNotificationButtonPressed(String id) {
     if (id == 'stop') {
       FlutterForegroundTask.sendDataToMain({'action': 'stop'});
+    } else if (id == 'open') {
+      FlutterForegroundTask.launchApp();
     }
   }
 
@@ -151,6 +153,7 @@ class SurveyNotificationService {
       notificationText: text,
       notificationButtons: [
         const NotificationButton(id: 'stop', text: 'Stop'),
+        const NotificationButton(id: 'open', text: 'Open'),
       ],
       callback: surveyTaskCallback,
     );
