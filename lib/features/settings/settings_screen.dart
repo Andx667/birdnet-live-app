@@ -612,6 +612,11 @@ class _LanguageTile extends ConsumerWidget {
           DropdownMenuItem(value: null, child: Text('System')),
           DropdownMenuItem(value: 'en', child: Text('English')),
           DropdownMenuItem(value: 'de', child: Text('Deutsch')),
+          DropdownMenuItem(value: 'fr', child: Text('Français')),
+          DropdownMenuItem(value: 'es', child: Text('Español')),
+          DropdownMenuItem(value: 'cs', child: Text('Čeština')),
+          DropdownMenuItem(value: 'pt', child: Text('Português')),
+          DropdownMenuItem(value: 'it', child: Text('Italiano')),
         ],
         onChanged: (value) {
           ref
