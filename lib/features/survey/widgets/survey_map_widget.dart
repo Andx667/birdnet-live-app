@@ -393,8 +393,7 @@ class _SpeciesMarker extends ConsumerWidget {
     final size = isHighlighted ? 40.0 : 28.0;
 
     final taxonomyAsync = ref.watch(taxonomyServiceProvider);
-    final path = taxonomyAsync.valueOrNull
-            ?.assetImagePath(scientificName) ??
+    final path = taxonomyAsync.valueOrNull?.assetImagePath(scientificName) ??
         'assets/images/dummy_species.png';
 
     return Container(

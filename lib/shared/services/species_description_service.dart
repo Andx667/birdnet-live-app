@@ -36,7 +36,13 @@ class SpeciesDescriptionService {
 
   /// Available description locales (matching the bundled files).
   static const List<String> availableLocales = [
-    'en', 'de', 'fr', 'es', 'cs', 'pt', 'it',
+    'en',
+    'de',
+    'fr',
+    'es',
+    'cs',
+    'pt',
+    'it',
   ];
 
   /// Get the description for [scientificName] in [locale].
@@ -55,8 +61,7 @@ class SpeciesDescriptionService {
     if (!_cache.containsKey('en')) {
       await _loadLocale('en');
     }
-    return _cache[locale]?[scientificName] ??
-        _cache['en']?[scientificName];
+    return _cache[locale]?[scientificName] ?? _cache['en']?[scientificName];
   }
 
   /// Load and decompress a single locale file.
@@ -66,8 +71,8 @@ class SpeciesDescriptionService {
         'assets/species_data/descriptions_$locale.json.gz',
       );
       final decompressed = gzip.decode(bytes.buffer.asUint8List());
-      final json = jsonDecode(utf8.decode(decompressed))
-          as Map<String, dynamic>;
+      final json =
+          jsonDecode(utf8.decode(decompressed)) as Map<String, dynamic>;
       _cache[locale] = json.map((k, v) => MapEntry(k, v as String));
       debugPrint(
         '[SpeciesDescriptionService] loaded $locale: '

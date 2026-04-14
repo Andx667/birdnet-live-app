@@ -187,9 +187,9 @@ class DetectionTile extends ConsumerWidget {
   }
 
   Widget _buildSpeciesImage(AsyncValue<TaxonomyService> taxonomyAsync) {
-    final path = taxonomyAsync.valueOrNull
-            ?.assetImagePath(detection.scientificName) ??
-        'assets/images/dummy_species.png';
+    final path =
+        taxonomyAsync.valueOrNull?.assetImagePath(detection.scientificName) ??
+            'assets/images/dummy_species.png';
     return Image.asset(
       path,
       fit: BoxFit.cover,
