@@ -10,7 +10,6 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -625,16 +624,10 @@ class _SpeciesGroupedView extends ConsumerWidget {
               width: 40,
               height: 30,
               child: taxon != null
-                  ? CachedNetworkImage(
-                      imageUrl: taxon.thumbUrl,
+                  ? Image.asset(
+                      taxon.assetImagePath,
                       fit: BoxFit.cover,
-                      placeholder: (_, __) => ColoredBox(
-                        color: theme.colorScheme.surfaceContainerHighest,
-                        child: Icon(MdiIcons.bird,
-                            size: 18,
-                            color: theme.colorScheme.onSurfaceVariant),
-                      ),
-                      errorWidget: (_, __, ___) => ColoredBox(
+                      errorBuilder: (_, __, ___) => ColoredBox(
                         color: theme.colorScheme.surfaceContainerHighest,
                         child: Icon(MdiIcons.bird,
                             size: 18,

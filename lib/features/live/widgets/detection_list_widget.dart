@@ -12,7 +12,6 @@
 // Tapping a detection opens the species info overlay.
 // =============================================================================
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -100,20 +99,7 @@ class DetectionTile extends ConsumerWidget {
               height: 45,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(6),
-                child: CachedNetworkImage(
-                  imageUrl: TaxonomyService.thumbUrl(
-                    detection.scientificName,
-                  ),
-                  fit: BoxFit.cover,
-                  placeholder: (_, __) => Image.asset(
-                    'assets/images/dummy_species.png',
-                    fit: BoxFit.cover,
-                  ),
-                  errorWidget: (_, __, ___) => Image.asset(
-                    'assets/images/dummy_species.png',
-                    fit: BoxFit.cover,
-                  ),
-                ),
+                child: _buildSpeciesImage(taxonomyAsync),
               ),
             ),
 
@@ -198,6 +184,20 @@ class DetectionTile extends ConsumerWidget {
     if (confidence >= 0.7) return Colors.green;
     if (confidence >= 0.4) return Colors.amber;
     return Colors.red;
+  }
+
+  Widget _buildSpeciesImage(AsyncValue<TaxonomyService> taxonomyAsync) {
+    final path = taxonomyAsync.valueOrNull
+            ?.assetImagePath(detection.scientificName) ??
+        'assets/images/dummy_species.png';
+    return Image.asset(
+      path,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => Image.asset(
+        'assets/images/dummy_species.png',
+        fit: BoxFit.cover,
+      ),
+    );
   }
 }
 

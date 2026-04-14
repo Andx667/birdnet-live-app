@@ -16,7 +16,6 @@
 // ```
 // =============================================================================
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -24,7 +23,6 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../shared/models/taxonomy_species.dart';
 import '../../../shared/providers/settings_providers.dart';
-import '../../../shared/services/taxonomy_service.dart';
 import '../explore_providers.dart';
 import '../../inference/geo_model.dart';
 
@@ -69,6 +67,7 @@ class _SpeciesInfoSheet extends ConsumerStatefulWidget {
 
 class _SpeciesInfoSheetState extends ConsumerState<_SpeciesInfoSheet> {
   TaxonomySpecies? _detail;
+  String? _description;
   bool _loading = true;
   bool _fetched = false;
 
@@ -77,29 +76,31 @@ class _SpeciesInfoSheetState extends ConsumerState<_SpeciesInfoSheet> {
     super.didChangeDependencies();
     if (!_fetched) {
       _fetched = true;
-      _fetchDetail();
+      _loadBundledData();
     }
   }
 
-  Future<void> _fetchDetail() async {
+  Future<void> _loadBundledData() async {
     try {
       final locale = ref.read(effectiveSpeciesLocaleProvider);
       final taxonomyService = await ref.read(taxonomyServiceProvider.future);
+      final descService = ref.read(speciesDescriptionServiceProvider);
 
-      // Try API with locale for descriptions, fall back to local CSV.
-      final detail = await taxonomyService.fetchDetail(
+      final detail = taxonomyService.lookup(widget.scientificName);
+      final description = await descService.getDescription(
         widget.scientificName,
-        locale: locale,
+        locale,
       );
 
       if (mounted) {
         setState(() {
           _detail = detail;
+          _description = description;
           _loading = false;
         });
       }
     } catch (e) {
-      debugPrint('[SpeciesInfoOverlay] fetchDetail error: $e');
+      debugPrint('[SpeciesInfoOverlay] loadBundledData error: $e');
       if (mounted) {
         setState(() => _loading = false);
       }
@@ -137,14 +138,10 @@ class _SpeciesInfoSheetState extends ConsumerState<_SpeciesInfoSheet> {
               // ── Image ────────────────────────────────────────
               AspectRatio(
                 aspectRatio: 4 / 3,
-                child: CachedNetworkImage(
-                  imageUrl: TaxonomyService.mediumUrl(widget.scientificName),
+                child: Image.asset(
+                  _detail?.assetImagePath ?? 'assets/images/dummy_species.png',
                   fit: BoxFit.cover,
-                  placeholder: (_, __) => Image.asset(
-                    'assets/images/dummy_species.png',
-                    fit: BoxFit.cover,
-                  ),
-                  errorWidget: (_, __, ___) => Image.asset(
+                  errorBuilder: (_, __, ___) => Image.asset(
                     'assets/images/dummy_species.png',
                     fit: BoxFit.cover,
                   ),
@@ -199,22 +196,19 @@ class _SpeciesInfoSheetState extends ConsumerState<_SpeciesInfoSheet> {
                   ),
                 ),
 
-              // ── Description / Wikipedia excerpt ──────────────
-              if (!_loading && _detail != null) ...[
-                if (_detail!.descriptionForLocale(
-                        ref.watch(effectiveSpeciesLocaleProvider)) !=
-                    null) ...[
+              // ── Description ─────────────────────────────────
+              if (!_loading) ...[
+                if (_description != null) ...[
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
                     child: Text(
-                      _detail!.descriptionForLocale(
-                          ref.watch(effectiveSpeciesLocaleProvider))!,
+                      _description!,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         height: 1.5,
                       ),
                     ),
                   ),
-                  if (_detail!.descriptionSource != null)
+                  if (_detail?.descriptionSource != null)
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                       child: Text(
@@ -235,10 +229,11 @@ class _SpeciesInfoSheetState extends ConsumerState<_SpeciesInfoSheet> {
                 ),
 
                 // ── External links ───────────────────────────────
-                if (_detail!.ebirdUrl != null ||
-                    _detail!.inatUrl != null ||
-                    (_detail!.wikipediaUrls != null &&
-                        _detail!.wikipediaUrls!.isNotEmpty)) ...[
+                if (_detail != null &&
+                    (_detail!.ebirdUrl != null ||
+                        _detail!.inatUrl != null ||
+                        (_detail!.wikipediaUrls != null &&
+                            _detail!.wikipediaUrls!.isNotEmpty))) ...[
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
                     child: Text(

@@ -3,7 +3,7 @@
 // =============================================================================
 //
 // Displays a species entry with:
-//   • CachedNetworkImage thumbnail (4:3 aspect ratio, 150×100 WebP)
+//   • Bundled asset thumbnail (4:3 aspect ratio, 240×160 WebP)
 //   • Common name + optional scientific name (controlled by setting)
 //   • Optional geo-score indicator
 //   • Center-aligned 48-week mini bar chart with month labels
@@ -11,14 +11,12 @@
 // Used in both the Explore screen and the live detection list.
 // =============================================================================
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../inference/geo_model.dart';
 import '../../../shared/providers/settings_providers.dart';
-import '../../../shared/services/taxonomy_service.dart';
 import '../explore_providers.dart';
 
 /// A compact species card with a 4:3 thumbnail.
@@ -72,18 +70,7 @@ class SpeciesCard extends ConsumerWidget {
               // ── Thumbnail (4:3) ──
               SizedBox(
                 width: 100,
-                child: CachedNetworkImage(
-                  imageUrl: TaxonomyService.thumbUrl(scientificName),
-                  fit: BoxFit.cover,
-                  placeholder: (_, __) => Image.asset(
-                    'assets/images/dummy_species.png',
-                    fit: BoxFit.cover,
-                  ),
-                  errorWidget: (_, __, ___) => Image.asset(
-                    'assets/images/dummy_species.png',
-                    fit: BoxFit.cover,
-                  ),
-                ),
+                child: _SpeciesImage(scientificName: scientificName),
               ),
               // ── Names and Details ──
               Expanded(
@@ -169,6 +156,29 @@ class SpeciesCard extends ConsumerWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Species thumbnail loaded from bundled assets.
+class _SpeciesImage extends ConsumerWidget {
+  const _SpeciesImage({required this.scientificName});
+
+  final String scientificName;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final taxonomyAsync = ref.watch(taxonomyServiceProvider);
+    final path = taxonomyAsync.valueOrNull?.assetImagePath(scientificName) ??
+        'assets/images/dummy_species.png';
+
+    return Image.asset(
+      path,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => Image.asset(
+        'assets/images/dummy_species.png',
+        fit: BoxFit.cover,
       ),
     );
   }

@@ -636,15 +636,12 @@ class _SpeciesTile extends ConsumerWidget {
                     height: 36,
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(6),
-                      child: CachedNetworkImage(
-                        imageUrl:
-                            TaxonomyService.thumbUrl(group.scientificName),
+                      child: Image.asset(
+                        taxonomyAsync.valueOrNull
+                                ?.assetImagePath(group.scientificName) ??
+                            'assets/images/dummy_species.png',
                         fit: BoxFit.cover,
-                        placeholder: (_, __) => Image.asset(
-                          'assets/images/dummy_species.png',
-                          fit: BoxFit.cover,
-                        ),
-                        errorWidget: (_, __, ___) => Image.asset(
+                        errorBuilder: (_, __, ___) => Image.asset(
                           'assets/images/dummy_species.png',
                           fit: BoxFit.cover,
                         ),

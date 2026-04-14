@@ -36,6 +36,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../core/constants/app_constants.dart';
 import '../../shared/models/taxonomy_species.dart';
 import '../../shared/providers/settings_providers.dart';
+import '../../shared/services/species_description_service.dart';
 import '../../shared/services/taxonomy_service.dart';
 import '../../core/services/location_service.dart';
 import '../inference/geo_model.dart';
@@ -122,6 +123,12 @@ final taxonomyServiceProvider = FutureProvider<TaxonomyService>((ref) async {
   );
   service.loadFromCsv(csvContent);
   return service;
+});
+
+/// Singleton [SpeciesDescriptionService] for loading bundled descriptions.
+final speciesDescriptionServiceProvider =
+    Provider<SpeciesDescriptionService>((ref) {
+  return SpeciesDescriptionService();
 });
 
 // ---------------------------------------------------------------------------

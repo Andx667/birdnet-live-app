@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.8] — 2025-07-27
+
+### Added
+- Offline species data bundle: 5,241 species images (240×160 WebP) and descriptions in 7 languages bundled into the APK
+- `dev/build_species_bundle.py` — re-runnable Python build script to download, resize, and package species assets
+- `SpeciesDescriptionService` — lazy gzip JSON loader with per-locale caching and English fallback
+- Italian (`it`) and Korean (`ko`) common name columns added to `taxonomy.csv`
+
+### Changed
+- All species images now load from bundled assets instead of network (CachedNetworkImage → Image.asset)
+- Species detail overlay uses bundled descriptions instead of taxonomy API fetch
+- `TaxonomyService` is now fully offline — removed `fetchDetail()` and API cache
+
 ## [0.2.7] — 2025-07-27
 
 ### Added

@@ -98,6 +98,14 @@ class TaxonomySpecies {
   // Convenience getters
   // ---------------------------------------------------------------------------
 
+  /// Bundled asset image path (240×160 WebP).
+  ///
+  /// Falls back to the placeholder image if [birdnetId] is null
+  /// (9 species with no taxonomy entry).
+  String get assetImagePath => birdnetId != null
+      ? 'assets/species_images/$birdnetId.webp'
+      : 'assets/images/dummy_species.png';
+
   /// Thumbnail image URL (150×100 WebP).
   String get thumbUrl =>
       'https://birdnet.cornell.edu/taxonomy/api/image/${Uri.encodeComponent(scientificName)}?size=thumb';

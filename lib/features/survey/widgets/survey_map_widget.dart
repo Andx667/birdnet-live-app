@@ -19,7 +19,7 @@ import 'package:latlong2/latlong.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../shared/models/gps_point.dart';
 import '../../../shared/providers/app_providers.dart';
-import '../../../shared/services/taxonomy_service.dart';
+import '../../explore/explore_providers.dart';
 import '../../live/live_session.dart';
 
 /// Live map showing GPS track and detection markers.
@@ -371,7 +371,7 @@ class _SurveyMapWidgetState extends ConsumerState<SurveyMapWidget> {
 // Species marker with thumbnail image
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _SpeciesMarker extends StatelessWidget {
+class _SpeciesMarker extends ConsumerWidget {
   const _SpeciesMarker({
     required this.scientificName,
     required this.confidence,
@@ -383,7 +383,7 @@ class _SpeciesMarker extends StatelessWidget {
   final bool isHighlighted;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final borderColor = confidence >= 0.8
         ? Colors.green
         : confidence >= 0.5
@@ -391,6 +391,11 @@ class _SpeciesMarker extends StatelessWidget {
             : Colors.red;
 
     final size = isHighlighted ? 40.0 : 28.0;
+
+    final taxonomyAsync = ref.watch(taxonomyServiceProvider);
+    final path = taxonomyAsync.valueOrNull
+            ?.assetImagePath(scientificName) ??
+        'assets/images/dummy_species.png';
 
     return Container(
       width: size,
@@ -412,15 +417,10 @@ class _SpeciesMarker extends StatelessWidget {
         ],
       ),
       child: ClipOval(
-        child: CachedNetworkImage(
-          imageUrl: TaxonomyService.thumbUrl(scientificName),
+        child: Image.asset(
+          path,
           fit: BoxFit.cover,
-          placeholder: (_, __) => Container(
-            color: borderColor.withAlpha(60),
-            child:
-                Icon(Icons.music_note, size: size * 0.45, color: borderColor),
-          ),
-          errorWidget: (_, __, ___) => Container(
+          errorBuilder: (_, __, ___) => Container(
             color: borderColor.withAlpha(60),
             child:
                 Icon(Icons.music_note, size: size * 0.45, color: borderColor),

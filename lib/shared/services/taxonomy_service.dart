@@ -1,27 +1,23 @@
 // =============================================================================
-// Taxonomy Service — Species metadata from CSV and API
+// Taxonomy Service — Species metadata from bundled CSV
 // =============================================================================
 //
-// Provides species information from two sources:
-//
-// 1. **Bundled CSV** — offline-first, parsed once at startup, provides names,
-//    IDs, image URLs, and basic metadata for all ~14K species.
-// 2. **Taxonomy API** — on-demand enrichment with descriptions, Wikipedia
-//    excerpts, localized names, and external links.
+// Provides species information from the bundled taxonomy CSV, parsed once at
+// startup.  Covers names, IDs, image metadata, and localized common names
+// for all ~5,250 model species.
 //
 // ### Usage
 //
 // ```dart
 // final service = TaxonomyService();
-// await service.loadFromCsv(csvContent);
+// service.loadFromCsv(csvContent);
 // final species = service.lookup('Parus major');
-// final detailed = await service.fetchDetail('Parus major');
+// final imagePath = service.assetImagePath('Parus major');
 // ```
 //
 // ### Caching
 //
-// API responses are cached in-memory for the session lifetime.  The CSV
-// lookup is O(1) via a HashMap keyed by scientific name.
+// The CSV lookup is O(1) via a HashMap keyed by scientific name.
 //
 // ### Reusability
 //
@@ -29,14 +25,11 @@
 // screen that needs species metadata (explore, live, survey, info overlays).
 // =============================================================================
 
-import 'dart:convert';
-
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
 
 import '../models/taxonomy_species.dart';
 
-/// Species metadata service — CSV + API hybrid.
+/// Species metadata service — CSV-backed, fully offline.
 class TaxonomyService {
   TaxonomyService();
 
@@ -47,16 +40,13 @@ class TaxonomyService {
   /// CSV-sourced species indexed by scientific name.
   final Map<String, TaxonomySpecies> _csvIndex = {};
 
-  /// API-enriched species cached by scientific name.
-  final Map<String, TaxonomySpecies> _apiCache = {};
-
   /// Whether the CSV has been loaded.
   bool get isLoaded => _csvIndex.isNotEmpty;
 
   /// Number of species in the CSV index.
   int get speciesCount => _csvIndex.length;
 
-  /// Base URL for the taxonomy API.
+  /// Base URL for the taxonomy API (kept for static URL helpers).
   static const String _apiBase = 'https://birdnet.cornell.edu/taxonomy/api';
 
   // ---------------------------------------------------------------------------
@@ -124,7 +114,7 @@ class TaxonomyService {
 
   /// Look up a species by scientific name (CSV only, offline).
   TaxonomySpecies? lookup(String scientificName) {
-    return _apiCache[scientificName] ?? _csvIndex[scientificName];
+    return _csvIndex[scientificName];
   }
 
   /// Look up multiple species by scientific name.
@@ -155,49 +145,8 @@ class TaxonomyService {
   }
 
   // ---------------------------------------------------------------------------
-  // API Enrichment
+  // Image helpers
   // ---------------------------------------------------------------------------
-
-  /// Fetch detailed species info from the Taxonomy API.
-  ///
-  /// Returns the enriched [TaxonomySpecies] or the CSV entry if the API
-  /// call fails.  Results are cached in-memory.
-  ///
-  /// [locale] — optional locale code for localized descriptions (e.g. "de").
-  Future<TaxonomySpecies?> fetchDetail(
-    String scientificName, {
-    String? locale,
-  }) async {
-    // Check cache first.
-    if (_apiCache.containsKey(scientificName)) {
-      return _apiCache[scientificName];
-    }
-
-    try {
-      final uri = Uri.parse(
-        '$_apiBase/species/${Uri.encodeComponent(scientificName)}'
-        '${locale != null ? '?locale=$locale' : ''}',
-      );
-      final response = await http.get(uri).timeout(
-            const Duration(seconds: 10),
-          );
-
-      if (response.statusCode == 200) {
-        final json = jsonDecode(response.body) as Map<String, dynamic>;
-        final species = TaxonomySpecies.fromApiJson(json);
-        _apiCache[scientificName] = species;
-        return species;
-      }
-
-      debugPrint('[TaxonomyService] API returned ${response.statusCode} '
-          'for $scientificName');
-    } catch (e) {
-      debugPrint('[TaxonomyService] API error for $scientificName: $e');
-    }
-
-    // Fallback to CSV data.
-    return _csvIndex[scientificName];
-  }
 
   /// Generate the thumbnail URL for a species.
   ///
@@ -210,4 +159,13 @@ class TaxonomyService {
   /// Uses the taxonomy API image proxy (480×320 WebP).
   static String mediumUrl(String scientificName) =>
       '$_apiBase/image/${Uri.encodeComponent(scientificName)}?size=medium';
+
+  /// Bundled asset image path for a species.
+  ///
+  /// Looks up the BirdNET ID from the CSV index.  Returns the placeholder
+  /// image path when the species is not found.
+  String assetImagePath(String scientificName) {
+    final species = _csvIndex[scientificName];
+    return species?.assetImagePath ?? 'assets/images/dummy_species.png';
+  }
 }
