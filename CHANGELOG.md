@@ -5,7 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.3.0] — 2025-07-28
+
+### Added
+- `Begin File` column in Raven selection tables for multi-file compatibility
+- `File` column in CSV exports referencing the audio source
+- Latitude / Longitude columns in Raven and CSV exports when detections have coordinates
+- GPX file auto-included in survey ZIP bundles
+- Species common name in detection clip filenames (e.g. `_clip_001_Eurasian_Blackbird.flac`)
+- Custom session name included in export filenames
+- JSON export now includes session type, location, and per-detection coordinates
+- Export prefix `BirdNET_Live_YYYY-MM-DD_HH-MM-SS` for all exported files (display names unchanged)
+
+### Fixed
+- Detection timestamps in exports are always session-relative (no more 0-based times for clips)
+- Survey share now correctly produces ZIP bundles with individual detection clips
+- `manualGlobal` detection end time in CSV uses session duration (consistent with Raven builder)
+- Removed unused local variable in `live_controller.dart`
+
+### Changed
+- Session display names no longer use `BirdNET_Live` prefix (cleaner in-app display)
 
 ## [0.2.10] — 2025-07-27
 
