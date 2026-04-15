@@ -83,9 +83,9 @@ class GeoModel {
   // ---------------------------------------------------------------------------
 
   /// Run the geo-model for all 48 weeks at a given location and return
-  /// a map of scientific name → List<double>(48) probabilities.
+  /// a map of scientific name → `List<double>` (48) probabilities.
   ///
-  /// This runs 48 single-sample inferences (the model input is [1,3])
+  /// This runs 48 single-sample inferences (the model input is `[1,3]`)
   /// but collects results for every species in one pass — much more
   /// efficient than calling per-species.
   Map<String, List<double>> predictAllWeeks({

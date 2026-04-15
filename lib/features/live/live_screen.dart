@@ -770,7 +770,7 @@ class _SessionInfoBar extends ConsumerWidget {
       final rh = m % 60;
       return '${h}h ${rh}m';
     }
-    return '${m}:${s.toString().padLeft(2, '0')}';
+    return '$m:${s.toString().padLeft(2, '0')}';
   }
 }
 

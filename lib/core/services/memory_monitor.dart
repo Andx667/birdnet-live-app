@@ -79,7 +79,7 @@ class MemoryMonitor {
   static MemorySnapshot logOnce({String tag = ''}) {
     final snap = _readMemory();
     final prefix = tag.isNotEmpty ? '[$tag] ' : '';
-    debugPrint('[MemoryMonitor] ${prefix}$snap');
+    debugPrint('[MemoryMonitor] $prefix$snap');
     return snap;
   }
 
