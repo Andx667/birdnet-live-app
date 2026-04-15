@@ -16,10 +16,18 @@ The bioacoustics companion app for field researchers, conservationists, and bird
 
 <p align="center">
   <img src="docs/assets/screenshots/live-mode.png" alt="Live Mode" width="150">
+  <img src="docs/assets/screenshots/survey.png" alt="Survey Mode" width="150">
   <img src="docs/assets/screenshots/session-review.png" alt="Session Review" width="150">
   <img src="docs/assets/screenshots/explore.png" alt="Explore" width="150">
   <img src="docs/assets/screenshots/file-analysis.png" alt="File Analysis" width="150">
-  <img src="docs/assets/screenshots/survey.png" alt="Survey Mode" width="150">
+</p>
+
+<p align="center">
+  <a href="https://github.com/birdnet-team/birdnet-live-app/releases/latest"><b>Download APK</b></a>
+  &nbsp;·&nbsp;
+  <a href="https://birdnet-team.github.io/birdnet-live-app/"><b>Documentation</b></a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/birdnet-team/birdnet-live-app/releases"><b>All Releases</b></a>
 </p>
 
 **NOTE: This is an early developer preview. The app is not yet feature-complete or fully polished. Expect bugs, crashes, and rough edges. Please report issues and contribute if you can!**
@@ -39,6 +47,12 @@ The bioacoustics companion app for field researchers, conservationists, and bird
 - **FLAC recording** — Pure Dart encoder for compressed audio (50–60% reduction)
 - **Landscape & tablet layouts** — Adaptive UI for phones and tablets in both orientations
 - **Localization** — Full English and German UI
+
+## Install on Android
+
+BirdNET Live is available as a signed APK for sideloading. Download the latest release from the [Releases page](https://github.com/birdnet-team/birdnet-live-app/releases/latest), transfer the `.apk` file to your phone, and open it to install. You may need to allow installation from unknown sources in your device settings.
+
+> **Note:** The APK is ~227 MB because it includes the full BirdNET+ audio model (~145 MB) for offline inference.
 
 ## Quick Start
 
