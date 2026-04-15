@@ -954,8 +954,7 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
     if (_audioAvailable && _duration != Duration.zero) {
       final offset =
           cluster.firstTimestamp.difference(widget.session.startTime);
-      final clipOffset =
-          Duration(microseconds: (_clipOffsetSec * 1e6).round());
+      final clipOffset = Duration(microseconds: (_clipOffsetSec * 1e6).round());
       final seekPos = offset - clipOffset;
       if (seekPos.isNegative || seekPos > _duration) return;
       _player.seek(seekPos);
@@ -969,8 +968,8 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
   /// Play the first available detection clip from the given cluster.
   Future<void> _playDetectionClip(_DetectionCluster cluster) async {
     final clip = cluster.records
-        .where(
-            (r) => r.audioClipPath != null && File(r.audioClipPath!).existsSync())
+        .where((r) =>
+            r.audioClipPath != null && File(r.audioClipPath!).existsSync())
         .firstOrNull;
     if (clip == null) return;
     await _clipPlayer.stop();

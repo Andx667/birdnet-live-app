@@ -4,15 +4,25 @@
 //
 // Generates export artifacts for a live session:
 //
-//   • **Raven selection table** (.txt): Tab-delimited annotation file
-//     compatible with Raven Pro / Raven Lite.
+//   • **Raven selection table** (.selections.txt): Tab-delimited annotation
+//     file compatible with Raven Pro / Raven Lite.  Includes a `Begin File`
+//     column so Raven can resolve audio references in both single-file and
+//     multi-clip bundles.
 //
-//   • **CSV Export** (.csv): Standard comma-separated values.
+//   • **CSV Export** (.csv): Standard comma-separated values with a `File`
+//     column for audio reference.
 //
 //   • **JSON Export** (.json): Machine-readable JSON structured data.
 //
-//   • **ZIP bundle** (.zip): Optionally archives the full WAV/FLAC recording
-//     together with the export document for convenient sharing.
+//   • **ZIP bundle** (.zip): Optionally archives audio (full recording or
+//     individual detection clips) together with the export document.
+//
+// Naming convention:
+//   Prefix:     BirdNET_Live_YYYY-MM-DD_HH-MM-SS[_#N][_Custom_Name]
+//   Full audio: <prefix>.flac / .wav
+//   Clips:      <prefix>_clip_001.flac, _clip_002.flac, …
+//   Table:      <prefix>.selections.txt / .csv / .json / .gpx
+//   Bundle:     <prefix>.zip
 // =============================================================================
 
 import 'dart:convert';
@@ -20,6 +30,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
+import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 
 import '../live/live_session.dart';
@@ -27,16 +38,60 @@ import '../live/live_session.dart';
 /// Upper frequency bound for Raven annotations (Nyquist of 32 kHz).
 const int _highFreqHz = 16000;
 
-/// Generates a Raven Pro-compatible selection table from session detections.
-String buildRavenSelectionTable(LiveSession session) {
-  final buf = StringBuffer();
+/// Builds the `BirdNET_Live_…` export prefix from a session's start time,
+/// optional session number, and optional user-assigned name.
+///
+/// Examples:
+///   `BirdNET_Live_2026-04-15_08-00-00_#3`
+///   `BirdNET_Live_2026-04-15_08-00-00_Morning_walk`
+String _exportPrefix(LiveSession session) {
+  final dt = DateFormat('yyyy-MM-dd_HH-mm-ss').format(session.startTime);
+  final suffix =
+      session.sessionNumber != null ? '_#${session.sessionNumber}' : '';
+  final name = session.customName != null && session.customName!.isNotEmpty
+      ? '_${_sanitizeFilename(session.customName!)}'
+      : '';
+  return 'BirdNET_Live_$dt$suffix$name';
+}
 
-  // Header row.
+/// Replaces characters that are illegal in filenames with underscores and
+/// collapses runs of whitespace / underscores.
+String _sanitizeFilename(String input) {
+  return input
+      .replaceAll(RegExp(r'[<>:"/\\|?*]'), '_')
+      .replaceAll(RegExp(r'\s+'), '_')
+      .replaceAll(RegExp(r'_+'), '_')
+      .replaceAll(RegExp(r'^_|_$'), '');
+}
+
+/// Generates a Raven Pro-compatible selection table from session detections.
+///
+/// When [audioFileName] is provided every row references that single file.
+/// When [clipFileMap] is provided (detection index → clip filename), rows with
+/// a clip reference that file; rows without a clip get an empty `Begin File`.
+///
+/// Timestamps are **always** session-relative offsets (seconds since session
+/// start), regardless of whether the detection has a clip file.
+///
+/// Latitude / Longitude columns are included when any detection has
+/// coordinates (typical for surveys).
+String buildRavenSelectionTable(
+  LiveSession session, {
+  String? audioFileName,
+  Map<int, String>? clipFileMap,
+}) {
+  final buf = StringBuffer();
+  final hasCoords =
+      session.detections.any((d) => d.latitude != null && d.longitude != null);
+
+  // Header row — 'Begin File' is a standard Raven column for multi-file
+  // selection tables.
   buf.writeln(
-    'Selection\tView\tChannel\t'
+    'Selection\tView\tChannel\tBegin File\t'
     'Begin Time (s)\tEnd Time (s)\t'
     'Low Freq (Hz)\tHigh Freq (Hz)\t'
-    'Common Name\tScientific Name\tConfidence',
+    'Common Name\tScientific Name\tConfidence'
+    '${hasCoords ? '\tLatitude\tLongitude' : ''}',
   );
 
   final windowSeconds = session.settings.windowDuration;
@@ -48,22 +103,34 @@ String buildRavenSelectionTable(LiveSession session) {
     final d = session.detections[i];
     final isGlobal = d.source == DetectionSource.manualGlobal;
 
+    // File reference: clip name (if available) > full recording > empty.
+    final clipName = clipFileMap?[i];
+    final beginFile = clipName ?? audioFileName ?? '';
+
+    // Timestamps are always session-relative.
     final beginSec = isGlobal
         ? 0.0
         : d.timestamp.difference(session.startTime).inMilliseconds / 1000.0;
     final endSec = isGlobal ? sessionDurationSec : beginSec + windowSeconds;
 
+    final coordSuffix = hasCoords
+        ? '\t${d.latitude?.toStringAsFixed(6) ?? ''}'
+            '\t${d.longitude?.toStringAsFixed(6) ?? ''}'
+        : '';
+
     buf.writeln(
       '${i + 1}\t'
       'Spectrogram 1\t'
       '1\t'
+      '$beginFile\t'
       '${beginSec.toStringAsFixed(3)}\t'
       '${endSec.toStringAsFixed(3)}\t'
       '0\t'
       '$_highFreqHz\t'
       '${d.commonName}\t'
       '${d.scientificName}\t'
-      '${d.confidence.toStringAsFixed(4)}',
+      '${d.confidence.toStringAsFixed(4)}'
+      '$coordSuffix',
     );
   }
 
@@ -71,32 +138,62 @@ String buildRavenSelectionTable(LiveSession session) {
 }
 
 /// Generates a standard CSV representation of session detections.
-String buildCsvExport(LiveSession session) {
+///
+/// When [audioFileName] or [clipFileMap] are provided, a `File` column is
+/// included referencing the audio source.  Latitude / Longitude columns are
+/// included when any detection has coordinates.
+String buildCsvExport(
+  LiveSession session, {
+  String? audioFileName,
+  Map<int, String>? clipFileMap,
+}) {
   final buf = StringBuffer();
+  final hasFileRefs = audioFileName != null || clipFileMap != null;
+  final hasCoords =
+      session.detections.any((d) => d.latitude != null && d.longitude != null);
 
-  // Header row.
   buf.writeln(
-      'Timestamp,Begin Time (s),Common Name,Scientific Name,Confidence');
+    'Timestamp,Begin Time (s),End Time (s),'
+    'Common Name,Scientific Name,Confidence'
+    '${hasFileRefs ? ',File' : ''}'
+    '${hasCoords ? ',Latitude,Longitude' : ''}',
+  );
 
-  for (final d in session.detections) {
+  final windowSeconds = session.settings.windowDuration;
+
+  for (var i = 0; i < session.detections.length; i++) {
+    final d = session.detections[i];
     final isGlobal = d.source == DetectionSource.manualGlobal;
+
+    final clipName = clipFileMap?[i];
+
+    // Timestamps are always session-relative.
     final beginSec = isGlobal
         ? 0.0
         : d.timestamp.difference(session.startTime).inMilliseconds / 1000.0;
+    final endSec = beginSec + windowSeconds;
 
-    // Simple CSV escaping for species names
     final commonName =
         d.commonName.contains(',') ? '"${d.commonName}"' : d.commonName;
     final sciName = d.scientificName.contains(',')
         ? '"${d.scientificName}"'
         : d.scientificName;
 
+    final fileRef = hasFileRefs ? ',${clipName ?? audioFileName ?? ''}' : '';
+    final coordRef = hasCoords
+        ? ',${d.latitude?.toStringAsFixed(6) ?? ''}'
+            ',${d.longitude?.toStringAsFixed(6) ?? ''}'
+        : '';
+
     buf.writeln(
       '${d.timestamp.toIso8601String()},'
       '${beginSec.toStringAsFixed(3)},'
+      '${endSec.toStringAsFixed(3)},'
       '$commonName,'
       '$sciName,'
-      '${d.confidence.toStringAsFixed(4)}',
+      '${d.confidence.toStringAsFixed(4)}'
+      '$fileRef'
+      '$coordRef',
     );
   }
 
@@ -139,24 +236,69 @@ String buildJsonExport(LiveSession session) {
 
 /// Creates an export bundle containing the session data and optionally audio.
 ///
-/// If [includeAudio] is true and audio exists, returns a path to a .zip file.
-/// If [includeAudio] is false or no audio exists, returns a path to the raw
-/// text/json file.
+/// All exported files use the `BirdNET_Live_…` prefix regardless of the
+/// session's display name.  When [includeAudio] is true and audio exists
+/// (full recording or detection clips), returns a .zip path.  Otherwise
+/// returns the path to the raw document file.
 Future<String?> buildSessionExport(
   LiveSession session, {
   required String format,
   required bool includeAudio,
 }) async {
-  final baseName = session.displayName;
+  final prefix = _exportPrefix(session);
   final audioPath = session.recordingPath;
-  final hasAudio = audioPath != null && File(audioPath).existsSync();
 
+  // Full recording: single file at recordingPath.
+  final hasFullRecording = audioPath != null && File(audioPath).existsSync();
+
+  // Detection clips: collect per-detection audio files that exist on disk,
+  // indexed by detection position so we can build a clip-file map.
+  final clipEntries = <int, File>{};
+  if (!hasFullRecording) {
+    for (var i = 0; i < session.detections.length; i++) {
+      final clip = session.detections[i].audioClipPath;
+      if (clip != null) {
+        final f = File(clip);
+        if (f.existsSync()) clipEntries[i] = f;
+      }
+    }
+  }
+  final hasClips = clipEntries.isNotEmpty;
+  final hasAnyAudio = hasFullRecording || hasClips;
+
+  // ── Build export clip names (sequential, 1-indexed, zero-padded) ────
+  final audioExt = hasFullRecording
+      ? p.extension(audioPath)
+      : (hasClips ? p.extension(clipEntries.values.first.path) : '.flac');
+  final audioFileName = '$prefix$audioExt';
+
+  // Map detection index → export clip filename.
+  Map<int, String>? clipFileMap;
+  final clipExportNames = <int, String>{};
+  if (hasClips) {
+    final pad = clipEntries.length.toString().length.clamp(3, 6);
+    var seq = 1;
+    for (final i in clipEntries.keys.toList()..sort()) {
+      final species = _sanitizeFilename(session.detections[i].commonName);
+      final name =
+          '${prefix}_clip_${seq.toString().padLeft(pad, '0')}_$species$audioExt';
+      clipExportNames[i] = name;
+      seq++;
+    }
+    clipFileMap = clipExportNames;
+  }
+
+  // ── Generate document content ─────────────────────────────────────
   String fileContent;
   String extension;
 
   switch (format) {
     case 'csv':
-      fileContent = buildCsvExport(session);
+      fileContent = buildCsvExport(
+        session,
+        audioFileName: hasFullRecording ? audioFileName : null,
+        clipFileMap: clipFileMap,
+      );
       extension = '.csv';
       break;
     case 'json':
@@ -169,46 +311,72 @@ Future<String?> buildSessionExport(
       break;
     case 'raven':
     default:
-      fileContent = buildRavenSelectionTable(session);
+      fileContent = buildRavenSelectionTable(
+        session,
+        audioFileName: hasFullRecording ? audioFileName : null,
+        clipFileMap: clipFileMap,
+      );
       extension = '.selections.txt';
       break;
   }
 
   final bytes = Uint8List.fromList(utf8.encode(fileContent));
 
-  if (includeAudio && hasAudio) {
+  // ── Bundle into ZIP when audio is available and requested ──────────
+  if (includeAudio && hasAnyAudio) {
     final archive = Archive();
-    final audioExt = p.extension(audioPath);
-    final audioBytes = await File(audioPath).readAsBytes();
+
+    if (hasFullRecording) {
+      final audioBytes = await File(audioPath).readAsBytes();
+      archive.addFile(
+        ArchiveFile(audioFileName, audioBytes.length, audioBytes),
+      );
+    } else {
+      for (final entry in clipExportNames.entries) {
+        final clipBytes = await clipEntries[entry.key]!.readAsBytes();
+        archive.addFile(
+          ArchiveFile(entry.value, clipBytes.length, clipBytes),
+        );
+      }
+    }
 
     archive.addFile(
-      ArchiveFile('$baseName$audioExt', audioBytes.length, audioBytes),
-    );
-    archive.addFile(
-      ArchiveFile('$baseName$extension', bytes.length, bytes),
+      ArchiveFile('$prefix$extension', bytes.length, bytes),
     );
 
-    // Include annotations as a plain-text file if present.
     if (session.annotations.isNotEmpty) {
       final annotationsTxt = _buildAnnotationsText(session);
       final annotationsBytes = Uint8List.fromList(utf8.encode(annotationsTxt));
       archive.addFile(
-        ArchiveFile('$baseName.annotations.txt', annotationsBytes.length,
+        ArchiveFile('$prefix.annotations.txt', annotationsBytes.length,
             annotationsBytes),
       );
     }
 
-    final zipBytes = ZipEncoder().encode(archive);
+    // Auto-include GPX for surveys (if the export format isn't already GPX).
+    if (session.type == SessionType.survey && format != 'gpx') {
+      final gpxContent = buildGpxExport(session);
+      final gpxBytes = Uint8List.fromList(utf8.encode(gpxContent));
+      archive.addFile(
+        ArchiveFile('$prefix.gpx', gpxBytes.length, gpxBytes),
+      );
+    }
 
-    final zipName = '$baseName.zip';
-    final zipPath = p.join(p.dirname(audioPath), zipName);
+    final zipBytes = ZipEncoder().encode(archive);
+    final zipDir = hasFullRecording
+        ? p.dirname(audioPath)
+        : p.dirname(clipEntries.values.first.path);
+    final zipPath = p.join(zipDir, '$prefix.zip');
     await File(zipPath).writeAsBytes(zipBytes);
 
     return zipPath;
   } else {
-    // If no audio or user opted out of including audio, just write and share the doc file.
-    final dir = hasAudio ? p.dirname(audioPath) : Directory.systemTemp.path;
-    final filePath = p.join(dir, '$baseName$extension');
+    final dir = hasFullRecording
+        ? p.dirname(audioPath)
+        : (hasClips
+            ? p.dirname(clipEntries.values.first.path)
+            : Directory.systemTemp.path);
+    final filePath = p.join(dir, '$prefix$extension');
     await File(filePath).writeAsBytes(bytes);
 
     return filePath;

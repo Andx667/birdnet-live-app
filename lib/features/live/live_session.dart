@@ -336,9 +336,9 @@ class LiveSession {
   /// Whether this session is still active (no end time).
   bool get isActive => endTime == null;
 
-  /// Human-readable session name for display and export filenames.
+  /// Human-readable session name for display in the UI.
   ///
-  /// Format: `BirdNET-Live_Session_2026-03-30_14-30-00_#123`
+  /// Format: `Session_2026-03-30_14-30-00_#123`
   /// Falls back to timestamp only for legacy sessions without a number.
   String get displayName {
     if (customName != null && customName!.isNotEmpty) {
@@ -346,7 +346,7 @@ class LiveSession {
     }
     final dt = DateFormat('yyyy-MM-dd_HH-mm-ss').format(startTime);
     final suffix = sessionNumber != null ? '_#$sessionNumber' : '';
-    return 'BirdNET-Live_Session_$dt$suffix';
+    return 'Session_$dt$suffix';
   }
 
   /// Duration of the session.
