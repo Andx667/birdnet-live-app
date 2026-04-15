@@ -20,7 +20,7 @@
 // Naming convention:
 //   Prefix:     BirdNET_Live_YYYY-MM-DD_HH-MM-SS[_#N][_Custom_Name]
 //   Full audio: <prefix>.flac / .wav
-//   Clips:      <prefix>_clip_001.flac, _clip_002.flac, …
+//   Clips:      <prefix>_clip_001_Species_Name.flac, …
 //   Table:      <prefix>.selections.txt / .csv / .json / .gpx
 //   Bundle:     <prefix>.zip
 // =============================================================================
@@ -160,6 +160,9 @@ String buildCsvExport(
   );
 
   final windowSeconds = session.settings.windowDuration;
+  final sessionDurationSec = session.endTime != null
+      ? session.endTime!.difference(session.startTime).inMilliseconds / 1000.0
+      : 0.0;
 
   for (var i = 0; i < session.detections.length; i++) {
     final d = session.detections[i];
@@ -171,7 +174,7 @@ String buildCsvExport(
     final beginSec = isGlobal
         ? 0.0
         : d.timestamp.difference(session.startTime).inMilliseconds / 1000.0;
-    final endSec = beginSec + windowSeconds;
+    final endSec = isGlobal ? sessionDurationSec : beginSec + windowSeconds;
 
     final commonName =
         d.commonName.contains(',') ? '"${d.commonName}"' : d.commonName;
@@ -204,8 +207,12 @@ String buildCsvExport(
 String buildJsonExport(LiveSession session) {
   final map = {
     'session': session.displayName,
+    if (session.type != SessionType.live) 'type': session.type.name,
     'startTime': session.startTime.toIso8601String(),
     'endTime': session.endTime?.toIso8601String(),
+    if (session.latitude != null) 'latitude': session.latitude,
+    if (session.longitude != null) 'longitude': session.longitude,
+    if (session.locationName != null) 'locationName': session.locationName,
     'recordingPath': session.recordingPath,
     'settings': {
       'windowDuration': session.settings.windowDuration,
@@ -224,6 +231,8 @@ String buildJsonExport(LiveSession session) {
         'commonName': d.commonName,
         'scientificName': d.scientificName,
         'confidence': num.parse(d.confidence.toStringAsFixed(4)),
+        if (d.latitude != null) 'latitude': d.latitude,
+        if (d.longitude != null) 'longitude': d.longitude,
         if (d.source != DetectionSource.auto) 'source': d.source.name,
       };
     }).toList(),

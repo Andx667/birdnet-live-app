@@ -15,12 +15,14 @@ LiveSession _makeSession({
   List<DetectionRecord>? detections,
   String? recordingPath,
   int windowDuration = 3,
+  SessionType type = SessionType.live,
 }) {
   final start = DateTime.utc(2025, 6, 15, 8, 0, 0);
   return LiveSession(
     id: '2025-06-15T08-00-00',
     startTime: start,
     endTime: start.add(const Duration(minutes: 5)),
+    type: type,
     detections: detections,
     recordingPath: recordingPath,
     settings: SessionSettings(
@@ -124,7 +126,9 @@ void main() {
       expect(cols2[8], 'European Robin');
     });
 
-    test('clip mode: rows reference individual clips with time 0', () {
+    test(
+        'clip mode: rows reference individual clips with session-relative times',
+        () {
       final start = DateTime.utc(2025, 6, 15, 8, 0, 0);
       final session = _makeSession(
         windowDuration: 3,
@@ -186,6 +190,45 @@ void main() {
 
       expect(cols[4], '7.000'); // Begin
       expect(cols[5], '12.000'); // End (7 + 5)
+    });
+
+    test('includes Latitude/Longitude when detections have coordinates', () {
+      final start = DateTime.utc(2025, 6, 15, 8, 0, 0);
+      final session = _makeSession(
+        detections: [
+          DetectionRecord(
+            scientificName: 'Turdus merula',
+            commonName: 'Eurasian Blackbird',
+            confidence: 0.90,
+            timestamp: start.add(const Duration(seconds: 10)),
+            latitude: 52.520008,
+            longitude: 13.404954,
+          ),
+        ],
+      );
+
+      final table = buildRavenSelectionTable(session);
+      final header = table.split('\n').first;
+      expect(header, contains('Latitude'));
+      expect(header, contains('Longitude'));
+
+      final cols = table.split('\n')[1].split('\t');
+      expect(cols[11], '52.520008');
+      expect(cols[12], '13.404954');
+    });
+
+    test('omits Latitude/Longitude when no detections have coordinates', () {
+      final start = DateTime.utc(2025, 6, 15, 8, 0, 0);
+      final session = _makeSession(
+        detections: [
+          _det('Turdus merula', 'Eurasian Blackbird', 0.90,
+              const Duration(seconds: 10), start),
+        ],
+      );
+
+      final table = buildRavenSelectionTable(session);
+      final header = table.split('\n').first;
+      expect(header, isNot(contains('Latitude')));
     });
   });
 
@@ -362,6 +405,44 @@ void main() {
         contains(
             'BirdNET_Live_2025-06-15_08-00-00_Morning_walk.selections.txt'),
       );
+    });
+
+    test('auto-includes GPX in survey ZIP bundles', () async {
+      final wavPath = '${tempDir.path}/full.wav';
+      File(wavPath).writeAsBytesSync([0x52, 0x49, 0x46, 0x46]);
+
+      final start = DateTime.utc(2025, 6, 15, 8, 0, 0);
+      final session = _makeSession(
+        recordingPath: wavPath,
+        type: SessionType.survey,
+        detections: [
+          DetectionRecord(
+            scientificName: 'Turdus merula',
+            commonName: 'Eurasian Blackbird',
+            confidence: 0.90,
+            timestamp: start.add(const Duration(seconds: 10)),
+            latitude: 52.520008,
+            longitude: 13.404954,
+          ),
+        ],
+      );
+
+      final zipPath = await buildSessionExport(session,
+          format: 'raven', includeAudio: true);
+      expect(zipPath, isNotNull);
+
+      final zipBytes = File(zipPath!).readAsBytesSync();
+      final archive = ZipDecoder().decodeBytes(zipBytes);
+
+      final names = archive.map((f) => f.name).toList();
+      expect(names, contains('$_prefix.selections.txt'));
+      expect(names, contains('$_prefix.gpx'));
+
+      // GPX contains the detection waypoint.
+      final gpxFile = archive.firstWhere((f) => f.name.endsWith('.gpx'));
+      final gpxContent = String.fromCharCodes(gpxFile.content as List<int>);
+      expect(gpxContent, contains('<wpt'));
+      expect(gpxContent, contains('Eurasian Blackbird'));
     });
   });
 
