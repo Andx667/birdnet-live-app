@@ -288,7 +288,7 @@ class SurveyController {
         topN: topNPerSpecies,
       );
 
-      // Recording.
+      // Recording: respect the user’s choice (full / clips / off).
       _saveDetectionClips = recordingMode == RecordingMode.detectionsOnly;
       if (recordingMode != RecordingMode.off) {
         final dir = await recordingService.startRecording(
@@ -421,7 +421,7 @@ class SurveyController {
         topN: topNPerSpecies,
       );
 
-      // Recording: start a new recording segment.
+      // Recording: respect the user’s choice (full / clips / off).
       _saveDetectionClips = recordingMode == RecordingMode.detectionsOnly;
       if (recordingMode != RecordingMode.off) {
         final dir = await recordingService.startRecording(

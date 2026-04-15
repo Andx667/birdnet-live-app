@@ -1279,12 +1279,11 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
             tooltip: l10n.sessionSave,
             onPressed: _isDirty ? _save : null,
           ),
-          if (_audioAvailable)
-            IconButton(
-              icon: const Icon(Icons.share),
-              tooltip: l10n.sessionShare,
-              onPressed: _share,
-            ),
+          IconButton(
+            icon: const Icon(Icons.share),
+            tooltip: l10n.sessionShare,
+            onPressed: _share,
+          ),
           IconButton(
             icon: const Icon(Icons.delete_outline),
             tooltip: l10n.sessionDiscard,
@@ -1333,7 +1332,7 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
         Stack(
           children: [
             SizedBox(
-              height: MediaQuery.of(context).size.height * 0.25,
+              height: MediaQuery.of(context).size.height * 0.18,
               child: ClipRRect(
                 child: SurveyMapWidget(
                   gpsTrack: widget.session.gpsTrack,

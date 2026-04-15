@@ -299,16 +299,6 @@ class SettingsScreen extends ConsumerWidget {
               onChanged: (v) =>
                   ref.read(recordingFormatProvider.notifier).set(v),
             ),
-            _ChoiceTile<String>(
-              title: l10n.settingsRecordingMode,
-              value: ref.watch(recordingModeProvider),
-              options: {
-                'off': l10n.settingsRecordingModeOff,
-                'full': l10n.settingsRecordingModeFull,
-                'detections': l10n.settingsRecordingModeDetections,
-              },
-              onChanged: (v) => ref.read(recordingModeProvider.notifier).set(v),
-            ),
             const Divider(),
           ],
 

@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.9] — 2025-07-27
+
+### Added
+- Share/export button now available for survey sessions (CSV, JSON, GPX, Raven — audio optional)
+
+### Fixed
+- Survey sessions now always record full audio (like live sessions) so playback and trim work in review
+- Recording mode default changed from "off" to "full" for live sessions (live controller already recorded full regardless)
+
+### Changed
+- Recording mode setting removed from general settings screen (only exposed in survey setup where it applies)
+- Observer name and track distance shown in a single row in session review header
+- Survey map in session review reduced from 25% to 18% of screen height
+
 ## [0.2.8] — 2025-07-27
 
 ### Added

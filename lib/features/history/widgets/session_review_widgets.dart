@@ -163,14 +163,32 @@ class _SummaryHeader extends StatelessWidget {
             ),
           // ── Survey-specific info ─────────────────────────
           if (session.type == SessionType.survey) ...[
-            if (session.distanceMeters != null &&
-                session.distanceMeters! > 0) ...[
+            if ((session.distanceMeters != null &&
+                    session.distanceMeters! > 0) ||
+                (session.observerName != null &&
+                    session.observerName!.isNotEmpty)) ...[
               const SizedBox(height: 4),
-              _StatChip(
-                icon: Icons.straighten_outlined,
-                label: session.distanceMeters! >= 1000
-                    ? '${(session.distanceMeters! / 1000).toStringAsFixed(1)} km'
-                    : '${session.distanceMeters!.round()} m',
+              Row(
+                children: [
+                  if (session.distanceMeters != null &&
+                      session.distanceMeters! > 0) ...[
+                    _StatChip(
+                      icon: Icons.straighten_outlined,
+                      label: session.distanceMeters! >= 1000
+                          ? '${(session.distanceMeters! / 1000).toStringAsFixed(1)} km'
+                          : '${session.distanceMeters!.round()} m',
+                    ),
+                    if (session.observerName != null &&
+                        session.observerName!.isNotEmpty)
+                      const SizedBox(width: 16),
+                  ],
+                  if (session.observerName != null &&
+                      session.observerName!.isNotEmpty)
+                    _StatChip(
+                      icon: Icons.person_outline,
+                      label: session.observerName!,
+                    ),
+                ],
               ),
             ],
             if (session.transectId != null &&
@@ -179,14 +197,6 @@ class _SummaryHeader extends StatelessWidget {
               _StatChip(
                 icon: Icons.route_outlined,
                 label: session.transectId!,
-              ),
-            ],
-            if (session.observerName != null &&
-                session.observerName!.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              _StatChip(
-                icon: Icons.person_outline,
-                label: session.observerName!,
               ),
             ],
           ],

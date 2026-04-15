@@ -138,11 +138,14 @@ final recordingFormatProvider =
   return StringSettingNotifier(prefs, PrefKeys.recordingFormat, 'flac');
 });
 
-/// Recording mode ('full', 'detections', 'off' — default 'off').
+/// Recording mode ('full', 'detections', 'off' — default 'full').
+///
+/// Used by live and point-count sessions.  Surveys use their own
+/// [surveyRecordingModeProvider] configured in the survey-setup screen.
 final recordingModeProvider =
     StateNotifierProvider<StringSettingNotifier, String>((ref) {
   final prefs = ref.watch(sharedPreferencesProvider);
-  return StringSettingNotifier(prefs, PrefKeys.recordingMode, 'off');
+  return StringSettingNotifier(prefs, PrefKeys.recordingMode, 'full');
 });
 
 /// Pre-buffer seconds (default 5).

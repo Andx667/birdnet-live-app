@@ -143,6 +143,9 @@ class LiveController {
   /// Whether per-detection audio clips should be saved.
   bool _saveDetectionClips = false;
 
+  /// Recording mode chosen by the user for the current session.
+  RecordingMode _recordingMode = RecordingMode.full;
+
   /// Species currently shown on the live screen (have visible cards).
   ///
   /// Maps scientific name → active [DetectionRecord] in [_sessionDetections].
@@ -342,16 +345,17 @@ class LiveController {
       _ => SpeciesFilterMode.off,
     };
 
-    // Always record full audio so sessions can be reviewed.
-    final dir = await recordingService.startRecording(
-      sessionId: sessionId,
-      mode: RecordingMode.full,
-      format: recordingFormat,
-    );
-    _session!.recordingPath = dir;
-
-    // Also save per-detection clips if the user configured it.
+    // Recording: respect the user’s choice (full / clips / off).
+    _recordingMode = recordingMode;
     _saveDetectionClips = recordingMode == RecordingMode.detectionsOnly;
+    if (recordingMode != RecordingMode.off) {
+      final dir = await recordingService.startRecording(
+        sessionId: sessionId,
+        mode: recordingMode,
+        format: recordingFormat,
+      );
+      _session!.recordingPath = dir;
+    }
 
     _state = LiveState.active;
     _notifyListeners();
@@ -399,12 +403,14 @@ class LiveController {
 
     final settings = _session!.settings;
 
-    // Restart full recording.
-    await recordingService.startRecording(
-      sessionId: _session!.id,
-      mode: RecordingMode.full,
-      format: recordingService.format,
-    );
+    // Restart recording with the same mode chosen at session start.
+    if (_recordingMode != RecordingMode.off) {
+      await recordingService.startRecording(
+        sessionId: _session!.id,
+        mode: _recordingMode,
+        format: recordingService.format,
+      );
+    }
 
     _state = LiveState.active;
     _notifyListeners();

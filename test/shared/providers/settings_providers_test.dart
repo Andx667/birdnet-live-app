@@ -53,8 +53,8 @@ void main() {
       expect(container.read(recordingFormatProvider), 'flac');
     });
 
-    test('recordingMode defaults to off', () {
-      expect(container.read(recordingModeProvider), 'off');
+    test('recordingMode defaults to full', () {
+      expect(container.read(recordingModeProvider), 'full');
     });
 
     test('preBuffer defaults to 5', () {
