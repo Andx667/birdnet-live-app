@@ -81,7 +81,7 @@ Species images and descriptions come from `https://birdnet.cornell.edu/taxonomy/
 - **American English**: All code, comments, documentation, and user-facing strings must use American English spelling (e.g., "color" not "colour", "initialize" not "initialise", "behavior" not "behaviour", "analyze" not "analyse", "center" not "centre", "serialize" not "serialise").
 - **Localization**: All user-facing strings go in `lib/l10n/app_en.arb` (English) and `app_de.arb` (German). Use `l10n.keyName` in widgets. Technical terms (Point Count, Survey, Session, Live Mode) and format identifiers (WAV, FLAC, CSV, JSON, GPX) stay in English in all locales.
 - **Responsive layouts**: Screens support portrait and landscape orientations. Tablet screens use `ContentWidthConstraint` (600 dp max-width) from `shared/widgets/`.
-- **Settings**: Add new settings via `PrefKeys` constant + provider in `settings_providers.dart` + UI in `settings_screen.dart` with `_sectionContexts` mapping.
+- **Settings**: Add new settings via `PrefKeys` constant + provider in `settings_providers.dart` + UI in `settings_screen.dart` with `_sectionContexts` mapping. When adding or modifying settings, always update the user guide at `docs/user/settings.md` to explain the *intuition* behind the new setting so users understand *why* they might change it.
 - **File headers**: Each Dart file has a `// ===...` block comment explaining purpose, usage, and design rationale.
 - **Tests**: Unit tests mirror the `lib/` structure under `test/`. Use `flutter test` to run.
 - **No hardcoded values**: Model parameters, API URLs, and thresholds come from config or constants.

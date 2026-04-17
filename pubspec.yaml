@@ -1,7 +1,7 @@
 name: birdnet_live
 description: "Real-time bird species identification using on-device ONNX inference"
 publish_to: 'none'
-version: 0.3.2+42
+version: 0.3.3+43
 
 environment:
   sdk: ^3.6.2

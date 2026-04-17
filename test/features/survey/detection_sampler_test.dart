@@ -7,9 +7,7 @@ import 'package:birdnet_live/features/live/live_session.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 DetectionRecord _det(String sci, double conf,
-    {Duration offset = Duration.zero,
-    double? latitude,
-    double? longitude}) {
+    {Duration offset = Duration.zero, double? latitude, double? longitude}) {
   return DetectionRecord(
     scientificName: sci,
     commonName: sci,
@@ -112,11 +110,11 @@ void main() {
 
       // Two detections ~10 km apart — both kept.
       final d1 = _det('Parus major', 0.9,
-          offset: const Duration(seconds: 0),
-          latitude: 52.0, longitude: 13.0);
+          offset: const Duration(seconds: 0), latitude: 52.0, longitude: 13.0);
       final d2 = _det('Parus major', 0.8,
           offset: const Duration(seconds: 30),
-          latitude: 52.1, longitude: 13.0); // ~11 km north
+          latitude: 52.1,
+          longitude: 13.0); // ~11 km north
 
       expect(sampler.shouldKeep(d1), isNull);
       expect(sampler.shouldKeep(d2), isNull);
@@ -132,11 +130,11 @@ void main() {
 
       // Two detections at nearly the same location within 2 min.
       final d1 = _det('Parus major', 0.5,
-          offset: const Duration(seconds: 0),
-          latitude: 52.0, longitude: 13.0);
+          offset: const Duration(seconds: 0), latitude: 52.0, longitude: 13.0);
       final d2 = _det('Parus major', 0.9,
           offset: const Duration(seconds: 30),
-          latitude: 52.0001, longitude: 13.0001); // ~14 m away
+          latitude: 52.0001,
+          longitude: 13.0001); // ~14 m away
 
       sampler.shouldKeep(d1);
       final evicted = sampler.shouldKeep(d2);
@@ -154,11 +152,9 @@ void main() {
 
       // Same location, but 5 min apart.
       final d1 = _det('Parus major', 0.9,
-          offset: Duration.zero,
-          latitude: 52.0, longitude: 13.0);
+          offset: Duration.zero, latitude: 52.0, longitude: 13.0);
       final d2 = _det('Parus major', 0.8,
-          offset: const Duration(minutes: 5),
-          latitude: 52.0, longitude: 13.0);
+          offset: const Duration(minutes: 5), latitude: 52.0, longitude: 13.0);
 
       expect(sampler.shouldKeep(d1), isNull);
       expect(sampler.shouldKeep(d2), isNull);
@@ -173,11 +169,9 @@ void main() {
       );
 
       final d1 = _det('Parus major', 0.9,
-          offset: Duration.zero,
-          latitude: 52.0, longitude: 13.0);
+          offset: Duration.zero, latitude: 52.0, longitude: 13.0);
       final d2 = _det('Parus major', 0.3,
-          offset: const Duration(seconds: 30),
-          latitude: 52.0, longitude: 13.0);
+          offset: const Duration(seconds: 30), latitude: 52.0, longitude: 13.0);
 
       sampler.shouldKeep(d1);
       final evicted = sampler.shouldKeep(d2);
@@ -194,14 +188,11 @@ void main() {
 
       // Three detections of different species, far apart.
       final d1 = _det('Parus major', 0.9,
-          offset: Duration.zero,
-          latitude: 52.0, longitude: 13.0);
+          offset: Duration.zero, latitude: 52.0, longitude: 13.0);
       final d2 = _det('Turdus merula', 0.3,
-          offset: const Duration(seconds: 30),
-          latitude: 53.0, longitude: 14.0);
+          offset: const Duration(seconds: 30), latitude: 53.0, longitude: 14.0);
       final d3 = _det('Fringilla coelebs', 0.7,
-          offset: const Duration(seconds: 60),
-          latitude: 54.0, longitude: 15.0);
+          offset: const Duration(seconds: 60), latitude: 54.0, longitude: 15.0);
 
       sampler.shouldKeep(d1);
       sampler.shouldKeep(d2);

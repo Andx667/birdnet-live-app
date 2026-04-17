@@ -71,6 +71,8 @@
   "cancel": "Abbrechen",
   "confirm": "Bestätigen",
   "aboutVersion": "Version",
+  "homeDeveloperPreview": "(Entwickler-Vorschau)",
+  "aboutDeveloperPreviewWarning": "Dies ist eine Entwickler-Vorschauversion. Während wir die Modelle und Funktionen weiter testen und optimieren, können Fehler oder suboptimale Leistung auftreten.",
   "aboutModelVersion": "Audio-Modell",
   "aboutModelName": "BirdNET+ V3.0-preview3 Global (pruned, FP16)",
   "aboutSpeciesCount": "{count} Arten",
@@ -412,7 +414,8 @@
   "helpTipsTitle": "Tipps für beste Ergebnisse",
   "helpTipQuiet": "Halten Sie die Umgebung ruhig — Sprache, Musik und Wind reduzieren die Erkennungsgenauigkeit.",
   "helpTipMic": "Halten Sie das Mikrofon frei. Bedecken Sie es nicht und stecken Sie das Telefon nicht in die Tasche.",
-  "helpTipDawn": "Für Vögel: Kartieren Sie während des Morgengesangs (erste 3 Stunden nach Sonnenaufgang) für maximale Artenvielfalt. Andere Taxa haben andere Aktivitätsmuster.",
+  "helpTipBasics": "Die App analysiert Audio lokal auf Ihrem Gerät in 3-Sekunden-Abschnitten. Lassen Sie die App geöffnet, um die Verarbeitung fortzusetzen.",
+  "helpTipGuide": "Eine vollständige Erklärung aller Einstellungen und Funktionen finden Sie im Benutzerhandbuch über den Link 'Dokumentation' auf der Info-Seite.",
   "helpTipThreshold": "Senken Sie den Konfidenzschwellenwert in den Einstellungen für mehr Erkennungen, oder erhöhen Sie ihn für höhere Präzision.",
   "helpTipGeoFilter": "Aktivieren Sie den Artenfilter in den Einstellungen, um Ergebnisse auf erwartete Arten an Ihrem Standort zu beschränken.",
 

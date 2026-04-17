@@ -1,11 +1,19 @@
-# Changelog
+﻿# Changelog
 
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.3.2] — 2025-07-28
+## [0.3.3] - 2026-08-05
+
+### Added
+- "(Developer preview)" badge natively shown next to version info on Home Screen and About Screen
+- Expanded user guide to cover all settings with the *intuition/rationale* behind changing them
+- Updated in-app Help Screen: Replaced dawn chorus tip with explanations of basic mechanics and links to the user guide
+- Ensure full translation of UI elements across all 7 supported locales
+
+## [0.3.2] â€” 2025-07-28
 
 ### Added
 - Confidence threshold slider in survey setup (Parameters step)
@@ -17,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - File analysis step indicator now uses simple progress bars (matching point count and survey setup)
 - Smart detection sampling reworked: uses distance (>500 m) and time (>2 min) thresholds instead of fixed spatial bins; keeps only the highest-scoring detection per species at each spot
 
-## [0.3.1] — 2026-04-15
+## [0.3.1] â€” 2026-04-15
 
 ### Changed
 - Privacy policy updated to reflect offline species data bundle and current data handling
@@ -27,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Terms of Use page in mkdocs documentation
 - User Guide link on the About screen
 
-## [0.3.0] — 2025-07-28
+## [0.3.0] â€” 2025-07-28
 
 ### Added
 - `Begin File` column in Raven selection tables for multi-file compatibility
@@ -48,7 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Session display names no longer use `BirdNET_Live` prefix (cleaner in-app display)
 
-## [0.2.10] — 2025-07-27
+## [0.2.10] â€” 2025-07-27
 
 ### Added
 - Recording mode setting (Full / Detections only / Off) restored to settings screen as segmented button
@@ -58,10 +66,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Survey sessions with "detections only" recording mode now surface audio clips correctly in session review
 - Play buttons hidden in session review when no audio exists (recording mode was off)
 
-## [0.2.9] — 2025-07-27
+## [0.2.9] â€” 2025-07-27
 
 ### Added
-- Share/export button now available for survey sessions (CSV, JSON, GPX, Raven — audio optional)
+- Share/export button now available for survey sessions (CSV, JSON, GPX, Raven â€” audio optional)
 
 ### Fixed
 - Survey sessions now always record full audio (like live sessions) so playback and trim work in review
@@ -72,24 +80,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Observer name and track distance shown in a single row in session review header
 - Survey map in session review reduced from 25% to 18% of screen height
 
-## [0.2.8] — 2025-07-27
+## [0.2.8] â€” 2025-07-27
 
 ### Added
-- Offline species data bundle: 5,241 species images (240×160 WebP) and descriptions in 7 languages bundled into the APK
-- `dev/build_species_bundle.py` — re-runnable Python build script to download, resize, and package species assets
-- `SpeciesDescriptionService` — lazy gzip JSON loader with per-locale caching and English fallback
+- Offline species data bundle: 5,241 species images (240Ã—160 WebP) and descriptions in 7 languages bundled into the APK
+- `dev/build_species_bundle.py` â€” re-runnable Python build script to download, resize, and package species assets
+- `SpeciesDescriptionService` â€” lazy gzip JSON loader with per-locale caching and English fallback
 - Italian (`it`) and Korean (`ko`) common name columns added to `taxonomy.csv`
 
 ### Changed
-- All species images now load from bundled assets instead of network (CachedNetworkImage → Image.asset)
+- All species images now load from bundled assets instead of network (CachedNetworkImage â†’ Image.asset)
 - Species detail overlay uses bundled descriptions instead of taxonomy API fetch
-- `TaxonomyService` is now fully offline — removed `fetchDetail()` and API cache
+- `TaxonomyService` is now fully offline â€” removed `fetchDetail()` and API cache
 
-## [0.2.7] — 2025-07-27
+## [0.2.7] â€” 2025-07-27
 
 ### Added
 - French (fr), Spanish (es), Czech (cs), Brazilian Portuguese (pt), and Italian (it) translations (~290 keys each)
-- Language picker in settings expanded from 3 to 8 options (System, English, Deutsch, Français, Español, Čeština, Português, Italiano)
+- Language picker in settings expanded from 3 to 8 options (System, English, Deutsch, FranÃ§ais, EspaÃ±ol, ÄŒeÅ¡tina, PortuguÃªs, Italiano)
 - Landscape layouts for Home, Live, Point Count, Survey Live, and Session Review screens
 - Tablet max-width constraint (600 dp) applied to 8 screens via shared `ContentWidthConstraint` widget
 - Comprehensive localization: ~40 new l10n keys covering settings labels, live screen status texts, detection list states, color map names, recording mode options, and microphone settings (English + German)
@@ -100,24 +108,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Mode card descriptions rewritten as action-oriented phrases (English + German)
 - Help text updated to be taxonomically agnostic ("species" instead of "bird species", "animal sounds" instead of "birdsong")
 
-## [0.2.6] — 2026-04-13
+## [0.2.6] â€” 2026-04-13
 
 ### Fixed
 - GPS jitter filtering: reject fixes with >30 m horizontal accuracy, speed gate (>30 km/h) discards teleport jumps, jitter threshold raised from 3 m to 5 m
 
 ### Changed
-- Survey notification now shows species count alongside detections (“42 det · 12 spp”)
+- Survey notification now shows species count alongside detections (â€œ42 det Â· 12 sppâ€)
 
-## [0.2.5] — 2026-04-13
+## [0.2.5] â€” 2026-04-13
 
 ### Added
-- Microphone input selector in survey setup wizard (Parameters step) — pick input device before starting a survey
+- Microphone input selector in survey setup wizard (Parameters step) â€” pick input device before starting a survey
 - Survey summary tab now shows rank numbers and sorts species by detection count then max confidence as tiebreaker
 
-## [0.2.4] — 2026-04-13
+## [0.2.4] â€” 2026-04-13
 
 ### Added
-- Help screen accessible from the home screen footer — comprehensive guide clustered by mode (Live, Point Count, Survey, File Analysis, Explore, Sessions) with expandable sections and general tips
+- Help screen accessible from the home screen footer â€” comprehensive guide clustered by mode (Live, Point Count, Survey, File Analysis, Explore, Sessions) with expandable sections and general tips
 - Home screen footer reorganized: 5 items in two rows (3 + 2) replacing the horizontal scroll
 
 ### Changed
@@ -127,7 +135,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Survey live help overlay with signal quality bar explanation and dashboard icons
 
-## [0.2.3] — 2026-04-13
+## [0.2.3] â€” 2026-04-13
 
 ### Added
 - Project foundation: Flutter project setup, folder structure, dependencies
@@ -153,7 +161,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Species filter with four modes (off, geo-exclude, geo-merge, custom list)
 - Custom species list import and persistence
 - Model-agnostic inference configuration (JSON-driven model, label, and pipeline settings)
-- Live Mode end-to-end pipeline (audio → spectrogram → inference → detection list)
+- Live Mode end-to-end pipeline (audio â†’ spectrogram â†’ inference â†’ detection list)
 - LiveController orchestrator (model loading, inference timer loop, session management)
 - Detection list widget with confidence bars, time-ago display, and playback icons
 - WAV writer (streaming and one-shot modes, 16-bit PCM, RIFF header)
@@ -162,3 +170,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - LiveSession data model with settings snapshot and detection records
 - Audio playback for detection clips (just_audio integration)
 - Session info bar showing species and detection counts during active sessions
+

@@ -284,6 +284,14 @@
   "@aboutVersion": {
     "description": "Version label in about screen"
   },
+  "homeDeveloperPreview": "(Developer preview)",
+  "@homeDeveloperPreview": {
+    "description": "Developer preview label shown on home screen next to version"
+  },
+  "aboutDeveloperPreviewWarning": "This is a developer preview release. You may experience bugs or suboptimal performance while we continue testing and refining the models and features.",
+  "@aboutDeveloperPreviewWarning": {
+    "description": "Warning shown on about screen explaining it is a developer preview"
+  },
   "aboutModelVersion": "Audio Model",
   "@aboutModelVersion": {
     "description": "Audio model section title in about screen"
@@ -1658,9 +1666,13 @@
   "@helpTipMic": {
     "description": "Tip about microphone placement"
   },
-  "helpTipDawn": "For birds, survey during dawn chorus (first 3 hours after sunrise) for maximum species diversity. Other taxa may peak at different times.",
-  "@helpTipDawn": {
-    "description": "Tip about timing"
+  "helpTipBasics": "The app analyzes audio locally on your device in 3-second segments. Keep the app open to continue processing.",
+  "@helpTipBasics": {
+    "description": "Tip explaining how the app processes audio locally"
+  },
+  "helpTipGuide": "For a complete explanation of all settings and features, check the User Guide via the Documentation link in the About screen.",
+  "@helpTipGuide": {
+    "description": "Tip referencing the online user guide"
   },
   "helpTipThreshold": "Lower the confidence threshold in settings to see more detections, or raise it for higher precision.",
   "@helpTipThreshold": {

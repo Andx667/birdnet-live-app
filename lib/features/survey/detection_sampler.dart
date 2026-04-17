@@ -228,7 +228,10 @@ class DetectionSampler {
     if (timeDiff > timeThresholdSeconds) return false;
 
     final dist = _haversineMeters(
-      a.latitude, a.longitude, b.latitude, b.longitude,
+      a.latitude,
+      a.longitude,
+      b.latitude,
+      b.longitude,
     );
     return dist <= distanceThresholdMeters;
   }
@@ -236,7 +239,10 @@ class DetectionSampler {
   /// Haversine distance in meters. Returns 0 if coordinates are missing,
   /// which makes detections without GPS cluster together (same spot).
   static double _haversineMeters(
-    double? lat1, double? lon1, double? lat2, double? lon2,
+    double? lat1,
+    double? lon1,
+    double? lat2,
+    double? lon2,
   ) {
     if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) return 0;
     const earthRadius = 6371000.0; // meters

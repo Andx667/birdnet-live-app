@@ -190,7 +190,7 @@ class _LogoHeader extends ConsumerWidget {
         const SizedBox(height: 4),
         packageInfo.when(
           data: (info) => Text(
-            'v${info.version}',
+            'v${info.version} ${l10n.homeDeveloperPreview}',
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurface.withAlpha(100),
             ),
