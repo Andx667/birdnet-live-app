@@ -7,12 +7,16 @@ import 'package:birdnet_live/features/live/live_session.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 DetectionRecord _det(String sci, double conf,
-    {Duration offset = Duration.zero}) {
+    {Duration offset = Duration.zero,
+    double? latitude,
+    double? longitude}) {
   return DetectionRecord(
     scientificName: sci,
     commonName: sci,
     confidence: conf,
     timestamp: DateTime.utc(2025, 7, 1, 12).add(offset),
+    latitude: latitude,
+    longitude: longitude,
   );
 }
 
@@ -99,46 +103,109 @@ void main() {
   });
 
   group('SamplingMode.smart', () {
-    test('distributes across spatial bins', () {
+    test('keeps detections far apart in space', () {
       final sampler = DetectionSampler(
         mode: SamplingMode.smart,
-        topN: 4,
-        spatialBins: 2,
-        globalCap: 100,
+        distanceThresholdMeters: 500,
+        timeThresholdSeconds: 120,
       );
-      sampler.totalDistanceMeters = 1000;
 
-      // Two detections in first half of transect.
-      final d1 = _det('Parus major', 0.9, offset: const Duration(seconds: 0));
-      final d2 = _det('Parus major', 0.8, offset: const Duration(seconds: 3));
-      sampler.shouldKeep(d1, distanceFromStart: 100);
-      sampler.shouldKeep(d2, distanceFromStart: 200);
+      // Two detections ~10 km apart — both kept.
+      final d1 = _det('Parus major', 0.9,
+          offset: const Duration(seconds: 0),
+          latitude: 52.0, longitude: 13.0);
+      final d2 = _det('Parus major', 0.8,
+          offset: const Duration(seconds: 30),
+          latitude: 52.1, longitude: 13.0); // ~11 km north
 
-      // Two detections in second half.
-      final d3 = _det('Parus major', 0.7, offset: const Duration(seconds: 6));
-      final d4 = _det('Parus major', 0.6, offset: const Duration(seconds: 9));
-      sampler.shouldKeep(d3, distanceFromStart: 600);
-      sampler.shouldKeep(d4, distanceFromStart: 700);
-
-      expect(sampler.keptCount, 4);
+      expect(sampler.shouldKeep(d1), isNull);
+      expect(sampler.shouldKeep(d2), isNull);
+      expect(sampler.keptCount, 2);
     });
 
-    test('enforceGlobalCap removes weakest across bins', () {
+    test('evicts weaker detection at same spot', () {
       final sampler = DetectionSampler(
         mode: SamplingMode.smart,
-        topN: 10,
-        spatialBins: 2,
+        distanceThresholdMeters: 500,
+        timeThresholdSeconds: 120,
+      );
+
+      // Two detections at nearly the same location within 2 min.
+      final d1 = _det('Parus major', 0.5,
+          offset: const Duration(seconds: 0),
+          latitude: 52.0, longitude: 13.0);
+      final d2 = _det('Parus major', 0.9,
+          offset: const Duration(seconds: 30),
+          latitude: 52.0001, longitude: 13.0001); // ~14 m away
+
+      sampler.shouldKeep(d1);
+      final evicted = sampler.shouldKeep(d2);
+      expect(evicted, d1); // weaker one evicted
+      expect(sampler.keptCount, 1);
+      expect(sampler.wasAccepted(d2), isTrue);
+    });
+
+    test('keeps both if time apart exceeds threshold', () {
+      final sampler = DetectionSampler(
+        mode: SamplingMode.smart,
+        distanceThresholdMeters: 500,
+        timeThresholdSeconds: 120,
+      );
+
+      // Same location, but 5 min apart.
+      final d1 = _det('Parus major', 0.9,
+          offset: Duration.zero,
+          latitude: 52.0, longitude: 13.0);
+      final d2 = _det('Parus major', 0.8,
+          offset: const Duration(minutes: 5),
+          latitude: 52.0, longitude: 13.0);
+
+      expect(sampler.shouldKeep(d1), isNull);
+      expect(sampler.shouldKeep(d2), isNull);
+      expect(sampler.keptCount, 2);
+    });
+
+    test('discards new detection if weaker at same spot', () {
+      final sampler = DetectionSampler(
+        mode: SamplingMode.smart,
+        distanceThresholdMeters: 500,
+        timeThresholdSeconds: 120,
+      );
+
+      final d1 = _det('Parus major', 0.9,
+          offset: Duration.zero,
+          latitude: 52.0, longitude: 13.0);
+      final d2 = _det('Parus major', 0.3,
+          offset: const Duration(seconds: 30),
+          latitude: 52.0, longitude: 13.0);
+
+      sampler.shouldKeep(d1);
+      final evicted = sampler.shouldKeep(d2);
+      expect(evicted, d2); // new detection is weaker, discarded
+      expect(sampler.keptCount, 1);
+      expect(sampler.wasAccepted(d1), isTrue);
+    });
+
+    test('enforceGlobalCap removes weakest across species', () {
+      final sampler = DetectionSampler(
+        mode: SamplingMode.smart,
         globalCap: 2,
       );
-      sampler.totalDistanceMeters = 1000;
 
-      final d1 = _det('Parus major', 0.9, offset: const Duration(seconds: 0));
-      final d2 = _det('Parus major', 0.3, offset: const Duration(seconds: 3));
-      final d3 = _det('Parus major', 0.7, offset: const Duration(seconds: 6));
+      // Three detections of different species, far apart.
+      final d1 = _det('Parus major', 0.9,
+          offset: Duration.zero,
+          latitude: 52.0, longitude: 13.0);
+      final d2 = _det('Turdus merula', 0.3,
+          offset: const Duration(seconds: 30),
+          latitude: 53.0, longitude: 14.0);
+      final d3 = _det('Fringilla coelebs', 0.7,
+          offset: const Duration(seconds: 60),
+          latitude: 54.0, longitude: 15.0);
 
-      sampler.shouldKeep(d1, distanceFromStart: 100);
-      sampler.shouldKeep(d2, distanceFromStart: 200);
-      sampler.shouldKeep(d3, distanceFromStart: 600);
+      sampler.shouldKeep(d1);
+      sampler.shouldKeep(d2);
+      sampler.shouldKeep(d3);
 
       final evicted = sampler.enforceGlobalCap();
       expect(evicted.length, 1);

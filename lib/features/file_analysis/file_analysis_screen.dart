@@ -336,7 +336,6 @@ class _FileAnalysisScreenState extends ConsumerState<FileAnalysisScreen> {
             // ── Step indicator ─────────────────────────────────────
             _StepIndicator(
               currentStep: _currentStep,
-              isAnalyzing: isAnalyzing,
             ),
 
             // ── Page content ──────────────────────────────────────
@@ -435,117 +434,34 @@ enum _LocationChoice { gps, manual, skip }
 class _StepIndicator extends StatelessWidget {
   const _StepIndicator({
     required this.currentStep,
-    required this.isAnalyzing,
   });
 
   final int currentStep;
-  final bool isAnalyzing;
+
+  static const _totalSteps = 4;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context)!;
-    final labels = [
-      l10n.fileAnalysisStepFile,
-      l10n.fileAnalysisStepLocation,
-      l10n.fileAnalysisStepParams,
-      l10n.fileAnalysisStepAnalyze,
-    ];
-
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       child: Row(
-        children: [
-          for (var i = 0; i < 4; i++) ...[
-            if (i > 0)
-              Expanded(
-                child: Container(
-                  height: 2,
-                  color: i <= currentStep
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.outlineVariant,
-                ),
+        children: List.generate(_totalSteps, (i) {
+          final isActive = i <= currentStep;
+          return Expanded(
+            child: Container(
+              height: 4,
+              margin: EdgeInsets.only(right: i < _totalSteps - 1 ? 8 : 0),
+              decoration: BoxDecoration(
+                color: isActive
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(2),
               ),
-            _StepDot(
-              index: i,
-              label: labels[i],
-              isActive: i == currentStep,
-              isCompleted: i < currentStep,
-              isAnalyzing: isAnalyzing && i == 3,
             ),
-          ],
-        ],
+          );
+        }),
       ),
-    );
-  }
-}
-
-class _StepDot extends StatelessWidget {
-  const _StepDot({
-    required this.index,
-    required this.label,
-    required this.isActive,
-    required this.isCompleted,
-    this.isAnalyzing = false,
-  });
-
-  final int index;
-  final String label;
-  final bool isActive;
-  final bool isCompleted;
-  final bool isAnalyzing;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final color = isActive || isCompleted
-        ? theme.colorScheme.primary
-        : theme.colorScheme.outlineVariant;
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 28,
-          height: 28,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: isActive || isCompleted ? color : theme.colorScheme.surface,
-            border: Border.all(color: color, width: 2),
-          ),
-          child: Center(
-            child: isCompleted
-                ? Icon(Icons.check,
-                    size: 16, color: theme.colorScheme.onPrimary)
-                : isAnalyzing
-                    ? SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: theme.colorScheme.onPrimary,
-                        ),
-                      )
-                    : Text(
-                        '${index + 1}',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: isActive ? theme.colorScheme.onPrimary : color,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: isActive
-                ? theme.colorScheme.primary
-                : theme.colorScheme.onSurfaceVariant,
-            fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-          ),
-        ),
-      ],
     );
   }
 }

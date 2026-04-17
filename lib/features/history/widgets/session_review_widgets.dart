@@ -34,6 +34,11 @@ class _DetectionCluster {
       records.map((r) => r.confidence).reduce(math.max);
   String get bestConfidencePercent =>
       '${(bestConfidence * 100).toStringAsFixed(1)} %';
+
+  /// Whether any record in this cluster has an existing audio clip file.
+  bool get hasAudioClip => records.any(
+        (r) => r.audioClipPath != null && File(r.audioClipPath!).existsSync(),
+      );
 }
 
 /// All detections of one species, subdivided into time-span clusters.
@@ -555,7 +560,7 @@ class _SpeciesTile extends ConsumerWidget {
     required this.onDeleteCluster,
     required this.onReplaceCluster,
     this.isSurvey = false,
-    this.hasAudio = true,
+    this.audioAvailable = false,
     this.onShowOnMap,
   });
 
@@ -564,7 +569,7 @@ class _SpeciesTile extends ConsumerWidget {
   final bool isExpanded;
   final bool isActive;
   final bool isSurvey;
-  final bool hasAudio;
+  final bool audioAvailable;
   final VoidCallback onToggleExpand;
   final VoidCallback onSpeciesInfo;
   final ValueChanged<_DetectionCluster> onSeekCluster;
@@ -614,7 +619,7 @@ class _SpeciesTile extends ConsumerWidget {
               child: Row(
                 children: [
                   // Seek to first detection (or just show offset if no audio).
-                  if (hasAudio)
+                  if (audioAvailable || group.clusters.first.hasAudioClip)
                     InkWell(
                       onTap: () => onSeekCluster(group.clusters.first),
                       borderRadius: BorderRadius.circular(16),
@@ -778,7 +783,7 @@ class _SpeciesTile extends ConsumerWidget {
                       onDelete: () => onDeleteCluster(cluster),
                       onReplace: () => onReplaceCluster(cluster),
                       isSurvey: isSurvey,
-                      hasAudio: hasAudio,
+                      audioAvailable: audioAvailable,
                       onShowOnMap: onShowOnMap != null
                           ? () => onShowOnMap!(cluster.records.first)
                           : null,
@@ -824,7 +829,7 @@ class _ClusterRow extends StatelessWidget {
     required this.onDelete,
     required this.onReplace,
     this.isSurvey = false,
-    this.hasAudio = true,
+    this.audioAvailable = false,
     this.onShowOnMap,
   });
 
@@ -834,7 +839,7 @@ class _ClusterRow extends StatelessWidget {
   final VoidCallback onDelete;
   final VoidCallback onReplace;
   final bool isSurvey;
-  final bool hasAudio;
+  final bool audioAvailable;
   final VoidCallback? onShowOnMap;
 
   @override
@@ -853,7 +858,7 @@ class _ClusterRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
       child: Row(
         children: [
-          if (hasAudio)
+          if (audioAvailable || cluster.hasAudioClip)
             InkWell(
               onTap: onSeek,
               borderRadius: BorderRadius.circular(24),

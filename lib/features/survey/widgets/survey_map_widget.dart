@@ -42,6 +42,7 @@ class SurveyMapWidget extends ConsumerStatefulWidget {
     this.fitAllPoints = false,
     this.highlightedDetection,
     this.onCameraMove,
+    this.onMarkerTap,
     this.initialCenter,
     this.interactionOptions,
   });
@@ -63,6 +64,9 @@ class SurveyMapWidget extends ConsumerStatefulWidget {
 
   /// Called when the camera moves with the visible bounds.
   final void Function(LatLngBounds bounds)? onCameraMove;
+
+  /// Called when a species marker is tapped.
+  final void Function(DetectionRecord detection)? onMarkerTap;
 
   /// Starting center when no GPS track points are available yet.
   /// Falls back to Berlin (52.52, 13.405) if null.
@@ -216,10 +220,15 @@ class _SurveyMapWidgetState extends ConsumerState<SurveyMapWidget> {
           point: LatLng(det.latitude!, det.longitude!),
           width: isHighlighted ? 44 : 32,
           height: isHighlighted ? 44 : 32,
-          child: _SpeciesMarker(
-            scientificName: det.scientificName,
-            confidence: det.confidence,
-            isHighlighted: isHighlighted,
+          child: GestureDetector(
+            onTap: widget.onMarkerTap != null
+                ? () => widget.onMarkerTap!(det)
+                : null,
+            child: _SpeciesMarker(
+              scientificName: det.scientificName,
+              confidence: det.confidence,
+              isHighlighted: isHighlighted,
+            ),
           ),
         ),
       );

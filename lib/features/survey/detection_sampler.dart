@@ -9,14 +9,18 @@
 //   * **All** — keep everything above threshold.
 //   * **Top N per species** — keep only the N highest-scoring detections
 //     per species (min-heap eviction).
-//   * **Smart** — spatially-distributed Top-K along the transect using
-//     per-species, per-bin budgets.
+//   * **Smart** — spatially and temporally distributed sampling.  For each
+//     species, detections within 500 m *and* 2 min of an existing kept
+//     detection are considered the "same spot" and only the highest-
+//     scoring one is retained.  This avoids large clusters at one spot
+//     while preserving the best detections along the full transect.
 //
 // All modes run inference on every window; sampling only affects which
 // results are *kept and clipped*.
 // =============================================================================
 
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 
@@ -39,18 +43,26 @@ class DetectionSampler {
   DetectionSampler({
     required this.mode,
     this.topN = 10,
-    this.spatialBins = 20,
+    this.distanceThresholdMeters = 500,
+    this.timeThresholdSeconds = 120,
     this.globalCap = 500,
   });
 
   /// Active sampling mode.
   final SamplingMode mode;
 
-  /// Maximum detections per species (for topN and smart modes).
+  /// Maximum detections per species (for topN mode).
   final int topN;
 
-  /// Number of spatial bins for smart mode.
-  final int spatialBins;
+  /// Minimum distance (meters) between kept detections of the same species
+  /// for smart mode. Detections closer than this AND within
+  /// [timeThresholdSeconds] are considered the "same spot".
+  final double distanceThresholdMeters;
+
+  /// Minimum time (seconds) between kept detections of the same species
+  /// for smart mode. Detections closer than this AND within
+  /// [distanceThresholdMeters] are considered the "same spot".
+  final int timeThresholdSeconds;
 
   /// Global cap on total kept detections (smart mode only).
   final int globalCap;
@@ -59,19 +71,15 @@ class DetectionSampler {
   /// Maps species name → sorted list (ascending by confidence).
   final Map<String, List<DetectionRecord>> _speciesHeaps = {};
 
-  /// Per-species, per-bin heaps for smart mode.
-  /// Maps "$species:$bin" → sorted list.
-  final Map<String, List<DetectionRecord>> _binHeaps = {};
-
-  /// Total distance of the survey track (updated externally).
-  double totalDistanceMeters = 0;
+  /// Per-species kept detections for smart mode.
+  final Map<String, List<DetectionRecord>> _smartHeaps = {};
 
   /// Total kept detection count.
   int get keptCount {
     return switch (mode) {
       SamplingMode.all => _allCount,
       SamplingMode.topN => _speciesHeaps.values.fold(0, (s, l) => s + l.length),
-      SamplingMode.smart => _binHeaps.values.fold(0, (s, l) => s + l.length),
+      SamplingMode.smart => _smartHeaps.values.fold(0, (s, l) => s + l.length),
     };
   }
 
@@ -79,19 +87,13 @@ class DetectionSampler {
 
   /// Decide whether a detection should be kept.
   ///
-  /// [distanceFromStart] is the detection's position along the transect
-  /// (meters from start), used only in smart mode.
-  ///
   /// Returns the [DetectionRecord] that was evicted (whose clip can be
   /// deleted), or null if nothing was evicted.
-  DetectionRecord? shouldKeep(
-    DetectionRecord detection, {
-    double distanceFromStart = 0,
-  }) {
+  DetectionRecord? shouldKeep(DetectionRecord detection) {
     return switch (mode) {
       SamplingMode.all => _keepAll(detection),
       SamplingMode.topN => _keepTopN(detection),
-      SamplingMode.smart => _keepSmart(detection, distanceFromStart),
+      SamplingMode.smart => _keepSmart(detection),
     };
   }
 
@@ -101,7 +103,8 @@ class DetectionSampler {
       SamplingMode.all => true,
       SamplingMode.topN =>
         _speciesHeaps[detection.scientificName]?.contains(detection) ?? false,
-      SamplingMode.smart => _binHeaps.values.any((h) => h.contains(detection)),
+      SamplingMode.smart =>
+        _smartHeaps[detection.scientificName]?.contains(detection) ?? false,
     };
   }
 
@@ -115,7 +118,7 @@ class DetectionSampler {
       DetectionRecord? weakest;
       String? weakestKey;
 
-      for (final entry in _binHeaps.entries) {
+      for (final entry in _smartHeaps.entries) {
         if (entry.value.isEmpty) continue;
         final candidate = entry.value.first; // lowest confidence
         if (weakest == null || candidate.confidence < weakest.confidence) {
@@ -125,8 +128,8 @@ class DetectionSampler {
       }
 
       if (weakest == null || weakestKey == null) break;
-      _binHeaps[weakestKey]!.remove(weakest);
-      if (_binHeaps[weakestKey]!.isEmpty) _binHeaps.remove(weakestKey);
+      _smartHeaps[weakestKey]!.remove(weakest);
+      if (_smartHeaps[weakestKey]!.isEmpty) _smartHeaps.remove(weakestKey);
       evicted.add(weakest);
     }
 
@@ -155,7 +158,7 @@ class DetectionSampler {
           for (final heap in _speciesHeaps.values) ...heap,
         ],
       SamplingMode.smart => [
-          for (final heap in _binHeaps.values) ...heap,
+          for (final heap in _smartHeaps.values) ...heap,
         ],
     };
   }
@@ -187,37 +190,68 @@ class DetectionSampler {
     return detection;
   }
 
-  DetectionRecord? _keepSmart(
-    DetectionRecord detection,
-    double distanceFromStart,
-  ) {
+  DetectionRecord? _keepSmart(DetectionRecord detection) {
     final species = detection.scientificName;
-    final bin = _assignBin(distanceFromStart);
-    final key = '$species:$bin';
-    final budgetPerBin = (topN / spatialBins).ceil().clamp(1, topN);
-    final heap = _binHeaps.putIfAbsent(key, () => []);
+    final heap = _smartHeaps.putIfAbsent(species, () => []);
 
-    if (heap.length < budgetPerBin) {
+    // Find an existing detection at the "same spot" — within both distance
+    // and time thresholds.
+    DetectionRecord? neighbor;
+    for (final existing in heap) {
+      if (_isSameSpot(detection, existing)) {
+        neighbor = existing;
+        break;
+      }
+    }
+
+    if (neighbor == null) {
+      // No nearby detection — accept unconditionally.
       _insertSorted(heap, detection);
       return null;
     }
 
-    if (detection.confidence > heap.first.confidence) {
-      final evicted = heap.removeAt(0);
+    // Same spot: keep only the higher-confidence one.
+    if (detection.confidence > neighbor.confidence) {
+      heap.remove(neighbor);
       _insertSorted(heap, detection);
-      return evicted;
+      return neighbor;
     }
 
+    // Existing is better — discard the new detection.
     return detection;
   }
 
-  int _assignBin(double distanceFromStart) {
-    if (totalDistanceMeters <= 0) return 0;
-    final bin = (distanceFromStart / totalDistanceMeters * spatialBins)
-        .floor()
-        .clamp(0, spatialBins - 1);
-    return bin;
+  /// Whether two detections are at the "same spot" (close in both space
+  /// and time).
+  bool _isSameSpot(DetectionRecord a, DetectionRecord b) {
+    final timeDiff = a.timestamp.difference(b.timestamp).inSeconds.abs();
+    if (timeDiff > timeThresholdSeconds) return false;
+
+    final dist = _haversineMeters(
+      a.latitude, a.longitude, b.latitude, b.longitude,
+    );
+    return dist <= distanceThresholdMeters;
   }
+
+  /// Haversine distance in meters. Returns 0 if coordinates are missing,
+  /// which makes detections without GPS cluster together (same spot).
+  static double _haversineMeters(
+    double? lat1, double? lon1, double? lat2, double? lon2,
+  ) {
+    if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) return 0;
+    const earthRadius = 6371000.0; // meters
+    final dLat = _radians(lat2 - lat1);
+    final dLon = _radians(lon2 - lon1);
+    final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(_radians(lat1)) *
+            math.cos(_radians(lat2)) *
+            math.sin(dLon / 2) *
+            math.sin(dLon / 2);
+    final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+    return earthRadius * c;
+  }
+
+  static double _radians(double degrees) => degrees * math.pi / 180;
 
   /// Insert into a list sorted ascending by confidence.
   static void _insertSorted(List<DetectionRecord> list, DetectionRecord item) {

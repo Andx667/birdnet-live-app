@@ -558,9 +558,12 @@ class _ParametersStep extends ConsumerWidget {
     final theme = Theme.of(context);
 
     final inferenceRate = ref.watch(surveyInferenceRateProvider);
+    final confidenceThreshold = ref.watch(confidenceThresholdProvider);
     final gpsInterval = ref.watch(surveyGpsIntervalProvider);
     final maxDuration = ref.watch(surveyMaxDurationProvider);
     final recordingMode = ref.watch(surveyRecordingModeProvider);
+    final clipPreBuffer = ref.watch(surveyClipPreBufferProvider);
+    final clipPostBuffer = ref.watch(surveyClipPostBufferProvider);
     final sampling = ref.watch(surveyDetectionSamplingProvider);
     final topN = ref.watch(surveyTopNPerSpeciesProvider);
     final devicesAsync = ref.watch(inputDevicesProvider);
@@ -624,6 +627,22 @@ class _ParametersStep extends ConsumerWidget {
               ref.read(surveyInferenceRateProvider.notifier).set(v),
         ),
 
+        // Confidence threshold
+        ListTile(
+          leading: const Icon(Icons.verified_rounded),
+          title: Text(l10n.settingsConfidenceThreshold),
+          subtitle: Text('$confidenceThreshold %'),
+        ),
+        Slider(
+          value: confidenceThreshold.toDouble(),
+          min: 5,
+          max: 90,
+          divisions: 17,
+          label: '$confidenceThreshold %',
+          onChanged: (v) =>
+              ref.read(confidenceThresholdProvider.notifier).set(v.round()),
+        ),
+
         // GPS interval
         ListTile(
           leading: const Icon(Icons.my_location),
@@ -683,6 +702,56 @@ class _ParametersStep extends ConsumerWidget {
                 ref.read(surveyRecordingModeProvider.notifier).set(s.first),
           ),
         ),
+
+        // Clip context (visible only when recording mode = detections)
+        if (recordingMode == 'detections') ...[
+          ListTile(
+            leading: const Icon(Icons.timer_outlined),
+            title: Text(l10n.surveyClipContext),
+            subtitle: Text(l10n.surveyClipContextDescription),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    children: [
+                      Text(l10n.surveyClipBefore),
+                      Slider(
+                        value: clipPreBuffer.toDouble(),
+                        min: 0,
+                        max: 10,
+                        divisions: 10,
+                        label: '${clipPreBuffer}s',
+                        onChanged: (v) => ref
+                            .read(surveyClipPreBufferProvider.notifier)
+                            .set(v.round()),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: Column(
+                    children: [
+                      Text(l10n.surveyClipAfter),
+                      Slider(
+                        value: clipPostBuffer.toDouble(),
+                        min: 0,
+                        max: 10,
+                        divisions: 10,
+                        label: '${clipPostBuffer}s',
+                        onChanged: (v) => ref
+                            .read(surveyClipPostBufferProvider.notifier)
+                            .set(v.round()),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
 
         // Detection sampling
         ListTile(

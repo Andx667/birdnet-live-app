@@ -1358,6 +1358,22 @@
   "@surveyRecordingOff": {
     "description": "No recording option"
   },
+  "surveyClipContext": "Clip Context",
+  "@surveyClipContext": {
+    "description": "Label for clip context duration settings"
+  },
+  "surveyClipContextDescription": "Seconds of audio before and after each detection",
+  "@surveyClipContextDescription": {
+    "description": "Subtitle explaining clip context setting"
+  },
+  "surveyClipBefore": "Before",
+  "@surveyClipBefore": {
+    "description": "Label for pre-detection clip buffer"
+  },
+  "surveyClipAfter": "After",
+  "@surveyClipAfter": {
+    "description": "Label for post-detection clip buffer"
+  },
   "surveyDetectionSampling": "Detection Sampling",
   "@surveyDetectionSampling": {
     "description": "Label for detection sampling mode selector"

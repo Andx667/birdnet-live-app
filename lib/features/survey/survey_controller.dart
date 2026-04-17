@@ -574,7 +574,6 @@ class SurveyController {
     _session!.gpsTrack.add(point);
     if (_gpsTracker != null) {
       _session!.distanceMeters = _gpsTracker!.distanceMeters;
-      _sampler?.totalDistanceMeters = _gpsTracker!.distanceMeters;
     }
     _notifyListeners();
   }
@@ -671,10 +670,7 @@ class SurveyController {
             );
 
             // Check detection sampling.
-            final evicted = _sampler?.shouldKeep(
-              record,
-              distanceFromStart: _gpsTracker?.distanceMeters ?? 0,
-            );
+            final evicted = _sampler?.shouldKeep(record);
 
             final accepted = _sampler == null ||
                 _sampler!.mode == SamplingMode.all ||

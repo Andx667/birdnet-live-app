@@ -103,7 +103,6 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
   Duration _duration = Duration.zero;
   bool _isPlaying = false;
   bool _audioAvailable = false;
-  bool _hasDetectionClips = false;
   bool _isDirty = false;
   bool _trimMode = false;
   double? _trimStartSec;
@@ -249,9 +248,6 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
     _annotations = List.of(widget.session.annotations);
     _trimStartSec = widget.session.trimStartSec;
     _trimEndSec = widget.session.trimEndSec;
-    _hasDetectionClips = _detections.any(
-      (d) => d.audioClipPath != null && File(d.audioClipPath!).existsSync(),
-    );
     _speciesGroups = _buildSpeciesGroups(
       _detections,
       widget.session.settings.windowDuration,
@@ -1514,7 +1510,7 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
           isExpanded: isExpanded,
           isActive: isActive,
           isSurvey: widget.session.type == SessionType.survey,
-          hasAudio: _audioAvailable || _hasDetectionClips,
+          audioAvailable: _audioAvailable,
           onToggleExpand: () => setState(() {
             if (isExpanded) {
               _expandedSpecies.remove(group.scientificName);
@@ -1649,7 +1645,8 @@ String _sessionReviewTitle(AppLocalizations l10n, LiveSession session) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Fullscreen map showing the complete survey track with species markers.
-class _FullscreenSurveyMapScreen extends StatelessWidget {
+/// Tapping a species marker plays the detection's audio clip.
+class _FullscreenSurveyMapScreen extends StatefulWidget {
   const _FullscreenSurveyMapScreen({
     required this.gpsTrack,
     required this.detections,
@@ -1659,15 +1656,58 @@ class _FullscreenSurveyMapScreen extends StatelessWidget {
   final List<DetectionRecord> detections;
 
   @override
+  State<_FullscreenSurveyMapScreen> createState() =>
+      _FullscreenSurveyMapScreenState();
+}
+
+class _FullscreenSurveyMapScreenState
+    extends State<_FullscreenSurveyMapScreen> {
+  final AudioPlayer _clipPlayer = AudioPlayer();
+  DetectionRecord? _playingDetection;
+
+  @override
+  void dispose() {
+    _clipPlayer.dispose();
+    super.dispose();
+  }
+
+  Future<void> _onMarkerTap(DetectionRecord detection) async {
+    // Find the detection's clip (or fall back to the best one at that spot).
+    final clip = detection.audioClipPath != null &&
+            File(detection.audioClipPath!).existsSync()
+        ? detection
+        : widget.detections
+            .where((d) =>
+                d.scientificName == detection.scientificName &&
+                d.audioClipPath != null &&
+                File(d.audioClipPath!).existsSync())
+            .firstOrNull;
+    if (clip == null) return;
+
+    setState(() => _playingDetection = detection);
+    await _clipPlayer.stop();
+    await _clipPlayer.setFilePath(clip.audioClipPath!);
+    _clipPlayer.play();
+    _clipPlayer.playerStateStream
+        .where((s) => s.processingState == ProcessingState.completed)
+        .first
+        .then((_) {
+      if (mounted) setState(() => _playingDetection = null);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(title: Text(l10n.surveyTrackMap)),
       body: SurveyMapWidget(
-        gpsTrack: gpsTrack,
-        detections: detections,
+        gpsTrack: widget.gpsTrack,
+        detections: widget.detections,
         autoFollow: false,
         fitAllPoints: true,
+        highlightedDetection: _playingDetection,
+        onMarkerTap: _onMarkerTap,
       ),
     );
   }

@@ -318,6 +318,55 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 16),
+            // Clip context (visible only when recording mode = detections)
+            if (ref.watch(recordingModeProvider) == 'detections') ...[
+              ListTile(
+                title: Text(l10n.surveyClipContext),
+                subtitle: Text(l10n.surveyClipContextDescription),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Text(l10n.surveyClipBefore),
+                          Slider(
+                            value: ref.watch(preBufferProvider).toDouble(),
+                            min: 0,
+                            max: 10,
+                            divisions: 10,
+                            label: '${ref.watch(preBufferProvider)}s',
+                            onChanged: (v) => ref
+                                .read(preBufferProvider.notifier)
+                                .set(v.round()),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Text(l10n.surveyClipAfter),
+                          Slider(
+                            value: ref.watch(postBufferProvider).toDouble(),
+                            min: 0,
+                            max: 10,
+                            divisions: 10,
+                            label: '${ref.watch(postBufferProvider)}s',
+                            onChanged: (v) => ref
+                                .read(postBufferProvider.notifier)
+                                .set(v.round()),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
             _ChoiceTile<String>(
               title: l10n.settingsRecordingFormat,
               value: ref.watch(recordingFormatProvider),
