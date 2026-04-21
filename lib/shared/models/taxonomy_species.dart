@@ -98,7 +98,7 @@ class TaxonomySpecies {
   // Convenience getters
   // ---------------------------------------------------------------------------
 
-  /// Bundled asset image path (240×160 WebP).
+  /// Bundled asset image path (320×240 WebP).
   ///
   /// Falls back to the placeholder image if [birdnetId] is null
   /// (9 species with no taxonomy entry).
