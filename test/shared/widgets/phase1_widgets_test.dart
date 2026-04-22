@@ -213,18 +213,23 @@ void main() {
   group('ScoreColors', () {
     test('forScore buckets at the documented thresholds', () {
       const colors = ScoreColors.light;
-      expect(colors.forScore(0.0), colors.low);
+      expect(colors.forScore(0.0), colors.veryLow);
+      expect(colors.forScore(0.19), colors.veryLow);
+      expect(colors.forScore(0.20), colors.low);
       expect(colors.forScore(0.39), colors.low);
       expect(colors.forScore(0.40), colors.mid);
-      expect(colors.forScore(0.69), colors.mid);
-      expect(colors.forScore(0.70), colors.high);
-      expect(colors.forScore(1.0), colors.high);
+      expect(colors.forScore(0.59), colors.mid);
+      expect(colors.forScore(0.60), colors.high);
+      expect(colors.forScore(0.79), colors.high);
+      expect(colors.forScore(0.80), colors.veryHigh);
+      expect(colors.forScore(1.0), colors.veryHigh);
     });
 
     test('lerp interpolates between two ScoreColors instances', () {
       final lerped = ScoreColors.light.lerp(ScoreColors.dark, 0.5);
       expect(lerped, isA<ScoreColors>());
       expect(lerped.low, isNot(equals(ScoreColors.light.low)));
+      expect(lerped.veryHigh, isNot(equals(ScoreColors.light.veryHigh)));
     });
 
     testWidgets('is registered on AppTheme.light', (tester) async {
