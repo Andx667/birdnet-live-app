@@ -220,7 +220,8 @@ String buildJsonExport(LiveSession session) {
     if (session.latitude != null) 'latitude': session.latitude,
     if (session.longitude != null) 'longitude': session.longitude,
     if (session.locationName != null) 'locationName': session.locationName,
-    if (session.distanceMeters != null) 'distanceMeters': session.distanceMeters,
+    if (session.distanceMeters != null)
+      'distanceMeters': session.distanceMeters,
     if (session.stopReason != null) 'stopReason': session.stopReason!.name,
     if (session.stopReasonValue != null)
       'stopReasonValue': session.stopReasonValue,
