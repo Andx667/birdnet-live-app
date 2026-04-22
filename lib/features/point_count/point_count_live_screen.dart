@@ -55,6 +55,8 @@ class PointCountLiveScreen extends ConsumerStatefulWidget {
     required this.durationMinutes,
     this.latitude,
     this.longitude,
+    this.customName,
+    this.observerName,
   });
 
   /// Total survey duration in minutes.
@@ -65,6 +67,12 @@ class PointCountLiveScreen extends ConsumerStatefulWidget {
 
   /// Optional longitude chosen during setup (GPS or manual).
   final double? longitude;
+
+  /// Optional user-chosen name for the count (e.g., "Pond Stop 1").
+  final String? customName;
+
+  /// Optional observer name persisted with the session.
+  final String? observerName;
 
   @override
   ConsumerState<PointCountLiveScreen> createState() =>
@@ -215,6 +223,14 @@ class _PointCountLiveScreenState extends ConsumerState<PointCountLiveScreen>
       // pass it. Looking at LiveController.startSession — it creates the
       // session internally. We need to set the type after finalization.
       _setSessionType(session);
+
+      // Apply user-chosen name and observer from setup.
+      if (widget.customName != null && widget.customName!.isNotEmpty) {
+        session.customName = widget.customName;
+      }
+      if (widget.observerName != null && widget.observerName!.isNotEmpty) {
+        session.observerName = widget.observerName;
+      }
 
       final repo = ref.read(sessionRepositoryProvider);
       session.sessionNumber = await repo.nextSessionNumber(session.type);

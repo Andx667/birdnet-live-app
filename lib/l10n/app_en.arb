@@ -56,9 +56,29 @@
   "@onboardingPermissionsTitle": {
     "description": "Onboarding permissions screen title"
   },
-  "onboardingPermissionsBody": "BirdNET Live needs microphone access for audio capture. Location access is used for geotagging detections. All processing stays on your device.",
+  "onboardingPermissionsBody": "BirdNET Live needs microphone access for audio capture and (optionally) location access for geotagging detections, GPS tracks in surveys, and location-based species filtering. Both can be revoked at any time in system settings.",
   "@onboardingPermissionsBody": {
     "description": "Onboarding permissions screen body text"
+  },
+  "onboardingTermsTitle": "Terms & Privacy",
+  "@onboardingTermsTitle": {
+    "description": "Onboarding terms & privacy screen title"
+  },
+  "onboardingTermsBody": "Detections are AI predictions, not confirmed observations — verify before reporting. Audio is processed on-device and never uploaded. The only network requests are optional map tiles (with your consent) and a single reverse-geocoding lookup per session to resolve coordinates into a place name. Models (CC BY-SA 4.0) and the app may NOT be used for poaching or any military purpose. Tap below to read the full Terms of Use and Privacy Policy.",
+  "@onboardingTermsBody": {
+    "description": "Onboarding terms & privacy screen body text"
+  },
+  "onboardingTermsLink": "Terms of Use",
+  "@onboardingTermsLink": {
+    "description": "Onboarding link to terms of use"
+  },
+  "onboardingPrivacyLink": "Privacy Policy",
+  "@onboardingPrivacyLink": {
+    "description": "Onboarding link to privacy policy"
+  },
+  "onboardingTermsAccept": "I agree to the Terms of Use",
+  "@onboardingTermsAccept": {
+    "description": "Onboarding terms acceptance checkbox"
   },
   "onboardingReadyTitle": "Ready to Start",
   "@onboardingReadyTitle": {
@@ -1178,6 +1198,14 @@
   "pointCountSetupTitle": "Point Count Setup",
   "@pointCountSetupTitle": {
     "description": "Title for the point count setup wizard"
+  },
+  "pointCountName": "Point Count Name",
+  "@pointCountName": {
+    "description": "Label for point count name field"
+  },
+  "pointCountNameHint": "e.g. Pond Stop 1",
+  "@pointCountNameHint": {
+    "description": "Hint for point count name field"
   },
   "pointCountDuration": "Duration",
   "@pointCountDuration": {

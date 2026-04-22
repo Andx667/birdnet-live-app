@@ -56,9 +56,15 @@ class _PointCountSetupScreenState extends ConsumerState<PointCountSetupScreen> {
   final _latController = TextEditingController();
   final _lonController = TextEditingController();
 
+  // ── Identity fields ─────────────────────────────────────────────────────
+  final _nameController = TextEditingController();
+  final _observerController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
+    // Pre-fill observer with the last value used.
+    _observerController.text = ref.read(pointCountLastObserverProvider);
     // Start fetching GPS location immediately.
     _fetchGpsLocation();
   }
@@ -67,6 +73,8 @@ class _PointCountSetupScreenState extends ConsumerState<PointCountSetupScreen> {
   void dispose() {
     _latController.dispose();
     _lonController.dispose();
+    _nameController.dispose();
+    _observerController.dispose();
     super.dispose();
   }
 
@@ -111,12 +119,22 @@ class _PointCountSetupScreenState extends ConsumerState<PointCountSetupScreen> {
     final durationMin = ref.read(pointCountDurationProvider);
     final lat = _locationChoice == _LocationChoice.skip ? null : _latitude;
     final lon = _locationChoice == _LocationChoice.skip ? null : _longitude;
+    final name = _nameController.text.trim();
+    final observer = _observerController.text.trim();
+
+    // Persist observer for next time.
+    if (observer.isNotEmpty) {
+      ref.read(pointCountLastObserverProvider.notifier).set(observer);
+    }
+
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(
         builder: (_) => PointCountLiveScreen(
           durationMinutes: durationMin,
           latitude: lat,
           longitude: lon,
+          customName: name.isEmpty ? null : name,
+          observerName: observer.isEmpty ? null : observer,
         ),
       ),
     );
@@ -188,6 +206,8 @@ class _PointCountSetupScreenState extends ConsumerState<PointCountSetupScreen> {
           0 => _DurationStep(
               key: const ValueKey(0),
               durations: _durations,
+              nameController: _nameController,
+              observerController: _observerController,
               locationChoice: _locationChoice,
               latitude: _latitude,
               longitude: _longitude,
@@ -222,6 +242,8 @@ class _DurationStep extends ConsumerWidget {
   const _DurationStep({
     super.key,
     required this.durations,
+    required this.nameController,
+    required this.observerController,
     required this.locationChoice,
     required this.latitude,
     required this.longitude,
@@ -234,6 +256,8 @@ class _DurationStep extends ConsumerWidget {
   });
 
   final List<int> durations;
+  final TextEditingController nameController;
+  final TextEditingController observerController;
   final _LocationChoice locationChoice;
   final double? latitude;
   final double? longitude;
@@ -254,6 +278,26 @@ class _DurationStep extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: 24),
       children: [
         const SizedBox(height: 8),
+
+        // Name & observer
+        TextField(
+          controller: nameController,
+          decoration: InputDecoration(
+            labelText: l10n.pointCountName,
+            hintText: l10n.pointCountNameHint,
+            prefixIcon: const Icon(Icons.edit),
+          ),
+        ),
+        const SizedBox(height: 16),
+        TextField(
+          controller: observerController,
+          decoration: InputDecoration(
+            labelText: l10n.surveyObserverName,
+            hintText: l10n.surveyObserverNameHint,
+            prefixIcon: const Icon(Icons.person_rounded),
+          ),
+        ),
+        const SizedBox(height: 24),
 
         // Duration picker
         Text(
