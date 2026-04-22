@@ -32,7 +32,7 @@ BirdNET Live is a Flutter app built for field researchers, conservationists, and
 
 ## Quick Start
 
-See the [Getting Started](user/getting-started.md) guide to install and run BirdNET Live.
+See the [User Guide](user/index.md) for an overview, then open [Getting Started](user/getting-started.md) to install and run BirdNET Live.
 
 ## Install on Android
 

@@ -250,7 +250,7 @@ class _TipRow extends StatelessWidget {
 }
 
 Future<void> _launchUserGuide() async {
-  final uri = Uri.parse('${AppConstants.docsUrl}/user/getting-started/');
+  final uri = Uri.parse('${AppConstants.docsUrl}/user/');
   if (await canLaunchUrl(uri)) {
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }

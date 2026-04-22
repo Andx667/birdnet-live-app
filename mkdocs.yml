@@ -50,18 +50,9 @@ markdown_extensions:
 nav:
   - Home: index.md
   - User Guide:
-      - Getting Started: user/getting-started.md
-      - Live Mode: user/live-mode.md
-      - Explore: user/explore.md
-      - Session Library: user/session-library.md
-      - Session Review: user/session-review.md
-      - Settings: user/settings.md
-      - Export & Sync: user/export-sync.md
-      - Survey Mode: user/survey-mode.md
-      - Point Count Mode: user/point-count-mode.md
-      - File Analysis: user/file-analysis.md
-      - FAQ: user/faq.md
-      - Troubleshooting: user/troubleshooting.md
+    - Overview: user/index.md
+    - Getting Started: user/getting-started.md
+    - FAQ: user/faq.md
   - Developer Guide:
       - Overview: developer/index.md
       - Getting Started: developer/getting-started.md
