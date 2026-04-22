@@ -131,7 +131,10 @@ class SettingsScreen extends ConsumerWidget {
             _LanguageTile(l10n: l10n),
             _SpeciesLanguageTile(l10n: l10n),
             SwitchListTile(
-              title: Text(l10n.settingsShowSciNames),
+              title: _TitleWithHelp(
+                title: l10n.settingsShowSciNames,
+                helpBody: l10n.settingsHelpShowSciNames,
+              ),
               subtitle: Text(l10n.settingsShowSciNamesDescription),
               value: ref.watch(showSciNamesProvider),
               onChanged: (v) => ref.read(showSciNamesProvider.notifier).set(v),
@@ -147,6 +150,7 @@ class SettingsScreen extends ConsumerWidget {
             ),
             _SliderTile(
               title: l10n.settingsGain,
+              helpBody: l10n.settingsHelpGain,
               value: ref.watch(audioGainProvider),
               min: 0.0,
               max: 2.0,
@@ -156,6 +160,7 @@ class SettingsScreen extends ConsumerWidget {
             ),
             _SliderTile(
               title: l10n.settingsHighPassFilter,
+              helpBody: l10n.settingsHelpHighPassFilter,
               value: ref.watch(highPassFilterProvider),
               min: 0,
               max: 500,
@@ -176,6 +181,7 @@ class SettingsScreen extends ConsumerWidget {
             ),
             _ChoiceTile<int>(
               title: l10n.settingsWindowDuration,
+              helpBody: l10n.settingsHelpWindowDuration,
               value: ref.watch(windowDurationProvider),
               options: const {3: '3s', 5: '5s', 10: '10s'},
               onChanged: (v) =>
@@ -183,6 +189,7 @@ class SettingsScreen extends ConsumerWidget {
             ),
             _SliderTile(
               title: l10n.settingsConfidenceThreshold,
+              helpBody: l10n.settingsHelpConfidenceThreshold,
               value: ref.watch(confidenceThresholdProvider).toDouble(),
               min: 0,
               max: 100,
@@ -193,6 +200,7 @@ class SettingsScreen extends ConsumerWidget {
             ),
             _SliderTile(
               title: l10n.settingsSensitivity,
+              helpBody: l10n.settingsHelpSensitivity,
               value: ref.watch(sensitivityProvider),
               min: 0.5,
               max: 1.5,
@@ -202,6 +210,7 @@ class SettingsScreen extends ConsumerWidget {
             ),
             _ChoiceTile<double>(
               title: l10n.settingsInferenceRate,
+              helpBody: l10n.settingsHelpInferenceRate,
               value: ref.watch(inferenceRateProvider),
               options: {
                 0.25: '0.25 Hz',
@@ -213,6 +222,7 @@ class SettingsScreen extends ConsumerWidget {
             ),
             _ChoiceTile<String>(
               title: l10n.settingsScorePooling,
+              helpBody: l10n.settingsHelpScorePooling,
               value: ref.watch(scorePoolingProvider),
               options: {
                 'off': l10n.settingsPoolingOff,
@@ -233,6 +243,7 @@ class SettingsScreen extends ConsumerWidget {
             ),
             _ChoiceTile<int>(
               title: l10n.settingsFftSize,
+              helpBody: l10n.settingsHelpFftSize,
               value: ref.watch(fftSizeProvider),
               options: const {
                 512: '512',
@@ -244,6 +255,7 @@ class SettingsScreen extends ConsumerWidget {
             ),
             _ColorMapChoiceTile(
               title: l10n.settingsColorMap,
+              helpBody: l10n.settingsHelpColorMap,
               value: ref.watch(colorMapProvider),
               options: {
                 'viridis': l10n.settingsColorMapViridis,
@@ -254,6 +266,7 @@ class SettingsScreen extends ConsumerWidget {
             ),
             _ChoiceTile<int>(
               title: l10n.settingsSpectrogramDuration,
+              helpBody: l10n.settingsHelpSpectrogramDuration,
               value: ref.watch(spectrogramDurationProvider),
               options: const {
                 5: '5 s',
@@ -267,6 +280,7 @@ class SettingsScreen extends ConsumerWidget {
             ),
             _ChoiceTile<int>(
               title: l10n.settingsFrequencyRange,
+              helpBody: l10n.settingsHelpFrequencyRange,
               value: ref.watch(spectrogramMaxFreqProvider),
               options: const {
                 4000: '4 kHz',
@@ -280,7 +294,10 @@ class SettingsScreen extends ConsumerWidget {
                   ref.read(spectrogramMaxFreqProvider.notifier).set(v),
             ),
             SwitchListTile(
-              title: Text(l10n.settingsLogAmplitude),
+              title: _TitleWithHelp(
+                title: l10n.settingsLogAmplitude,
+                helpBody: l10n.settingsHelpLogAmplitude,
+              ),
               subtitle: Text(l10n.settingsLogAmplitudeDescription),
               value: ref.watch(logAmplitudeProvider),
               onChanged: (v) => ref.read(logAmplitudeProvider.notifier).set(v),
@@ -295,7 +312,10 @@ class SettingsScreen extends ConsumerWidget {
               subtitle: l10n.settingsRecordingDescription,
             ),
             ListTile(
-              title: Text(l10n.settingsRecordingMode),
+              title: _TitleWithHelp(
+                title: l10n.settingsRecordingMode,
+                helpBody: l10n.settingsHelpRecordingMode,
+              ),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -373,6 +393,7 @@ class SettingsScreen extends ConsumerWidget {
             ],
             _ChoiceTile<String>(
               title: l10n.settingsRecordingFormat,
+              helpBody: l10n.settingsHelpRecordingFormat,
               value: ref.watch(recordingFormatProvider),
               options: const {'wav': 'WAV', 'flac': 'FLAC'},
               onChanged: (v) =>
@@ -388,7 +409,10 @@ class SettingsScreen extends ConsumerWidget {
               subtitle: l10n.settingsLocationDescription,
             ),
             SwitchListTile(
-              title: Text(l10n.settingsUseGps),
+              title: _TitleWithHelp(
+                title: l10n.settingsUseGps,
+                helpBody: l10n.settingsHelpUseGps,
+              ),
               subtitle: Text(l10n.settingsUseGpsDescription),
               value: ref.watch(useGpsProvider),
               onChanged: (v) => ref.read(useGpsProvider.notifier).set(v),
@@ -417,6 +441,7 @@ class SettingsScreen extends ConsumerWidget {
             ],
             _ChoiceTile<String>(
               title: l10n.settingsSpeciesFilter,
+              helpBody: l10n.settingsHelpSpeciesFilter,
               value: ref.watch(speciesFilterModeProvider),
               options: {
                 'off': l10n.settingsFilterOff,
@@ -429,6 +454,7 @@ class SettingsScreen extends ConsumerWidget {
             if (ref.watch(speciesFilterModeProvider) != 'off')
               _SliderTile(
                 title: l10n.settingsGeoThreshold,
+                helpBody: l10n.settingsHelpGeoThreshold,
                 value: ref.watch(geoThresholdProvider),
                 min: 0.0,
                 max: 0.5,
@@ -448,6 +474,7 @@ class SettingsScreen extends ConsumerWidget {
             ),
             _ChoiceTile<String>(
               title: l10n.settingsExportFormat,
+              helpBody: l10n.settingsHelpExportFormat,
               value: ref.watch(exportFormatProvider),
               options: const {
                 'raven': 'Raven Selection Table',
@@ -458,7 +485,10 @@ class SettingsScreen extends ConsumerWidget {
               onChanged: (v) => ref.read(exportFormatProvider.notifier).set(v),
             ),
             SwitchListTile(
-              title: Text(l10n.settingsIncludeAudioFiles),
+              title: _TitleWithHelp(
+                title: l10n.settingsIncludeAudioFiles,
+                helpBody: l10n.settingsHelpIncludeAudioFiles,
+              ),
               value: ref.watch(includeAudioProvider),
               onChanged: (v) => ref.read(includeAudioProvider.notifier).set(v),
             ),
@@ -631,6 +661,89 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
+/// Inline title row that appends a small "?" help button when [helpBody]
+/// is provided. Tap opens [showHelpSheet] with the same [title] and the
+/// localized explanatory paragraph.
+///
+/// When [helpBody] is null, falls back to a plain `Text(title)` so the
+/// surrounding layout stays identical for settings without help text.
+class _TitleWithHelp extends StatelessWidget {
+  const _TitleWithHelp({required this.title, this.helpBody});
+
+  final String title;
+  final String? helpBody;
+
+  @override
+  Widget build(BuildContext context) {
+    if (helpBody == null) return Text(title);
+    return Row(
+      children: [
+        Flexible(child: Text(title)),
+        const SizedBox(width: 4),
+        _HelpIconButton(title: title, body: helpBody!),
+      ],
+    );
+  }
+}
+
+/// Compact info-icon button that opens a settings help bottom sheet.
+class _HelpIconButton extends StatelessWidget {
+  const _HelpIconButton({required this.title, required this.body});
+
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return IconButton(
+      icon: const Icon(Icons.help_outline, size: 18),
+      visualDensity: VisualDensity.compact,
+      tooltip: l10n.settingsHelpTooltip,
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
+      onPressed: () => showSettingHelpSheet(context, title: title, body: body),
+    );
+  }
+}
+
+/// Show a Material 3 modal bottom sheet with a setting's help text.
+///
+/// Centralized here so the styling (handle, padding, typography) stays
+/// consistent across all per-setting help affordances.
+Future<void> showSettingHelpSheet(
+  BuildContext context, {
+  required String title,
+  required String body,
+}) {
+  return showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    isScrollControlled: true,
+    builder: (ctx) {
+      final theme = Theme.of(ctx);
+      return SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: theme.textTheme.titleMedium),
+              const SizedBox(height: 12),
+              Text(
+                body,
+                style: theme.textTheme.bodyMedium?.copyWith(height: 1.4),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
 class _ThemeTile extends ConsumerWidget {
   const _ThemeTile({required this.l10n});
   final AppLocalizations l10n;
@@ -773,6 +886,7 @@ class _SliderTile extends StatelessWidget {
     required this.divisions,
     required this.format,
     required this.onChanged,
+    this.helpBody,
   });
 
   final String title;
@@ -782,11 +896,12 @@ class _SliderTile extends StatelessWidget {
   final int divisions;
   final String Function(double) format;
   final ValueChanged<double> onChanged;
+  final String? helpBody;
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      title: Text(title),
+      title: _TitleWithHelp(title: title, helpBody: helpBody),
       subtitle: Slider(
         value: value,
         min: min,
@@ -809,17 +924,19 @@ class _ChoiceTile<T> extends StatelessWidget {
     required this.value,
     required this.options,
     required this.onChanged,
+    this.helpBody,
   });
 
   final String title;
   final T value;
   final Map<T, String> options;
   final ValueChanged<T> onChanged;
+  final String? helpBody;
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      title: Text(title),
+      title: _TitleWithHelp(title: title, helpBody: helpBody),
       trailing: DropdownButton<T>(
         value: value,
         underline: const SizedBox.shrink(),
@@ -843,12 +960,14 @@ class _ColorMapChoiceTile extends StatelessWidget {
     required this.value,
     required this.options,
     required this.onChanged,
+    this.helpBody,
   });
 
   final String title;
   final String value;
   final Map<String, String> options;
   final ValueChanged<String> onChanged;
+  final String? helpBody;
 
   /// Build a horizontal gradient strip from the named color map's LUT.
   Widget _swatch(String name, {double width = 56, double height = 14}) {
@@ -881,7 +1000,7 @@ class _ColorMapChoiceTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      title: Text(title),
+      title: _TitleWithHelp(title: title, helpBody: helpBody),
       trailing: DropdownButton<String>(
         value: value,
         underline: const SizedBox.shrink(),
