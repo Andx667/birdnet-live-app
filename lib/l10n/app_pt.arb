@@ -275,6 +275,7 @@
   "fileAnalysisError": "Erro de análise",
 
   "fileAnalysisBack": "Voltar",
+  "wizardStepLabel": "Passo {current} de {total}",
   "fileAnalysisNext": "Próximo",
   "fileAnalysisStart": "Iniciar análise",
 

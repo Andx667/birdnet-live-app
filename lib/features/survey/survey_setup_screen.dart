@@ -21,8 +21,8 @@ import 'package:latlong2/latlong.dart';
 
 import '../../shared/providers/settings_providers.dart';
 import '../../shared/widgets/app_help_bottom_sheet.dart';
-import '../../shared/widgets/content_width_constraint.dart';
 import '../../shared/widgets/map_picker_screen.dart';
+import '../../shared/widgets/wizard_scaffold.dart';
 import '../audio/audio_providers.dart';
 import '../explore/explore_providers.dart';
 import '../settings/settings_screen.dart';
@@ -223,134 +223,72 @@ class _SurveySetupScreenState extends ConsumerState<SurveySetupScreen>
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final isLastStep = _step == _totalSteps - 1;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.surveySetupTitle),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.help_outline_rounded, size: 20),
-            onPressed: _showHelp,
-            tooltip: l10n.surveySetupHelpTitle,
-          ),
-          IconButton(
-            icon: const Icon(Icons.tune_rounded, size: 20),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const SettingsScreen(
-                    settingsContext: SettingsContext.survey,
-                  ),
+    return WizardScaffold(
+      title: l10n.surveySetupTitle,
+      step: _step,
+      totalSteps: _totalSteps,
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.help_outline_rounded, size: 20),
+          onPressed: _showHelp,
+          tooltip: l10n.surveySetupHelpTitle,
+        ),
+        IconButton(
+          icon: const Icon(Icons.tune_rounded, size: 20),
+          onPressed: () {
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const SettingsScreen(
+                  settingsContext: SettingsContext.survey,
                 ),
-              );
-            },
-            tooltip: l10n.settings,
-          ),
-        ],
-      ),
-      body: SafeArea(
-        child: ContentWidthConstraint(
-            child: Column(
-          children: [
-            _StepIndicator(currentStep: _step, totalSteps: _totalSteps),
-            Expanded(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 250),
-                child: switch (_step) {
-                  0 => _DetailsStep(
-                      key: const ValueKey(0),
-                      nameController: _nameController,
-                      transectController: _transectController,
-                      observerController: _observerController,
-                      locationChoice: _locationChoice,
-                      latitude: _latitude,
-                      longitude: _longitude,
-                      gpsFetching: _gpsFetching,
-                      hasBackgroundGps: _hasBackgroundGps,
-                      latController: _latController,
-                      lonController: _lonController,
-                      onLocationChoiceChanged: (c) {
-                        setState(() => _locationChoice = c);
-                        if (c == _LocationChoice.gps) _fetchGpsLocation();
-                      },
-                      onFetchGps: _fetchGpsLocation,
-                      onRequestBackgroundGps: _requestBackgroundPermission,
-                      onMapPick: (lat, lon) {
-                        setState(() {
-                          _latitude = lat;
-                          _longitude = lon;
-                        });
-                      },
-                    ),
-                  1 => const _ParametersStep(key: ValueKey(1)),
-                  2 => const _FieldTipsStep(key: ValueKey(2)),
-                  _ => _ReadyStep(
-                      key: const ValueKey(3),
-                      hasBackgroundGps: _hasBackgroundGps,
-                    ),
-                },
               ),
+            );
+          },
+          tooltip: l10n.settings,
+        ),
+      ],
+      onBack: _back,
+      onNext: isLastStep ? _start : _next,
+      backLabel: _step == 0 ? l10n.cancel : l10n.surveyBack,
+      nextLabel: isLastStep ? l10n.surveyStart : l10n.surveyNext,
+      nextIcon: isLastStep ? Icons.play_arrow_rounded : null,
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 250),
+        child: switch (_step) {
+          0 => _DetailsStep(
+              key: const ValueKey(0),
+              nameController: _nameController,
+              transectController: _transectController,
+              observerController: _observerController,
+              locationChoice: _locationChoice,
+              latitude: _latitude,
+              longitude: _longitude,
+              gpsFetching: _gpsFetching,
+              hasBackgroundGps: _hasBackgroundGps,
+              latController: _latController,
+              lonController: _lonController,
+              onLocationChoiceChanged: (c) {
+                setState(() => _locationChoice = c);
+                if (c == _LocationChoice.gps) _fetchGpsLocation();
+              },
+              onFetchGps: _fetchGpsLocation,
+              onRequestBackgroundGps: _requestBackgroundPermission,
+              onMapPick: (lat, lon) {
+                setState(() {
+                  _latitude = lat;
+                  _longitude = lon;
+                });
+              },
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
-              child: Row(
-                children: [
-                  TextButton(
-                    onPressed: _back,
-                    child: Text(_step == 0 ? l10n.cancel : l10n.surveyBack),
-                  ),
-                  const Spacer(),
-                  if (_step < _totalSteps - 1)
-                    FilledButton(
-                      onPressed: _next,
-                      child: Text(l10n.surveyNext),
-                    )
-                  else
-                    FilledButton.icon(
-                      onPressed: _start,
-                      icon: const Icon(Icons.play_arrow_rounded),
-                      label: Text(l10n.surveyStart),
-                    ),
-                ],
-              ),
+          1 => const _ParametersStep(key: ValueKey(1)),
+          2 => const _FieldTipsStep(key: ValueKey(2)),
+          _ => _ReadyStep(
+              key: const ValueKey(3),
+              hasBackgroundGps: _hasBackgroundGps,
             ),
-          ],
-        )),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Step Indicator
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _StepIndicator extends StatelessWidget {
-  const _StepIndicator({required this.currentStep, required this.totalSteps});
-  final int currentStep;
-  final int totalSteps;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 8),
-      child: Row(
-        children: List.generate(totalSteps, (i) {
-          final isActive = i <= currentStep;
-          return Expanded(
-            child: Container(
-              height: 4,
-              margin: EdgeInsets.only(right: i < totalSteps - 1 ? 8 : 0),
-              decoration: BoxDecoration(
-                color: isActive
-                    ? theme.colorScheme.primary
-                    : theme.colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          );
-        }),
+        },
       ),
     );
   }

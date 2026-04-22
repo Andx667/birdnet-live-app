@@ -1086,6 +1086,14 @@
   "@fileAnalysisBack": {
     "description": "Back button in wizard navigation"
   },
+  "wizardStepLabel": "Step {current} of {total}",
+  "@wizardStepLabel": {
+    "description": "Accessibility label announced for the wizard step indicator",
+    "placeholders": {
+      "current": { "type": "int", "example": "2" },
+      "total": { "type": "int", "example": "3" }
+    }
+  },
   "fileAnalysisNext": "Next",
   "@fileAnalysisNext": {
     "description": "Next button in wizard navigation"

@@ -275,6 +275,7 @@
   "fileAnalysisError": "Chyba analýzy",
 
   "fileAnalysisBack": "Zpět",
+  "wizardStepLabel": "Krok {current} z {total}",
   "fileAnalysisNext": "Další",
   "fileAnalysisStart": "Spustit analýzu",
 

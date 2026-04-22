@@ -37,10 +37,10 @@ import 'package:latlong2/latlong.dart';
 import '../../core/services/reverse_geocoding_service.dart';
 import '../../shared/providers/settings_providers.dart';
 import '../../shared/widgets/app_help_bottom_sheet.dart';
-import '../../shared/widgets/content_width_constraint.dart';
 import '../../shared/widgets/confirm_destructive.dart';
 import '../../shared/widgets/map_picker_screen.dart';
 import '../../shared/widgets/stat_chip.dart';
+import '../../shared/widgets/wizard_scaffold.dart';
 import '../explore/explore_providers.dart';
 import '../history/session_review_screen.dart';
 import '../live/live_providers.dart';
@@ -371,121 +371,104 @@ class _FileAnalysisScreenState extends ConsumerState<FileAnalysisScreen> {
           ref.read(fileAnalysisControllerProvider).cancel();
         }
       },
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(l10n.fileAnalysisMode),
-          leading: isAnalyzing
-              ? IconButton(
-                  icon: const Icon(Icons.close),
-                  tooltip: l10n.tooltipCancelAnalysis,
-                  onPressed: _confirmCancel,
-                )
-              : null,
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.help_outline_rounded, size: 20),
-              onPressed: _showHelp,
-              tooltip: l10n.fileAnalysisHelpTitle,
-            ),
-            IconButton(
-              icon: const Icon(Icons.tune_rounded, size: 20),
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const SettingsScreen(
-                      settingsContext: SettingsContext.fileAnalysis,
-                    ),
+      child: WizardScaffold(
+        title: l10n.fileAnalysisMode,
+        step: _currentStep,
+        totalSteps: 4,
+        leading: isAnalyzing
+            ? IconButton(
+                icon: const Icon(Icons.close),
+                tooltip: l10n.tooltipCancelAnalysis,
+                onPressed: _confirmCancel,
+              )
+            : null,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline_rounded, size: 20),
+            onPressed: _showHelp,
+            tooltip: l10n.fileAnalysisHelpTitle,
+          ),
+          IconButton(
+            icon: const Icon(Icons.tune_rounded, size: 20),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const SettingsScreen(
+                    settingsContext: SettingsContext.fileAnalysis,
                   ),
-                );
+                ),
+              );
+            },
+            tooltip: l10n.settings,
+          ),
+        ],
+        showFooter: !isAnalyzing && analysisState != FileAnalysisState.complete,
+        onBack: _currentStep > 0 ? () => _goToStep(_currentStep - 1) : null,
+        onNext: _currentStep == 3
+            ? _startAnalysis
+            : (_canProceed ? () => _goToStep(_currentStep + 1) : null),
+        backLabel: l10n.fileAnalysisBack,
+        nextLabel:
+            _currentStep == 3 ? l10n.fileAnalysisStart : l10n.fileAnalysisNext,
+        nextIcon: _currentStep == 3 ? Icons.play_arrow : null,
+        child: PageView(
+          controller: _pageController,
+          physics: const NeverScrollableScrollPhysics(),
+          onPageChanged: (i) => setState(() => _currentStep = i),
+          children: [
+            _FileStep(
+              fileInfo: _fileInfo,
+              isInspecting: _isInspecting,
+              onPickFile: _pickFile,
+            ),
+            _LocationStep(
+              choice: _locationChoice,
+              latitude: _latitude,
+              longitude: _longitude,
+              locationName: _locationName,
+              isFetching: _isFetchingLocation,
+              latController: _latController,
+              lonController: _lonController,
+              recordingDate: _recordingDate,
+              onChoiceChanged: (c) {
+                setState(() => _locationChoice = c);
+                if (c == _LocationChoice.gps) _fetchGpsLocation();
               },
-              tooltip: l10n.settings,
+              onFetchGps: _fetchGpsLocation,
+              onDateChanged: (d) => setState(() => _recordingDate = d),
+              onMapPick: (lat, lon) {
+                setState(() {
+                  _latitude = lat;
+                  _longitude = lon;
+                  _locationName = null;
+                });
+              },
+            ),
+            _ParametersStep(
+              windowDuration: _windowDuration,
+              overlap: _overlap,
+              sensitivity: _sensitivity,
+              confidenceThreshold: _confidenceThreshold,
+              speciesFilterMode: _speciesFilterMode,
+              onWindowDurationChanged: (v) =>
+                  setState(() => _windowDuration = v),
+              onOverlapChanged: (v) => setState(() => _overlap = v),
+              onSensitivityChanged: (v) => setState(() => _sensitivity = v),
+              onConfidenceChanged: (v) =>
+                  setState(() => _confidenceThreshold = v),
+              onFilterModeChanged: (v) =>
+                  setState(() => _speciesFilterMode = v),
+            ),
+            _AnalysisStep(
+              state: analysisState,
+              progress: ref.watch(fileAnalysisProgressProvider),
+              errorMessage:
+                  ref.read(fileAnalysisControllerProvider).errorMessage,
+              fileInfo: _fileInfo,
+              onCancel: _confirmCancel,
             ),
           ],
         ),
-        body: ContentWidthConstraint(
-            child: Column(
-          children: [
-            // ── Step indicator ─────────────────────────────────────
-            _StepIndicator(
-              currentStep: _currentStep,
-            ),
-
-            // ── Page content ──────────────────────────────────────
-            Expanded(
-              child: PageView(
-                controller: _pageController,
-                physics: const NeverScrollableScrollPhysics(),
-                onPageChanged: (i) => setState(() => _currentStep = i),
-                children: [
-                  _FileStep(
-                    fileInfo: _fileInfo,
-                    isInspecting: _isInspecting,
-                    onPickFile: _pickFile,
-                  ),
-                  _LocationStep(
-                    choice: _locationChoice,
-                    latitude: _latitude,
-                    longitude: _longitude,
-                    locationName: _locationName,
-                    isFetching: _isFetchingLocation,
-                    latController: _latController,
-                    lonController: _lonController,
-                    recordingDate: _recordingDate,
-                    onChoiceChanged: (c) {
-                      setState(() => _locationChoice = c);
-                      if (c == _LocationChoice.gps) _fetchGpsLocation();
-                    },
-                    onFetchGps: _fetchGpsLocation,
-                    onDateChanged: (d) => setState(() => _recordingDate = d),
-                    onMapPick: (lat, lon) {
-                      setState(() {
-                        _latitude = lat;
-                        _longitude = lon;
-                        _locationName = null;
-                      });
-                    },
-                  ),
-                  _ParametersStep(
-                    windowDuration: _windowDuration,
-                    overlap: _overlap,
-                    sensitivity: _sensitivity,
-                    confidenceThreshold: _confidenceThreshold,
-                    speciesFilterMode: _speciesFilterMode,
-                    onWindowDurationChanged: (v) =>
-                        setState(() => _windowDuration = v),
-                    onOverlapChanged: (v) => setState(() => _overlap = v),
-                    onSensitivityChanged: (v) =>
-                        setState(() => _sensitivity = v),
-                    onConfidenceChanged: (v) =>
-                        setState(() => _confidenceThreshold = v),
-                    onFilterModeChanged: (v) =>
-                        setState(() => _speciesFilterMode = v),
-                  ),
-                  _AnalysisStep(
-                    state: analysisState,
-                    progress: ref.watch(fileAnalysisProgressProvider),
-                    errorMessage:
-                        ref.read(fileAnalysisControllerProvider).errorMessage,
-                    fileInfo: _fileInfo,
-                    onCancel: _confirmCancel,
-                  ),
-                ],
-              ),
-            ),
-
-            // ── Navigation buttons ────────────────────────────────
-            if (!isAnalyzing && analysisState != FileAnalysisState.complete)
-              _NavigationBar(
-                currentStep: _currentStep,
-                canProceed: _canProceed,
-                onBack:
-                    _currentStep > 0 ? () => _goToStep(_currentStep - 1) : null,
-                onNext:
-                    _currentStep < 3 ? () => _goToStep(_currentStep + 1) : null,
-                onAnalyze: _currentStep == 3 ? _startAnalysis : null,
-              ),
-          ],
-        )),
       ),
     );
   }
@@ -496,45 +479,6 @@ class _FileAnalysisScreenState extends ConsumerState<FileAnalysisScreen> {
 // =============================================================================
 
 enum _LocationChoice { gps, manual, skip }
-
-// =============================================================================
-// Step Indicator
-// =============================================================================
-
-class _StepIndicator extends StatelessWidget {
-  const _StepIndicator({
-    required this.currentStep,
-  });
-
-  final int currentStep;
-
-  static const _totalSteps = 4;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      child: Row(
-        children: List.generate(_totalSteps, (i) {
-          final isActive = i <= currentStep;
-          return Expanded(
-            child: Container(
-              height: 4,
-              margin: EdgeInsets.only(right: i < _totalSteps - 1 ? 8 : 0),
-              decoration: BoxDecoration(
-                color: isActive
-                    ? theme.colorScheme.primary
-                    : theme.colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          );
-        }),
-      ),
-    );
-  }
-}
 
 // =============================================================================
 // Step 1: File Selection
@@ -1285,59 +1229,6 @@ class _AnalysisStep extends StatelessWidget {
               ),
             ),
           ],
-        ],
-      ),
-    );
-  }
-}
-
-// =============================================================================
-// Navigation Bar
-// =============================================================================
-
-class _NavigationBar extends StatelessWidget {
-  const _NavigationBar({
-    required this.currentStep,
-    required this.canProceed,
-    required this.onBack,
-    required this.onNext,
-    required this.onAnalyze,
-  });
-
-  final int currentStep;
-  final bool canProceed;
-  final VoidCallback? onBack;
-  final VoidCallback? onNext;
-  final VoidCallback? onAnalyze;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final bottomPadding = MediaQuery.of(context).viewPadding.bottom;
-
-    return Padding(
-      padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomPadding),
-      child: Row(
-        children: [
-          if (currentStep > 0)
-            OutlinedButton(
-              onPressed: onBack,
-              child: Text(l10n.fileAnalysisBack),
-            )
-          else
-            const SizedBox.shrink(),
-          const Spacer(),
-          if (currentStep < 3)
-            FilledButton(
-              onPressed: canProceed ? onNext : null,
-              child: Text(l10n.fileAnalysisNext),
-            ),
-          if (currentStep == 3)
-            FilledButton.icon(
-              onPressed: onAnalyze,
-              icon: const Icon(Icons.play_arrow),
-              label: Text(l10n.fileAnalysisStart),
-            ),
         ],
       ),
     );
