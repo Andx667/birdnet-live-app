@@ -1118,7 +1118,10 @@ class _AddSpeciesOverlayState extends ConsumerState<_AddSpeciesOverlay> {
                 ),
               ],
               selected: {_mode},
-              onSelectionChanged: (s) => setState(() => _mode = s.first),
+              onSelectionChanged: (s) {
+                HapticFeedback.selectionClick();
+                setState(() => _mode = s.first);
+              },
             ),
           ),
 

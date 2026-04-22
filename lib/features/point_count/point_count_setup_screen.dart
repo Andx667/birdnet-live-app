@@ -15,6 +15,7 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -328,7 +329,10 @@ class _DurationStep extends ConsumerWidget {
             ),
           ],
           selected: {locationChoice},
-          onSelectionChanged: (s) => onLocationChoiceChanged(s.first),
+          onSelectionChanged: (s) {
+            HapticFeedback.selectionClick();
+            onLocationChoiceChanged(s.first);
+          },
           showSelectedIcon: false,
         ),
 

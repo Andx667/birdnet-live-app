@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
@@ -313,8 +314,10 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                 ],
                 selected: {ref.watch(recordingModeProvider)},
-                onSelectionChanged: (s) =>
-                    ref.read(recordingModeProvider.notifier).set(s.first),
+                onSelectionChanged: (s) {
+                  HapticFeedback.selectionClick();
+                  ref.read(recordingModeProvider.notifier).set(s.first);
+                },
               ),
             ),
             const SizedBox(height: 16),
@@ -648,6 +651,7 @@ class _ThemeTile extends ConsumerWidget {
         ],
         selected: {themeMode},
         onSelectionChanged: (selected) {
+          HapticFeedback.selectionClick();
           ref.read(themeModeProvider.notifier).setThemeMode(selected.first);
         },
         showSelectedIcon: false,

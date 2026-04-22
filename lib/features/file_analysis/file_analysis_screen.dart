@@ -28,6 +28,7 @@
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -713,7 +714,10 @@ class _LocationStep extends StatelessWidget {
               ),
             ],
             selected: {choice},
-            onSelectionChanged: (s) => onChoiceChanged(s.first),
+            onSelectionChanged: (s) {
+              HapticFeedback.selectionClick();
+              onChoiceChanged(s.first);
+            },
             showSelectedIcon: false,
           ),
 
@@ -946,7 +950,10 @@ class _ParametersStep extends StatelessWidget {
                 ButtonSegment(value: 10, label: Text('10s')),
               ],
               selected: {windowDuration},
-              onSelectionChanged: (s) => onWindowDurationChanged(s.first),
+              onSelectionChanged: (s) {
+                HapticFeedback.selectionClick();
+                onWindowDurationChanged(s.first);
+              },
               showSelectedIcon: false,
             ),
           ),

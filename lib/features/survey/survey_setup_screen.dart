@@ -14,6 +14,7 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
@@ -392,7 +393,10 @@ class _DetailsStep extends StatelessWidget {
             ),
           ],
           selected: {locationChoice},
-          onSelectionChanged: (s) => onLocationChoiceChanged(s.first),
+          onSelectionChanged: (s) {
+            HapticFeedback.selectionClick();
+            onLocationChoiceChanged(s.first);
+          },
         ),
         const SizedBox(height: 12),
 
@@ -630,8 +634,10 @@ class _ParametersStep extends ConsumerWidget {
               ButtonSegment(value: 60, label: Text('60s')),
             ],
             selected: {gpsInterval},
-            onSelectionChanged: (s) =>
-                ref.read(surveyGpsIntervalProvider.notifier).set(s.first),
+            onSelectionChanged: (s) {
+              HapticFeedback.selectionClick();
+              ref.read(surveyGpsIntervalProvider.notifier).set(s.first);
+            },
           ),
         ),
 
@@ -670,8 +676,10 @@ class _ParametersStep extends ConsumerWidget {
               ButtonSegment(value: 'off', label: Text(l10n.surveyRecordingOff)),
             ],
             selected: {recordingMode},
-            onSelectionChanged: (s) =>
-                ref.read(surveyRecordingModeProvider.notifier).set(s.first),
+            onSelectionChanged: (s) {
+              HapticFeedback.selectionClick();
+              ref.read(surveyRecordingModeProvider.notifier).set(s.first);
+            },
           ),
         ),
 
@@ -741,8 +749,10 @@ class _ParametersStep extends ConsumerWidget {
                   value: 'smart', label: Text(l10n.surveySamplingSmart)),
             ],
             selected: {sampling},
-            onSelectionChanged: (s) =>
-                ref.read(surveyDetectionSamplingProvider.notifier).set(s.first),
+            onSelectionChanged: (s) {
+              HapticFeedback.selectionClick();
+              ref.read(surveyDetectionSamplingProvider.notifier).set(s.first);
+            },
           ),
         ),
 

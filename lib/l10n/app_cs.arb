@@ -276,6 +276,11 @@
 
   "fileAnalysisBack": "Zpět",
   "wizardStepLabel": "Krok {current} z {total}",
+  "a11yLiveCaptureStart": "Spustit nahrávání",
+  "a11yLiveCaptureStop": "Zastavit nahrávání",
+  "a11yLiveCaptureResume": "Pokračovat v nahrávání",
+  "a11yConfidencePercent": "Spolehlivost {percent} procent",
+  "a11yLikelihoodPercent": "Pravděpodobnost {percent} procent",
   "fileAnalysisNext": "Další",
   "fileAnalysisStart": "Spustit analýzu",
 

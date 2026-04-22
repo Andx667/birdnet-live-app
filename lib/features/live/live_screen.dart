@@ -613,51 +613,63 @@ class _CaptureButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     // Active → red stop button, paused → primary play button, idle → primary mic.
     final Color bgColor;
     final IconData icon;
     final Color iconColor;
+    final String semanticsLabel;
 
     if (isActive) {
       bgColor = theme.colorScheme.error;
       icon = Icons.stop_rounded;
       iconColor = theme.colorScheme.onError;
+      semanticsLabel = l10n.a11yLiveCaptureStop;
     } else if (isPaused) {
       bgColor = theme.colorScheme.primary;
       icon = Icons.play_arrow_rounded;
       iconColor = theme.colorScheme.onPrimary;
+      semanticsLabel = l10n.a11yLiveCaptureResume;
     } else {
       bgColor = theme.colorScheme.primary;
       icon = Icons.mic;
       iconColor = theme.colorScheme.onPrimary;
+      semanticsLabel = l10n.a11yLiveCaptureStart;
     }
 
-    return SizedBox(
-      width: 56,
-      height: 56,
-      child: Material(
-        shape: const CircleBorder(),
-        color: bgColor,
-        elevation: 4,
-        shadowColor: bgColor.withAlpha(120),
-        child: InkWell(
-          customBorder: const CircleBorder(),
-          onTap: isLoading
-              ? null
-              : () {
-                  HapticFeedback.lightImpact();
-                  onPressed();
-                },
-          child: isLoading
-              ? Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.5,
-                    color: theme.colorScheme.onPrimary,
+    return Semantics(
+      button: true,
+      enabled: !isLoading,
+      label: semanticsLabel,
+      child: SizedBox(
+        width: 56,
+        height: 56,
+        child: Material(
+          shape: const CircleBorder(),
+          color: bgColor,
+          elevation: 4,
+          shadowColor: bgColor.withAlpha(120),
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: isLoading
+                ? null
+                : () {
+                    HapticFeedback.lightImpact();
+                    onPressed();
+                  },
+            child: isLoading
+                ? Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: theme.colorScheme.onPrimary,
+                    ),
+                  )
+                : ExcludeSemantics(
+                    child: Icon(icon, color: iconColor, size: 28),
                   ),
-                )
-              : Icon(icon, color: iconColor, size: 28),
+          ),
         ),
       ),
     );

@@ -136,13 +136,19 @@ class DetectionTile extends ConsumerWidget {
                         ),
                       if (!showSciNames) const Spacer(),
                       const SizedBox(width: 8),
-                      Text(
-                        detection.confidencePercent,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: _confidenceColor(
-                            detection.confidence,
-                            theme,
+                      Semantics(
+                        label: AppLocalizations.of(context)!
+                            .a11yConfidencePercent(
+                                (detection.confidence * 100).round()),
+                        excludeSemantics: true,
+                        child: Text(
+                          detection.confidencePercent,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: _confidenceColor(
+                              detection.confidence,
+                              theme,
+                            ),
                           ),
                         ),
                       ),

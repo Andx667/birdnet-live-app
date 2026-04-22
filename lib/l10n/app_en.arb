@@ -1094,6 +1094,32 @@
       "total": { "type": "int", "example": "3" }
     }
   },
+  "a11yLiveCaptureStart": "Start recording",
+  "@a11yLiveCaptureStart": {
+    "description": "Screen-reader label for the Live capture button when idle"
+  },
+  "a11yLiveCaptureStop": "Stop recording",
+  "@a11yLiveCaptureStop": {
+    "description": "Screen-reader label for the Live capture button when recording"
+  },
+  "a11yLiveCaptureResume": "Resume recording",
+  "@a11yLiveCaptureResume": {
+    "description": "Screen-reader label for the Live capture button when paused"
+  },
+  "a11yConfidencePercent": "Confidence {percent} percent",
+  "@a11yConfidencePercent": {
+    "description": "Screen-reader label for a detection confidence badge",
+    "placeholders": {
+      "percent": { "type": "int", "example": "85" }
+    }
+  },
+  "a11yLikelihoodPercent": "Likelihood {percent} percent",
+  "@a11yLikelihoodPercent": {
+    "description": "Screen-reader label for a geo-model likelihood badge",
+    "placeholders": {
+      "percent": { "type": "int", "example": "60" }
+    }
+  },
   "fileAnalysisNext": "Next",
   "@fileAnalysisNext": {
     "description": "Next button in wizard navigation"

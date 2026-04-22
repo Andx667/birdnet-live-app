@@ -101,35 +101,44 @@ class SpeciesCard extends ConsumerWidget {
                           ),
                           if (confidence != null || geoScore != null) ...[
                             const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: probabilityCategoryColor(geoScore ??
-                                        (confidence != null
-                                            ? confidence! * 100
-                                            : 0))
-                                    .withAlpha(30),
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(
+                            Semantics(
+                              label: confidence != null
+                                  ? AppLocalizations.of(context)!
+                                      .a11yConfidencePercent(
+                                          (confidence! * 100).round())
+                                  : AppLocalizations.of(context)!
+                                      .a11yLikelihoodPercent(geoScore!.round()),
+                              excludeSemantics: true,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
                                   color: probabilityCategoryColor(geoScore ??
                                           (confidence != null
                                               ? confidence! * 100
                                               : 0))
-                                      .withAlpha(120),
+                                      .withAlpha(30),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: probabilityCategoryColor(geoScore ??
+                                            (confidence != null
+                                                ? confidence! * 100
+                                                : 0))
+                                        .withAlpha(120),
+                                  ),
                                 ),
-                              ),
-                              child: Text(
-                                confidence != null
-                                    ? '${(confidence! * 100).toStringAsFixed(0)}%'
-                                    : '${geoScore!.toStringAsFixed(0)}%',
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                  fontSize: 10,
-                                  color: probabilityCategoryColor(geoScore ??
-                                      (confidence != null
-                                          ? confidence! * 100
-                                          : 0)),
-                                  fontWeight: FontWeight.w800,
+                                child: Text(
+                                  confidence != null
+                                      ? '${(confidence! * 100).toStringAsFixed(0)}%'
+                                      : '${geoScore!.toStringAsFixed(0)}%',
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    fontSize: 10,
+                                    color: probabilityCategoryColor(geoScore ??
+                                        (confidence != null
+                                            ? confidence! * 100
+                                            : 0)),
+                                    fontWeight: FontWeight.w800,
+                                  ),
                                 ),
                               ),
                             ),

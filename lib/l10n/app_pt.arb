@@ -276,6 +276,11 @@
 
   "fileAnalysisBack": "Voltar",
   "wizardStepLabel": "Passo {current} de {total}",
+  "a11yLiveCaptureStart": "Iniciar gravação",
+  "a11yLiveCaptureStop": "Parar gravação",
+  "a11yLiveCaptureResume": "Retomar gravação",
+  "a11yConfidencePercent": "Confiança {percent} por cento",
+  "a11yLikelihoodPercent": "Probabilidade {percent} por cento",
   "fileAnalysisNext": "Próximo",
   "fileAnalysisStart": "Iniciar análise",
 
