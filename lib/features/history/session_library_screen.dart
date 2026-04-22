@@ -210,6 +210,7 @@ class _SessionLibraryScreenState extends ConsumerState<SessionLibraryScreen> {
           if (_showSearch)
             IconButton(
               icon: const Icon(Icons.close),
+              tooltip: l10n.tooltipClearSearch,
               onPressed: () => setState(() {
                 _searchController.clear();
                 _showSearch = false;
@@ -218,6 +219,7 @@ class _SessionLibraryScreenState extends ConsumerState<SessionLibraryScreen> {
           else ...[
             IconButton(
               icon: const Icon(Icons.search),
+              tooltip: l10n.tooltipSearch,
               onPressed: () => setState(() => _showSearch = true),
             ),
             IconButton(
@@ -380,6 +382,7 @@ class _SessionTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final dateStr = DateFormat.yMMMd().format(session.startTime);
     final timeStr = DateFormat.jm().format(session.startTime);
 
@@ -475,6 +478,7 @@ class _SessionTile extends ConsumerWidget {
                   IconButton(
                     icon: Icon(Icons.delete_outline,
                         color: theme.colorScheme.error),
+                    tooltip: l10n.tooltipDeleteSession,
                     onPressed: onDelete,
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
@@ -582,6 +586,7 @@ class _CompactSessionTile extends ConsumerWidget {
       trailing: IconButton(
         icon: Icon(Icons.delete_outline,
             size: 20, color: theme.colorScheme.error),
+        tooltip: l10n.tooltipDeleteSession,
         onPressed: onDelete,
         padding: EdgeInsets.zero,
         constraints: const BoxConstraints(),

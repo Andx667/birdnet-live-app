@@ -52,7 +52,7 @@ class AboutScreen extends ConsumerWidget {
                 const SizedBox(height: 4),
                 packageInfo.when(
                   data: (info) => Text(
-                    '${l10n.aboutVersion} ${info.version} (${info.buildNumber})',
+                    l10n.aboutVersionLabel(info.version, info.buildNumber),
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurface.withAlpha(153),
                     ),

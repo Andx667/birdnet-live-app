@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -651,7 +652,12 @@ class _CaptureButton extends StatelessWidget {
         shadowColor: bgColor.withAlpha(120),
         child: InkWell(
           customBorder: const CircleBorder(),
-          onTap: isLoading ? null : onPressed,
+          onTap: isLoading
+              ? null
+              : () {
+                  HapticFeedback.lightImpact();
+                  onPressed();
+                },
           child: isLoading
               ? Padding(
                   padding: const EdgeInsets.all(14),
@@ -682,8 +688,8 @@ class _StatusBanner extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: theme.colorScheme.errorContainer,
         borderRadius: BorderRadius.circular(8),

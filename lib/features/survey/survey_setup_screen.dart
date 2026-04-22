@@ -472,6 +472,7 @@ class _DetailsStep extends StatelessWidget {
                 ),
                 trailing: IconButton(
                   icon: const Icon(Icons.refresh),
+                  tooltip: l10n.pointCountLocationRefresh,
                   onPressed: onFetchGps,
                 ),
               ),
@@ -483,6 +484,7 @@ class _DetailsStep extends StatelessWidget {
                 title: Text(l10n.surveyLocationUnavailable),
                 trailing: IconButton(
                   icon: const Icon(Icons.refresh),
+                  tooltip: l10n.pointCountLocationRefresh,
                   onPressed: onFetchGps,
                 ),
               ),

@@ -1735,6 +1735,38 @@
   "@tooltipBack": {
     "description": "Tooltip for back navigation button"
   },
+  "tooltipClose": "Close",
+  "@tooltipClose": {
+    "description": "Generic tooltip for close buttons"
+  },
+  "tooltipSearch": "Search",
+  "@tooltipSearch": {
+    "description": "Tooltip for the search icon button"
+  },
+  "tooltipClearSearch": "Clear search",
+  "@tooltipClearSearch": {
+    "description": "Tooltip for clearing a search field"
+  },
+  "tooltipDeleteSession": "Delete session",
+  "@tooltipDeleteSession": {
+    "description": "Tooltip for the delete session icon button"
+  },
+  "tooltipCancelAnalysis": "Cancel analysis",
+  "@tooltipCancelAnalysis": {
+    "description": "Tooltip for cancelling a running file analysis"
+  },
+  "tooltipSendAnnotation": "Send annotation",
+  "@tooltipSendAnnotation": {
+    "description": "Tooltip for the send button in the annotation composer"
+  },
+  "aboutVersionLabel": "Version {version} · build {build}",
+  "@aboutVersionLabel": {
+    "description": "Formatted version and build number on the About screen",
+    "placeholders": {
+      "version": { "type": "String", "example": "0.4.0" },
+      "build":   { "type": "String", "example": "46" }
+    }
+  },
   "modelLoadFailed": "Model loading failed. Check assets.",
   "@modelLoadFailed": {
     "description": "Error message when ONNX model fails to load"

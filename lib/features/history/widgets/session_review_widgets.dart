@@ -1073,6 +1073,7 @@ class _AddSpeciesOverlayState extends ConsumerState<_AddSpeciesOverlay> {
         title: Text(l10n.sessionAddSpecies),
         leading: IconButton(
           icon: const Icon(Icons.close),
+          tooltip: l10n.tooltipClose,
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
@@ -1093,6 +1094,7 @@ class _AddSpeciesOverlayState extends ConsumerState<_AddSpeciesOverlay> {
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear),
+                        tooltip: l10n.tooltipClearSearch,
                         onPressed: () {
                           _searchController.clear();
                           _onSearchChanged('');
@@ -1342,6 +1344,7 @@ class _AnnotationsSectionState extends State<_AnnotationsSection> {
                       size: 20,
                       color: theme.colorScheme.primary,
                     ),
+                    tooltip: l10n.tooltipSendAnnotation,
                     onPressed: _submit,
                     constraints: const BoxConstraints(
                       minWidth: 36,

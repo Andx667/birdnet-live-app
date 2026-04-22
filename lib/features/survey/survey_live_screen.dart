@@ -20,6 +20,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -233,6 +234,7 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
       ),
     );
     if (confirmed != true || !mounted) return;
+    HapticFeedback.mediumImpact();
     await _finalizeAndReview();
   }
 

@@ -1185,6 +1185,7 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
           ),
           leading: IconButton(
             icon: const Icon(Icons.close),
+            tooltip: l10n.tooltipClose,
             onPressed: () async {
               if (_isDirty) {
                 final canPop = await _onWillPop();

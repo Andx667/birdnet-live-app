@@ -358,6 +358,7 @@ class _FileAnalysisScreenState extends ConsumerState<FileAnalysisScreen> {
           leading: isAnalyzing
               ? IconButton(
                   icon: const Icon(Icons.close),
+                  tooltip: l10n.tooltipCancelAnalysis,
                   onPressed: () {
                     ref.read(fileAnalysisControllerProvider).cancel();
                   },
