@@ -3,10 +3,9 @@
 // =============================================================================
 //
 // Reusable widget used by both file analysis and point count setup to let the
-// user tap on an OpenTopoMap map to pick a geographic coordinate.  Uses
-// topographic tiles that show hiking trails, forest paths, and contour lines.
-// Respects the map tile consent preference — a consent dialog is shown before
-// loading any external tiles.
+// user tap on an OpenStreetMap map to pick a geographic coordinate. Respects
+// the map tile consent preference, and suppresses tile fetch errors so blank
+// tiles do not escalate into Flutter error screens.
 //
 // Returns the selected [LatLng] via [Navigator.pop].
 // =============================================================================
@@ -19,10 +18,11 @@ import 'package:latlong2/latlong.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../providers/app_providers.dart';
+import 'open_street_map_tile_layer.dart';
 
 /// Full-screen map for picking a location by tapping.
 ///
-/// Uses OpenTopoMap tiles via [flutter_map].  Respects the map tile consent
+/// Uses OpenStreetMap tiles via [flutter_map].  Respects the map tile consent
 /// preference — if the user hasn't consented yet, a placeholder is shown first.
 ///
 /// Pop result: the selected [LatLng], or `null` if cancelled.
@@ -111,10 +111,7 @@ class _MapPickerScreenState extends ConsumerState<MapPickerScreen> {
         onTap: (_, point) => setState(() => _picked = point),
       ),
       children: [
-        TileLayer(
-          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          userAgentPackageName: 'birdnet_live',
-        ),
+        buildOpenStreetMapTileLayer(),
         if (_picked != null)
           MarkerLayer(
             markers: [

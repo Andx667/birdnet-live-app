@@ -59,17 +59,20 @@ class TermsGateScreen extends ConsumerWidget {
                         ),
                         const SizedBox(height: 8),
                         const Text(
-                          'BirdNET Live is an open-source application for bird species '
-                          'identification. By using this app, you agree to the following terms:\n\n'
+                          'BirdNET Live is an open-source application for '
+                          'species identification from acoustic recordings. '
+                          'By using this app, you agree to the following terms:\n\n'
                           '1. The app processes audio data entirely on your device. '
                           'No audio is transmitted to external servers unless you explicitly '
                           'configure API sync.\n\n'
                           '2. Species identifications are model predictions and should not be '
-                          'used as the sole basis for conservation decisions.\n\n'
-                          '3. The BirdNET model is provided by the Cornell K. Lisa Yang Center for '
+                          'used as the sole basis for conservation decisions. Verify before reporting.\n\n'
+                          '3. The app and its models may NOT be used for poaching, '
+                          'illegal wildlife trade, or any military purpose.\n\n'
+                          '4. The BirdNET model is provided by the Cornell K. Lisa Yang Center for '
                           'Conservation Bioacoustics at the Cornell Lab of Ornithology and '
-                          'Chemnitz University of Technology.\n\n'
-                          '4. The app is distributed under the MIT License.',
+                          'Chemnitz University of Technology, and is licensed under CC BY-SA 4.0.\n\n'
+                          '5. The app source code is distributed under the MIT License.',
                         ),
                         const SizedBox(height: 24),
                         Text(
@@ -84,7 +87,8 @@ class TermsGateScreen extends ConsumerWidget {
                           '- All audio processing and inference happen on-device.\n'
                           '- No personal data is collected or transmitted by default.\n'
                           '- Location data is stored locally for geotagging detections.\n'
-                          '- Map tiles are downloaded from OpenTopoMap only with your consent.\n'
+                          '- Map tiles (OpenTopoMap) and reverse geocoding (OpenStreetMap '
+                          'Nominatim) are only contacted after you grant a one-time consent.\n'
                           '- API sync is user-initiated and configurable.\n'
                           '- You can export or delete all stored data at any time from Settings.',
                         ),

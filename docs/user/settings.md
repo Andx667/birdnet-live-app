@@ -1,6 +1,6 @@
 # Settings
 
-BirdNET Live reuses one Settings screen across multiple workflows. The `tune_rounded` button opens the sections that are relevant to the screen you came from.
+BirdNET Live reuses one Settings screen across multiple workflows. The :material-tune: button opens the sections that are relevant to the screen you came from.
 
 ## How Settings Scope Works
 

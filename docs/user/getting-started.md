@@ -38,18 +38,18 @@ The Home screen is the main hub.
 
 ### Main mode cards
 
-- `mic_rounded` — **Live Mode**
-- `location_on_rounded` — **Point Count Mode**
-- `route_rounded` — **Survey Mode**
-- `audio_file_rounded` — **File Analysis**
+- :material-microphone: **Live Mode**
+- :material-map-marker: **Point Count Mode**
+- :material-routes: **Survey Mode**
+- :material-file-music: **File Analysis**
 
 ### Footer buttons
 
-- `tune_rounded` — **Settings**
-- `search_rounded` — **Explore**
-- `library_music_outlined` — **Session Library**
-- `help_outline_rounded` — **Help**
-- `info_outline` — **About**
+- :material-tune: **Settings**
+- :material-magnify: **Explore**
+- :material-music-box-multiple-outline: **Session Library**
+- :material-help-circle-outline: **Help**
+- :material-information-outline: **About**
 
 ## What Gets Saved
 

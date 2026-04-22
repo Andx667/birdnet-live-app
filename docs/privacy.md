@@ -38,8 +38,11 @@ The app may access the following external resources:
 | Resource | Purpose | When |
 |----------|---------|------|
 | Map tiles (OpenTopoMap) | GPS track visualization in surveys | When opening a map view (user consent required) |
+| Reverse geocoding (OpenStreetMap Nominatim) | Resolving GPS coordinates into a human-readable place name (e.g. "Berlin, Germany") for session display | Once per session when a session with GPS coordinates is reviewed, the device is online, **and the user has approved OpenStreetMap network access** |
 
 Map tile requests are standard HTTPS GET requests to `tile.opentopomap.org`. Only tile coordinates are sent — no personally identifiable information.
+
+Reverse-geocoding requests send the session's latitude and longitude to `nominatim.openstreetmap.org` over HTTPS, together with a generic `BirdNETLive/<version>` user-agent string as required by the [Nominatim Usage Policy](https://operations.osmfoundation.org/policies/nominatim/). The resolved place name is stored locally with the session so a session is only geocoded once. Reverse geocoding is gated by the same one-time consent prompt as map tiles: until you approve OpenStreetMap network access (shown the first time you open a map view), no reverse-geocoding requests are made. No request is made if the session has no GPS coordinates or the device is offline. Revoking location permission at the OS level prevents new sessions from acquiring coordinates and therefore from being geocoded.
 
 **No other network requests are made.** The app functions fully offline.
 

@@ -40,7 +40,7 @@
   "@onboardingHowItWorksTitle": {
     "description": "Onboarding how it works screen title"
   },
-  "onboardingHowItWorksBody": "BirdNET Live continuously listens to your surroundings. It analyzes audio using an on-device artificial intelligence model to identify bird species in real-time. Detections are highlighted on a live scrolling spectrogram. Everything is processed locally, meaning it works entirely offline and protects your privacy.",
+  "onboardingHowItWorksBody": "BirdNET Live continuously listens to your surroundings. It analyzes audio using an on-device artificial intelligence model to identify species in real-time. Detections are highlighted on a live scrolling spectrogram. Everything is processed locally, meaning it works entirely offline and protects your privacy.",
   "@onboardingHowItWorksBody": {
     "description": "Onboarding how it works body text"
   },
@@ -56,9 +56,29 @@
   "@onboardingPermissionsTitle": {
     "description": "Onboarding permissions screen title"
   },
-  "onboardingPermissionsBody": "BirdNET Live needs microphone access for audio capture. Location access is used for geotagging detections. All processing stays on your device.",
+  "onboardingPermissionsBody": "BirdNET Live needs microphone access for audio capture and (optionally) location access for geotagging detections, GPS tracks in surveys, and location-based species filtering. Both can be revoked at any time in system settings.",
   "@onboardingPermissionsBody": {
     "description": "Onboarding permissions screen body text"
+  },
+  "onboardingTermsTitle": "Terms & Privacy",
+  "@onboardingTermsTitle": {
+    "description": "Onboarding terms & privacy screen title"
+  },
+  "onboardingTermsBody": "Detections are AI predictions, not confirmed observations — verify before reporting. Audio is processed on-device and never uploaded. The only network requests are optional map tiles and a single reverse-geocoding lookup per session to resolve coordinates into a place name; both require your one-time consent. Models (CC BY-SA 4.0) and the app may NOT be used for poaching or any military purpose. Tap below to read the full Terms of Use and Privacy Policy.",
+  "@onboardingTermsBody": {
+    "description": "Onboarding terms & privacy screen body text"
+  },
+  "onboardingTermsLink": "Terms of Use",
+  "@onboardingTermsLink": {
+    "description": "Onboarding link to terms of use"
+  },
+  "onboardingPrivacyLink": "Privacy Policy",
+  "@onboardingPrivacyLink": {
+    "description": "Onboarding link to privacy policy"
+  },
+  "onboardingTermsAccept": "I agree to the Terms of Use",
+  "@onboardingTermsAccept": {
+    "description": "Onboarding terms acceptance checkbox"
   },
   "onboardingReadyTitle": "Ready to Start",
   "@onboardingReadyTitle": {
@@ -108,7 +128,7 @@
   "@permissionMicrophoneTitle": {
     "description": "Microphone permission label"
   },
-  "permissionMicrophoneDescription": "Required for audio capture and bird identification",
+  "permissionMicrophoneDescription": "Required for audio capture and species identification",
   "@permissionMicrophoneDescription": {
     "description": "Microphone permission description"
   },
@@ -353,7 +373,7 @@
   "@errorPermissionRequired": {
     "description": "Error message when permission is not granted"
   },
-  "errorMicrophoneRequired": "Microphone access is required for bird identification. Please grant microphone permission in settings.",
+  "errorMicrophoneRequired": "Microphone access is required for species identification. Please grant microphone permission in settings.",
   "@errorMicrophoneRequired": {
     "description": "Error message when microphone permission is denied"
   },
@@ -661,7 +681,7 @@
   "@sessionHelpTitle": {
     "description": "Title for the session review help dialog"
   },
-  "sessionHelpOverview": "The session review lets you examine, edit, and export your bird detection session. Tap species rows to see individual detections. Use the spectrogram to navigate the recording.",
+  "sessionHelpOverview": "The session review lets you examine, edit, and export your detection session. Tap species rows to see individual detections. Use the spectrogram to navigate the recording.",
   "@sessionHelpOverview": {
     "description": "Overview section of the session review help"
   },
@@ -941,7 +961,7 @@
   "@fileAnalysisPickTitle": {
     "description": "Title for file selection step"
   },
-  "fileAnalysisPickSubtitle": "Choose an audio recording to analyze for bird species. Supports WAV, FLAC, MP3, OGG, M4A, OPUS, and more.",
+  "fileAnalysisPickSubtitle": "Choose an audio recording to analyze for species. Supports WAV, FLAC, MP3, OGG, M4A, OPUS, and more.",
   "@fileAnalysisPickSubtitle": {
     "description": "Subtitle for file selection step"
   },
@@ -1086,6 +1106,86 @@
   "@fileAnalysisBack": {
     "description": "Back button in wizard navigation"
   },
+  "wizardStepLabel": "Step {current} of {total}",
+  "@wizardStepLabel": {
+    "description": "Accessibility label announced for the wizard step indicator",
+    "placeholders": {
+      "current": { "type": "int", "example": "2" },
+      "total": { "type": "int", "example": "3" }
+    }
+  },
+  "a11yLiveCaptureStart": "Start recording",
+  "@a11yLiveCaptureStart": {
+    "description": "Screen-reader label for the Live capture button when idle"
+  },
+  "a11yLiveCaptureStop": "Stop recording",
+  "@a11yLiveCaptureStop": {
+    "description": "Screen-reader label for the Live capture button when recording"
+  },
+  "a11yLiveCaptureResume": "Resume recording",
+  "@a11yLiveCaptureResume": {
+    "description": "Screen-reader label for the Live capture button when paused"
+  },
+  "a11yConfidencePercent": "Confidence {percent} percent",
+  "@a11yConfidencePercent": {
+    "description": "Screen-reader label for a detection confidence badge",
+    "placeholders": {
+      "percent": { "type": "int", "example": "85" }
+    }
+  },
+  "a11yLikelihoodPercent": "Likelihood {percent} percent",
+  "@a11yLikelihoodPercent": {
+    "description": "Screen-reader label for a geo-model likelihood badge",
+    "placeholders": {
+      "percent": { "type": "int", "example": "60" }
+    }
+  },
+  "fileAnalysisEtaRemaining": "≈ {time} remaining",
+  "@fileAnalysisEtaRemaining": {
+    "description": "Estimated time remaining shown below the progress bar",
+    "placeholders": {
+      "time": { "type": "String", "example": "1m 23s" }
+    }
+  },
+  "fileAnalysisEtaCalculating": "Estimating time remaining…",
+  "@fileAnalysisEtaCalculating": {
+    "description": "Placeholder shown before enough samples exist to estimate ETA"
+  },
+  "sessionAutoStopMaxDuration": "Auto-stopped: maximum duration reached",
+  "@sessionAutoStopMaxDuration": {
+    "description": "Banner shown on the review screen when a survey ended because it hit its max duration"
+  },
+  "sessionAutoStopLowBattery": "Auto-stopped: battery dropped to {percent}%",
+  "@sessionAutoStopLowBattery": {
+    "description": "Banner shown on the review screen when a survey ended because the battery dropped below the configured threshold",
+    "placeholders": {
+      "percent": { "type": "int", "example": "15" }
+    }
+  },
+  "settingsHelpTooltip": "About this setting",
+  "@settingsHelpTooltip": {
+    "description": "Tooltip on the help (?) icon next to a setting"
+  },
+  "settingsHelpShowSciNames": "When enabled, scientific names appear in grey under common names throughout the app. Useful when you want unambiguous identification or are working with field guides that use Latin names.",
+  "settingsHelpGain": "Multiplies the microphone signal in the app. Use values above 1.0 only for very quiet recordings — high gain amplifies noise too and can cause clipping. Most built-in mics work best at 1.0.",
+  "settingsHelpHighPassFilter": "Removes low-frequency content (wind, traffic, handling noise) before inference. Most species vocalize above 1 kHz, so a 100–200 Hz cut-off is usually safe and improves detection in noisy conditions.",
+  "settingsHelpWindowDuration": "How many seconds of audio BirdNET analyses at once. Shorter windows react faster and give finer time resolution; longer windows average more context per pass for steadier scores at the cost of slower reaction time.",
+  "settingsHelpConfidenceThreshold": "Detections below this score are hidden. Lower values surface more uncertain detections (good for rare species or quiet recordings); higher values reduce false positives but may miss faint or distant calls.",
+  "settingsHelpSensitivity": "Logistic sigmoid steepness applied to model logits. Higher values push uncertain scores toward extremes (more high-confidence detections plus more false positives). Leave at 1.0 unless you know what you're doing.",
+  "settingsHelpInferenceRate": "How often BirdNET runs inference per second. Higher rates catch brief calls but use more battery and CPU; lower rates are gentler on the device but may miss short vocalizations.",
+  "settingsHelpScorePooling": "How scores from overlapping analysis windows are combined. 'Max' is most reactive; 'average' smooths flickering; 'LME' (logit-mean-exp) is a soft maximum that balances both.",
+  "settingsHelpFftSize": "Resolution of the spectrogram. Larger sizes give finer frequency detail but coarser timing; smaller sizes show transient calls more sharply but blur frequencies. 1024–2048 works well for most species.",
+  "settingsHelpColorMap": "Color palette used to render spectrogram intensity. Viridis and Magma are perceptually uniform; Grayscale is print-friendly and emphasizes structure over hue.",
+  "settingsHelpSpectrogramDuration": "How many seconds of audio fit on screen at once. Shorter durations give more detail per call; longer durations show temporal patterns and let you compare detections.",
+  "settingsHelpFrequencyRange": "Upper limit of the spectrogram's vertical axis. Reduce to focus on low-frequency vocalizations (owls, grouse) or increase to see ultrasonic calls and high-pitched insects.",
+  "settingsHelpLogAmplitude": "Applies a logarithmic scale to spectrogram intensity. Makes quiet calls more visible at the cost of also showing more background noise. Helpful for distant or faint species.",
+  "settingsHelpRecordingMode": "Whether and how audio is saved to disk. 'Full' keeps everything (large files); 'Detections only' saves short clips around each detection; 'Off' analyzes in real time without writing audio.",
+  "settingsHelpRecordingFormat": "Container format for saved audio. WAV is uncompressed and universally supported; FLAC is lossless but ~50% smaller and supported by most analysis software.",
+  "settingsHelpUseGps": "Use the device's GPS for live location. When off, the app uses the manual coordinates you set below — useful for stationary deployments or when GPS reception is poor indoors.",
+  "settingsHelpSpeciesFilter": "Restrict detections by geographic likelihood using the on-device location model. 'Location filter' hides species below the threshold; 'Location weighting' multiplies detection scores by the location prior.",
+  "settingsHelpGeoThreshold": "Minimum geographic-prior score for a species to pass the location filter. Lower values are more permissive (good for rare or migrating species); higher values stay strictly within typical ranges.",
+  "settingsHelpExportFormat": "Format for exported session data. Raven is for use in Cornell Raven Pro; CSV opens in spreadsheets; JSON is easiest for programmatic processing; GPX writes the survey track and waypoints for use in mapping tools.",
+  "settingsHelpIncludeAudioFiles": "When enabled, exported sessions include the saved audio files alongside the metadata table. Useful for archiving and re-analysis; results in much larger exports.",
   "fileAnalysisNext": "Next",
   "@fileAnalysisNext": {
     "description": "Next button in wizard navigation"
@@ -1098,6 +1198,14 @@
   "pointCountSetupTitle": "Point Count Setup",
   "@pointCountSetupTitle": {
     "description": "Title for the point count setup wizard"
+  },
+  "pointCountName": "Point Count Name",
+  "@pointCountName": {
+    "description": "Label for point count name field"
+  },
+  "pointCountNameHint": "e.g. Pond Stop 1",
+  "@pointCountNameHint": {
+    "description": "Hint for point count name field"
   },
   "pointCountDuration": "Duration",
   "@pointCountDuration": {
@@ -1132,7 +1240,7 @@
   "@pointCountTipStableSurface": {
     "description": "Tip about stable placement"
   },
-  "pointCountTipWind": "Avoid windy conditions — wind noise masks bird calls.",
+  "pointCountTipWind": "Avoid windy conditions — wind noise masks animal calls.",
   "@pointCountTipWind": {
     "description": "Tip about wind avoidance"
   },
@@ -1508,11 +1616,11 @@
   "@surveyFieldTips": {
     "description": "Section title for survey best-practice tips"
   },
-  "surveyTipWalkSteady": "Walk at a steady, slow pace. Stopping frequently helps the classifier capture clean 3-second audio windows.",
+  "surveyTipWalkSteady": "Walk at a steady, slow pace. Stopping frequently helps the classifier capture clean audio windows free from footstep and clothing noise.",
   "@surveyTipWalkSteady": {
     "description": "Survey tip about walking pace"
   },
-  "surveyTipWind": "Avoid windy conditions — wind noise masks bird calls and reduces detection accuracy.",
+  "surveyTipWind": "Avoid windy conditions — wind noise masks animal calls and reduces detection accuracy.",
   "@surveyTipWind": {
     "description": "Survey tip about wind"
   },
@@ -1524,7 +1632,7 @@
   "@surveyTipSilence": {
     "description": "Survey tip about silence"
   },
-  "surveyTipTime": "Survey during dawn chorus (first 3 hours after sunrise) for peak bird activity and species diversity.",
+  "surveyTipTime": "Survey during dawn chorus (first 3 hours after sunrise) for peak vocal activity and species diversity.",
   "@surveyTipTime": {
     "description": "Survey tip about timing"
   },
@@ -1577,11 +1685,11 @@
   "@surveyLiveHelpTitle": {
     "description": "Title of the survey live screen help sheet"
   },
-  "surveyLiveHelpOverview": "The survey runs in the background while you walk. GPS, audio capture, and bird detection continue even if you switch apps.",
+  "surveyLiveHelpOverview": "The survey runs in the background while you walk. GPS, audio capture, and detection continue even if you switch apps.",
   "@surveyLiveHelpOverview": {
     "description": "General overview help text"
   },
-  "surveyLiveHelpSignal": "The signal bars next to the mic icon show audio quality: 3 green bars = good conditions for bird detection, 2 amber bars = marginal (too quiet or somewhat loud), 1 red bar = poor (silence, clipping, or heavy noise).",
+  "surveyLiveHelpSignal": "The signal bars next to the mic icon show audio quality: 3 green bars = good conditions for detection, 2 amber bars = marginal (too quiet or somewhat loud), 1 red bar = poor (silence, clipping, or heavy noise).",
   "@surveyLiveHelpSignal": {
     "description": "Help text explaining the audio quality signal bars"
   },
@@ -1734,6 +1842,54 @@
   "tooltipBack": "Back",
   "@tooltipBack": {
     "description": "Tooltip for back navigation button"
+  },
+  "tooltipClose": "Close",
+  "@tooltipClose": {
+    "description": "Generic tooltip for close buttons"
+  },
+  "tooltipSearch": "Search",
+  "@tooltipSearch": {
+    "description": "Tooltip for the search icon button"
+  },
+  "tooltipClearSearch": "Clear search",
+  "@tooltipClearSearch": {
+    "description": "Tooltip for clearing a search field"
+  },
+  "tooltipDeleteSession": "Delete session",
+  "@tooltipDeleteSession": {
+    "description": "Tooltip for the delete session icon button"
+  },
+  "tooltipCancelAnalysis": "Cancel analysis",
+  "@tooltipCancelAnalysis": {
+    "description": "Tooltip for cancelling a running file analysis"
+  },
+  "fileAnalysisCancelTitle": "Cancel analysis?",
+  "@fileAnalysisCancelTitle": {
+    "description": "Title of the confirmation dialog shown when the user cancels a running file analysis"
+  },
+  "fileAnalysisCancelMessage": "Detected species so far will be discarded.",
+  "@fileAnalysisCancelMessage": {
+    "description": "Body of the confirmation dialog shown when the user cancels a running file analysis"
+  },
+  "fileAnalysisCancelKeep": "Keep analyzing",
+  "@fileAnalysisCancelKeep": {
+    "description": "Button label that dismisses the cancel-analysis confirmation and resumes analysis"
+  },
+  "fileAnalysisCancelConfirm": "Stop analysis",
+  "@fileAnalysisCancelConfirm": {
+    "description": "Button label that confirms cancellation of a running file analysis"
+  },
+  "tooltipSendAnnotation": "Send annotation",
+  "@tooltipSendAnnotation": {
+    "description": "Tooltip for the send button in the annotation composer"
+  },
+  "aboutVersionLabel": "Version {version} · build {build}",
+  "@aboutVersionLabel": {
+    "description": "Formatted version and build number on the About screen",
+    "placeholders": {
+      "version": { "type": "String", "example": "0.4.0" },
+      "build":   { "type": "String", "example": "46" }
+    }
   },
   "modelLoadFailed": "Model loading failed. Check assets.",
   "@modelLoadFailed": {

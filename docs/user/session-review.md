@@ -27,15 +27,15 @@ Species are grouped into expandable rows. You can inspect detections by species 
 
 The toolbar uses the same icon meanings described in [Icons & Controls](icons-and-controls.md):
 
-- `add_circle_outline` — add content
-- `undo` / `redo` — step through edits
-- `content_cut_outlined` / `content_cut` — trim mode
-- `save` — save edits
-- `share` — export or share
-- `delete_outline` — discard session
-- `play_arrow_rounded` — continue a survey when that action is available
-- `help_outline` — open the Session Review help sheet
-- `tune_rounded` — open Settings
+- :material-plus-circle-outline: — add content
+- :material-undo-variant: / :material-redo-variant: — step through edits
+- :material-content-cut: — trim mode
+- :material-content-save: — save edits
+- :material-share-variant: — export or share
+- :material-delete-outline: — discard session
+- :material-play: — continue a survey when that action is available
+- :material-help-circle-outline: — open the Session Review help sheet
+- :material-tune: — open Settings
 
 ## Typical Review Tasks
 

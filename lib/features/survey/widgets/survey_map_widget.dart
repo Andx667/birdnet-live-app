@@ -9,7 +9,6 @@
 // Privacy: Requires map tile consent (checked via SharedPreferences).
 // =============================================================================
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -19,6 +18,7 @@ import 'package:latlong2/latlong.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../shared/models/gps_point.dart';
 import '../../../shared/providers/app_providers.dart';
+import '../../../shared/widgets/open_street_map_tile_layer.dart';
 import '../../explore/explore_providers.dart';
 import '../../live/live_session.dart';
 
@@ -246,10 +246,18 @@ class _SurveyMapWidgetState extends ConsumerState<SurveyMapWidget> {
               Icon(Icons.flag_rounded, color: Colors.green.shade700, size: 28),
         ),
       );
-      if (trackPoints.length > 1 && !widget.fitAllPoints) {
+    }
+
+    // Current-position marker (live mode only). Falls back to the initial
+    // center when no GPS fix has been recorded yet, so the user always sees
+    // where the map is centered.
+    if (!widget.fitAllPoints) {
+      final LatLng? currentPosition =
+          trackPoints.isNotEmpty ? trackPoints.last : widget.initialCenter;
+      if (currentPosition != null) {
         markers.add(
           Marker(
-            point: trackPoints.last,
+            point: currentPosition,
             width: 28,
             height: 28,
             child: Icon(Icons.person_pin_circle_rounded,
@@ -305,11 +313,7 @@ class _SurveyMapWidgetState extends ConsumerState<SurveyMapWidget> {
         },
       ),
       children: [
-        TileLayer(
-          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          userAgentPackageName: 'birdnet_live',
-          tileProvider: _CachingTileProvider(),
-        ),
+        buildOpenStreetMapTileLayer(),
         if (trackPoints.length >= 2)
           PolylineLayer(
             polylines: [
@@ -435,22 +439,6 @@ class _SpeciesMarker extends ConsumerWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Caching tile provider
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _CachingTileProvider extends TileProvider {
-  @override
-  ImageProvider getImage(
-    TileCoordinates coordinates,
-    TileLayer options,
-  ) {
-    return CachedNetworkImageProvider(
-      getTileUrl(coordinates, options),
     );
   }
 }

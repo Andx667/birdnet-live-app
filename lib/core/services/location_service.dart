@@ -19,6 +19,8 @@
 // while a fresh fix is being acquired.
 // =============================================================================
 
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -87,26 +89,40 @@ class LocationService {
       if (permission == LocationPermission.denied) {
         permission = await requestPermission();
       }
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
+      if (permission != LocationPermission.whileInUse &&
+          permission != LocationPermission.always) {
         debugPrint('[LocationService] permission denied: $permission');
         return _lastKnownLocation;
       }
 
-      final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.medium,
-          timeLimit: Duration(seconds: 10),
-        ),
-      );
-
-      _lastKnownLocation = AppLocation(
-        latitude: position.latitude,
-        longitude: position.longitude,
-      );
-
-      debugPrint('[LocationService] got position: $_lastKnownLocation');
-      return _lastKnownLocation;
+      try {
+        final position = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.medium,
+            timeLimit: Duration(seconds: 10),
+          ),
+        );
+        _lastKnownLocation = AppLocation(
+          latitude: position.latitude,
+          longitude: position.longitude,
+        );
+        debugPrint('[LocationService] got position: $_lastKnownLocation');
+        return _lastKnownLocation;
+      } on TimeoutException {
+        // No fresh fix within the timeout (e.g. weak GPS signal or first cold
+        // start indoors). Fall back to the OS-cached last-known position so
+        // callers still get something usable, then return whatever we have.
+        debugPrint(
+            '[LocationService] no fresh fix within 10s, using last known');
+        final cached = await Geolocator.getLastKnownPosition();
+        if (cached != null) {
+          _lastKnownLocation = AppLocation(
+            latitude: cached.latitude,
+            longitude: cached.longitude,
+          );
+        }
+        return _lastKnownLocation;
+      }
     } catch (e) {
       debugPrint('[LocationService] error getting position: $e');
       return _lastKnownLocation;

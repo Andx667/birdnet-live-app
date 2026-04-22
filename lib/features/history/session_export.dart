@@ -207,12 +207,24 @@ String buildCsvExport(
 String buildJsonExport(LiveSession session) {
   final map = {
     'session': session.displayName,
+    if (session.customName != null && session.customName!.isNotEmpty)
+      'customName': session.customName,
+    if (session.sessionNumber != null) 'sessionNumber': session.sessionNumber,
     if (session.type != SessionType.live) 'type': session.type.name,
     'startTime': session.startTime.toIso8601String(),
     'endTime': session.endTime?.toIso8601String(),
+    if (session.observerName != null && session.observerName!.isNotEmpty)
+      'observerName': session.observerName,
+    if (session.transectId != null && session.transectId!.isNotEmpty)
+      'transectId': session.transectId,
     if (session.latitude != null) 'latitude': session.latitude,
     if (session.longitude != null) 'longitude': session.longitude,
     if (session.locationName != null) 'locationName': session.locationName,
+    if (session.distanceMeters != null)
+      'distanceMeters': session.distanceMeters,
+    if (session.stopReason != null) 'stopReason': session.stopReason!.name,
+    if (session.stopReasonValue != null)
+      'stopReasonValue': session.stopReasonValue,
     'recordingPath': session.recordingPath,
     'settings': {
       'windowDuration': session.settings.windowDuration,

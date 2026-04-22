@@ -4,7 +4,7 @@ Session Library is the archive of saved sessions and processed files.
 
 ## How to Open It
 
-Use the `library_music_outlined` button in the Home footer.
+Use the :material-music-box-multiple-outline: button in the Home footer.
 
 ## What the Library Shows
 
@@ -12,16 +12,16 @@ Each session entry summarizes a saved result set, including its type, date, dura
 
 Session types use the same icons as the Home screen:
 
-- `mic_rounded` — Live session
-- `audio_file_rounded` — File Analysis session
-- `location_on_rounded` — Point Count session
-- `route_rounded` — Survey session
+- :material-microphone: — Live session
+- :material-file-music: — File Analysis session
+- :material-map-marker: — Point Count session
+- :material-routes: — Survey session
 
 ## App Bar Controls
 
-- `search` — search by date, session type, place name, coordinates, common name, or scientific name
+- :material-magnify: — search by date, session type, place name, coordinates, common name, or scientific name
 - view-mode menu — switch between **Detailed**, **Compact**, and **By Species**
-- `swap_vert` — change the sort order
+- :material-swap-vertical: — change the sort order
 
 ## View Modes
 

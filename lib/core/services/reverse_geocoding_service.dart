@@ -13,22 +13,38 @@
 //   • At most 1 request per second.
 //   • No bulk/automated geocoding.
 // We satisfy these by sending a single request per session review.
+//
+// Privacy: gated by [PrefKeys.mapTileConsent].  Both reverse geocoding and
+// map tile fetches send coordinates to OpenStreetMap infrastructure, so we
+// reuse the same user consent gate.  When the user has not yet approved
+// map tiles, this function returns `null` without making any network call.
 // =============================================================================
 
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../constants/app_constants.dart';
 
 /// Attempts to reverse-geocode [latitude]/[longitude] into a short place name.
 ///
 /// Returns a human-readable string (e.g. "Berlin, Germany") or `null` when
-/// the network is unavailable or the API response is unusable.
+/// the user has not consented to OpenStreetMap network requests, the network
+/// is unavailable, or the API response is unusable.
 ///
 /// Uses the OpenStreetMap Nominatim API which is free and GDPR-friendly.
+/// Reuses [PrefKeys.mapTileConsent] as the consent gate since both endpoints
+/// belong to OpenStreetMap.
 Future<String?> reverseGeocode({
   required double latitude,
   required double longitude,
 }) async {
+  // Privacy gate: only proceed when the user has approved OSM network access.
+  final prefs = await SharedPreferences.getInstance();
+  final hasConsent = prefs.getBool(PrefKeys.mapTileConsent) ?? false;
+  if (!hasConsent) return null;
+
   final uri = Uri.https(
     'nominatim.openstreetmap.org',
     '/reverse',

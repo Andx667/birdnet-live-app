@@ -34,6 +34,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/services/wakelock_service.dart';
 import '../../shared/providers/settings_providers.dart';
 import '../../shared/widgets/app_help_bottom_sheet.dart';
+import '../../shared/widgets/confirm_destructive.dart';
 import '../audio/audio_capture_service.dart';
 import '../audio/audio_providers.dart';
 import '../explore/explore_providers.dart';
@@ -54,6 +55,8 @@ class PointCountLiveScreen extends ConsumerStatefulWidget {
     required this.durationMinutes,
     this.latitude,
     this.longitude,
+    this.customName,
+    this.observerName,
   });
 
   /// Total survey duration in minutes.
@@ -64,6 +67,12 @@ class PointCountLiveScreen extends ConsumerStatefulWidget {
 
   /// Optional longitude chosen during setup (GPS or manual).
   final double? longitude;
+
+  /// Optional user-chosen name for the count (e.g., "Pond Stop 1").
+  final String? customName;
+
+  /// Optional observer name persisted with the session.
+  final String? observerName;
 
   @override
   ConsumerState<PointCountLiveScreen> createState() =>
@@ -182,24 +191,14 @@ class _PointCountLiveScreenState extends ConsumerState<PointCountLiveScreen>
   /// User wants to stop early.
   Future<void> _confirmStopEarly() async {
     final l10n = AppLocalizations.of(context)!;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.pointCountStopEarlyTitle),
-        content: Text(l10n.pointCountStopEarlyMessage),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(l10n.cancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(l10n.pointCountStopEarly),
-          ),
-        ],
-      ),
+    final confirmed = await confirmDestructive(
+      context,
+      title: l10n.pointCountStopEarlyTitle,
+      body: l10n.pointCountStopEarlyMessage,
+      confirmLabel: l10n.pointCountStopEarly,
+      cancelLabel: l10n.cancel,
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
     await _finalizeAndReview();
   }
 
@@ -224,6 +223,14 @@ class _PointCountLiveScreenState extends ConsumerState<PointCountLiveScreen>
       // pass it. Looking at LiveController.startSession — it creates the
       // session internally. We need to set the type after finalization.
       _setSessionType(session);
+
+      // Apply user-chosen name and observer from setup.
+      if (widget.customName != null && widget.customName!.isNotEmpty) {
+        session.customName = widget.customName;
+      }
+      if (widget.observerName != null && widget.observerName!.isNotEmpty) {
+        session.observerName = widget.observerName;
+      }
 
       final repo = ref.read(sessionRepositoryProvider);
       session.sessionNumber = await repo.nextSessionNumber(session.type);

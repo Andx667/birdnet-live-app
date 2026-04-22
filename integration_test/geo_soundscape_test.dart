@@ -4,8 +4,8 @@
 
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -97,10 +97,11 @@ void main() {
     final sortedEntries = probabilities.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
-    print('--- Berlin week 26 top species ---');
+    debugPrint('--- Berlin week 26 top species ---');
     for (var i = 0; i < 10 && i < sortedEntries.length; i++) {
-      print(
-          '${sortedEntries[i].key}: ${sortedEntries[i].value.toStringAsFixed(3)}');
+      debugPrint(
+        '${sortedEntries[i].key}: ${sortedEntries[i].value.toStringAsFixed(3)}',
+      );
     }
 
     expect(sortedEntries.isNotEmpty, isTrue,
@@ -130,7 +131,7 @@ void main() {
     final windowDuration = 3;
     final windowSamples = sampleRate * windowDuration;
 
-    print('--- Soundscape Detections ---');
+    debugPrint('--- Soundscape Detections ---');
 
     bool foundBlueJay = false;
     bool foundHouseFinch = false;
@@ -170,8 +171,10 @@ void main() {
             .map((d) =>
                 '${d.species.commonName}=${d.confidence.toStringAsFixed(3)}')
             .join(', ');
-        print(
-            '[${startSec.toStringAsFixed(1)}s - ${endSec.toStringAsFixed(1)}s] $detStrs');
+        debugPrint(
+          '[${startSec.toStringAsFixed(1)}s - ${endSec.toStringAsFixed(1)}s] '
+          '$detStrs',
+        );
 
         for (final d in detections) {
           final commonName = d.species.commonName.toLowerCase();
@@ -181,9 +184,10 @@ void main() {
       }
     }
 
-    print('Global max score: $globalMaxScore ($globalTopSpecies)');
-    print(
-        'NOTE: Python reference found 102× House Finch, 42× Blue Jay in this file.');
+    debugPrint('Global max score: $globalMaxScore ($globalTopSpecies)');
+    debugPrint(
+      'NOTE: Python reference found 102× House Finch, 42× Blue Jay in this file.',
+    );
 
     expect(globalMaxScore, greaterThan(0.1),
         reason:

@@ -10,6 +10,8 @@
 import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 
+import '../../../shared/widgets/stat_chip.dart';
+
 /// Compact statistics bar for an active survey.
 class SurveyStatsBar extends StatelessWidget {
   const SurveyStatsBar({
@@ -76,17 +78,17 @@ class SurveyStatsBar extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           _AudioLevelChip(level: audioLevel, color: levelColor, style: style),
-          _StatChip(
+          StatChip(
             icon: Icons.straighten,
             value: _formatDistance(distanceMeters),
             style: style,
           ),
-          _StatChip(
+          StatChip(
             icon: Icons.graphic_eq,
             value: '$detectionCount',
             style: style,
           ),
-          _StatChip(
+          StatChip(
             icon: MdiIcons.feather,
             value: '$speciesCount',
             style: style,
@@ -101,31 +103,6 @@ class SurveyStatsBar extends StatelessWidget {
       return '${(meters / 1000).toStringAsFixed(1)} km';
     }
     return '${meters.round()} m';
-  }
-}
-
-class _StatChip extends StatelessWidget {
-  const _StatChip({
-    required this.icon,
-    required this.value,
-    this.style,
-  });
-
-  final IconData icon;
-  final String value;
-  final TextStyle? style;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 16, color: theme.colorScheme.primary),
-        const SizedBox(width: 4),
-        Text(value, style: style),
-      ],
-    );
   }
 }
 

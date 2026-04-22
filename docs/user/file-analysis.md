@@ -4,12 +4,12 @@ File Analysis processes an existing recording through the same BirdNET pipeline 
 
 ## How to Open It
 
-From Home, tap the **File Analysis** card with the `audio_file_rounded` icon.
+From Home, tap the **File Analysis** card with the :material-file-music: icon.
 
 ## App Bar
 
-- `tune_rounded` — open File Analysis settings
-- `close` — cancel an active analysis run
+- :material-tune: — open File Analysis settings
+- :material-close: — cancel an active analysis run
 
 ## Supported Inputs
 

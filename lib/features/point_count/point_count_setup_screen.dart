@@ -15,6 +15,7 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -22,8 +23,8 @@ import 'package:latlong2/latlong.dart';
 
 import '../../shared/providers/settings_providers.dart';
 import '../../shared/widgets/app_help_bottom_sheet.dart';
-import '../../shared/widgets/content_width_constraint.dart';
 import '../../shared/widgets/map_picker_screen.dart';
+import '../../shared/widgets/wizard_scaffold.dart';
 import '../explore/explore_providers.dart';
 import '../settings/settings_screen.dart';
 import 'point_count_live_screen.dart';
@@ -55,9 +56,15 @@ class _PointCountSetupScreenState extends ConsumerState<PointCountSetupScreen> {
   final _latController = TextEditingController();
   final _lonController = TextEditingController();
 
+  // ── Identity fields ─────────────────────────────────────────────────────
+  final _nameController = TextEditingController();
+  final _observerController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
+    // Pre-fill observer with the last value used.
+    _observerController.text = ref.read(pointCountLastObserverProvider);
     // Start fetching GPS location immediately.
     _fetchGpsLocation();
   }
@@ -66,6 +73,8 @@ class _PointCountSetupScreenState extends ConsumerState<PointCountSetupScreen> {
   void dispose() {
     _latController.dispose();
     _lonController.dispose();
+    _nameController.dispose();
+    _observerController.dispose();
     super.dispose();
   }
 
@@ -110,12 +119,22 @@ class _PointCountSetupScreenState extends ConsumerState<PointCountSetupScreen> {
     final durationMin = ref.read(pointCountDurationProvider);
     final lat = _locationChoice == _LocationChoice.skip ? null : _latitude;
     final lon = _locationChoice == _LocationChoice.skip ? null : _longitude;
+    final name = _nameController.text.trim();
+    final observer = _observerController.text.trim();
+
+    // Persist observer for next time.
+    if (observer.isNotEmpty) {
+      ref.read(pointCountLastObserverProvider.notifier).set(observer);
+    }
+
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(
         builder: (_) => PointCountLiveScreen(
           durationMinutes: durationMin,
           latitude: lat,
           longitude: lon,
+          customName: name.isEmpty ? null : name,
+          observerName: observer.isEmpty ? null : observer,
         ),
       ),
     );
@@ -150,135 +169,66 @@ class _PointCountSetupScreenState extends ConsumerState<PointCountSetupScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final isLastStep = _step == _totalSteps - 1;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.pointCountSetupTitle),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.help_outline_rounded, size: 20),
-            onPressed: _showHelp,
-            tooltip: l10n.pointCountSetupHelpTitle,
-          ),
-          IconButton(
-            icon: const Icon(Icons.tune_rounded, size: 20),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const SettingsScreen(
-                    settingsContext: SettingsContext.pointCount,
-                  ),
+    return WizardScaffold(
+      title: l10n.pointCountSetupTitle,
+      step: _step,
+      totalSteps: _totalSteps,
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.help_outline_rounded, size: 20),
+          onPressed: _showHelp,
+          tooltip: l10n.pointCountSetupHelpTitle,
+        ),
+        IconButton(
+          icon: const Icon(Icons.tune_rounded, size: 20),
+          onPressed: () {
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const SettingsScreen(
+                  settingsContext: SettingsContext.pointCount,
                 ),
-              );
-            },
-            tooltip: l10n.settings,
-          ),
-        ],
-      ),
-      body: SafeArea(
-        child: ContentWidthConstraint(
-            child: Column(
-          children: [
-            // Step indicator
-            _StepIndicator(currentStep: _step, totalSteps: _totalSteps),
-
-            // Step content
-            Expanded(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 250),
-                child: switch (_step) {
-                  0 => _DurationStep(
-                      key: const ValueKey(0),
-                      durations: _durations,
-                      locationChoice: _locationChoice,
-                      latitude: _latitude,
-                      longitude: _longitude,
-                      gpsFetching: _gpsFetching,
-                      latController: _latController,
-                      lonController: _lonController,
-                      onLocationChoiceChanged: (c) {
-                        setState(() => _locationChoice = c);
-                        if (c == _LocationChoice.gps) _fetchGpsLocation();
-                      },
-                      onFetchGps: _fetchGpsLocation,
-                      onMapPick: (lat, lon) {
-                        setState(() {
-                          _latitude = lat;
-                          _longitude = lon;
-                        });
-                      },
-                    ),
-                  1 => _TipsStep(key: const ValueKey(1)),
-                  _ => _ReadyStep(key: const ValueKey(2)),
-                },
               ),
+            );
+          },
+          tooltip: l10n.settings,
+        ),
+      ],
+      onBack: _back,
+      onNext: isLastStep ? _start : _next,
+      backLabel: _step == 0 ? l10n.cancel : l10n.pointCountBack,
+      nextLabel: isLastStep ? l10n.pointCountStart : l10n.pointCountNext,
+      nextIcon: isLastStep ? Icons.play_arrow_rounded : null,
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 250),
+        child: switch (_step) {
+          0 => _DurationStep(
+              key: const ValueKey(0),
+              durations: _durations,
+              nameController: _nameController,
+              observerController: _observerController,
+              locationChoice: _locationChoice,
+              latitude: _latitude,
+              longitude: _longitude,
+              gpsFetching: _gpsFetching,
+              latController: _latController,
+              lonController: _lonController,
+              onLocationChoiceChanged: (c) {
+                setState(() => _locationChoice = c);
+                if (c == _LocationChoice.gps) _fetchGpsLocation();
+              },
+              onFetchGps: _fetchGpsLocation,
+              onMapPick: (lat, lon) {
+                setState(() {
+                  _latitude = lat;
+                  _longitude = lon;
+                });
+              },
             ),
-
-            // Navigation buttons
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
-              child: Row(
-                children: [
-                  TextButton(
-                    onPressed: _back,
-                    child: Text(_step == 0 ? l10n.cancel : l10n.pointCountBack),
-                  ),
-                  const Spacer(),
-                  if (_step < _totalSteps - 1)
-                    FilledButton(
-                      onPressed: _next,
-                      child: Text(l10n.pointCountNext),
-                    )
-                  else
-                    FilledButton.icon(
-                      onPressed: _start,
-                      icon: const Icon(Icons.play_arrow_rounded),
-                      label: Text(l10n.pointCountStart),
-                    ),
-                ],
-              ),
-            ),
-          ],
-        )),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Step Indicator
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _StepIndicator extends StatelessWidget {
-  const _StepIndicator({
-    required this.currentStep,
-    required this.totalSteps,
-  });
-
-  final int currentStep;
-  final int totalSteps;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      child: Row(
-        children: List.generate(totalSteps, (i) {
-          final isActive = i <= currentStep;
-          return Expanded(
-            child: Container(
-              height: 4,
-              margin: EdgeInsets.only(right: i < totalSteps - 1 ? 8 : 0),
-              decoration: BoxDecoration(
-                color: isActive
-                    ? theme.colorScheme.primary
-                    : theme.colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          );
-        }),
+          1 => _TipsStep(key: const ValueKey(1)),
+          _ => _ReadyStep(key: const ValueKey(2)),
+        },
       ),
     );
   }
@@ -292,6 +242,8 @@ class _DurationStep extends ConsumerWidget {
   const _DurationStep({
     super.key,
     required this.durations,
+    required this.nameController,
+    required this.observerController,
     required this.locationChoice,
     required this.latitude,
     required this.longitude,
@@ -304,6 +256,8 @@ class _DurationStep extends ConsumerWidget {
   });
 
   final List<int> durations;
+  final TextEditingController nameController;
+  final TextEditingController observerController;
   final _LocationChoice locationChoice;
   final double? latitude;
   final double? longitude;
@@ -324,6 +278,26 @@ class _DurationStep extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: 24),
       children: [
         const SizedBox(height: 8),
+
+        // Name & observer
+        TextField(
+          controller: nameController,
+          decoration: InputDecoration(
+            labelText: l10n.pointCountName,
+            hintText: l10n.pointCountNameHint,
+            prefixIcon: const Icon(Icons.edit),
+          ),
+        ),
+        const SizedBox(height: 16),
+        TextField(
+          controller: observerController,
+          decoration: InputDecoration(
+            labelText: l10n.surveyObserverName,
+            hintText: l10n.surveyObserverNameHint,
+            prefixIcon: const Icon(Icons.person_rounded),
+          ),
+        ),
+        const SizedBox(height: 24),
 
         // Duration picker
         Text(
@@ -399,7 +373,10 @@ class _DurationStep extends ConsumerWidget {
             ),
           ],
           selected: {locationChoice},
-          onSelectionChanged: (s) => onLocationChoiceChanged(s.first),
+          onSelectionChanged: (s) {
+            HapticFeedback.selectionClick();
+            onLocationChoiceChanged(s.first);
+          },
           showSelectedIcon: false,
         ),
 

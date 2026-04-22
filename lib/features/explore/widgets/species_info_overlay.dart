@@ -188,13 +188,11 @@ class _SpeciesInfoSheetState extends ConsumerState<_SpeciesInfoSheet> {
                     : const SizedBox.shrink(),
               ),
 
-              // ── Loading indicator ────────────────────────────
+              // ── Loading skeleton (shimmer placeholder for the bio paragraph) ─
               if (_loading)
                 const Padding(
-                  padding: EdgeInsets.all(24),
-                  child: Center(
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
+                  padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  child: _BioSkeleton(),
                 ),
 
               // ── Description ─────────────────────────────────
@@ -280,6 +278,79 @@ class _SpeciesInfoSheetState extends ConsumerState<_SpeciesInfoSheet> {
           ),
         );
       },
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Loading skeleton (shimmer placeholder for the bio paragraph)
+// ---------------------------------------------------------------------------
+
+/// Animated grey lines that fade in and out to indicate loading.
+///
+/// Cheaper than a true shimmer (no shader work) and matches the app's
+/// understated visual language.
+class _BioSkeleton extends StatefulWidget {
+  const _BioSkeleton();
+
+  @override
+  State<_BioSkeleton> createState() => _BioSkeletonState();
+}
+
+class _BioSkeletonState extends State<_BioSkeleton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1100),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Widget _line(double widthFactor, Color baseColor) {
+    return FractionallySizedBox(
+      alignment: Alignment.centerLeft,
+      widthFactor: widthFactor,
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (_, __) {
+          final t = Curves.easeInOut.transform(_controller.value);
+          final alpha = (40 + (t * 80)).round().clamp(0, 255);
+          return Container(
+            height: 12,
+            decoration: BoxDecoration(
+              color: baseColor.withAlpha(alpha),
+              borderRadius: BorderRadius.circular(4),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final base = Theme.of(context).colorScheme.onSurface;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _line(1.0, base),
+        const SizedBox(height: 8),
+        _line(0.96, base),
+        const SizedBox(height: 8),
+        _line(0.86, base),
+        const SizedBox(height: 8),
+        _line(0.62, base),
+      ],
     );
   }
 }

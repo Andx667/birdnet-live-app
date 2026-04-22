@@ -4,23 +4,23 @@ Live Mode is the fastest way to listen through the phone microphone and review d
 
 ## How to Open It
 
-From the Home screen, tap the **Live Mode** card with the `mic_rounded` icon.
+From the Home screen, tap the **Live Mode** card with the :material-microphone: icon.
 
 ## Top Bar
 
 The top bar contains three elements:
 
-- `arrow_back_rounded` — leave Live Mode
+- :material-arrow-left: — leave Live Mode
 - center status text — `Initializing`, `Loading model`, `Ready`, `Identifying species`, `Paused`, or `Error`
-- `tune_rounded` — open the Live-specific Settings view
+- :material-tune: — open the Live-specific Settings view
 
 ## Main Action Button
 
 The large circular button at the bottom center changes state:
 
-- `mic` — start listening
-- `stop_rounded` — stop the active session
-- `play_arrow_rounded` — resume from a paused-ready state
+- :material-microphone: — start listening
+- :material-stop: — stop the active session
+- :material-play: — resume from a paused-ready state
 
 ## What You See While Listening
 

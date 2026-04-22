@@ -2,19 +2,17 @@
 // Session Map Screen
 // =============================================================================
 //
-// Displays the recording location on an interactive OpenTopoMap-based map.
+// Displays the recording location on an interactive OpenStreetMap-based map.
 //
 // Privacy: Before loading map tiles the user must consent to connecting to
-// the OpenTopoMap tile servers (GDPR compliance).  The consent flag is
+// the OpenStreetMap tile servers (GDPR compliance).  The consent flag is
 // persisted in SharedPreferences so the dialog appears only once.
 //
-// Offline: If tiles cannot be loaded (no internet), flutter_map shows blank
-// tiles.  The marker (recording location) is always visible because it is
-// drawn locally.  The `CachedNetworkImageProvider` caches previously loaded
-// tiles to disk so areas the user has viewed before remain available offline.
+// If tiles cannot be loaded, the map shows blank tiles instead of surfacing
+// network image exceptions. The location marker is always visible because it
+// is drawn locally.
 // =============================================================================
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -23,10 +21,11 @@ import 'package:latlong2/latlong.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../shared/providers/app_providers.dart';
+import '../../shared/widgets/open_street_map_tile_layer.dart';
 
 /// Map screen showing the recording location with a pin marker.
 ///
-/// Requires user consent before fetching OpenTopoMap tiles.  Consent is
+/// Requires user consent before fetching OpenStreetMap tiles.  Consent is
 /// stored via [PrefKeys.mapTileConsent] and is valid across sessions.
 class SessionMapScreen extends ConsumerStatefulWidget {
   const SessionMapScreen({
@@ -109,11 +108,7 @@ class _SessionMapScreenState extends ConsumerState<SessionMapScreen> {
         initialZoom: 13,
       ),
       children: [
-        TileLayer(
-          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          userAgentPackageName: 'birdnet_live',
-          tileProvider: _CachingTileProvider(),
-        ),
+        buildOpenStreetMapTileLayer(),
         MarkerLayer(
           markers: [
             Marker(
@@ -177,23 +172,6 @@ class _SessionMapScreenState extends ConsumerState<SessionMapScreen> {
           ],
         ),
       ),
-    );
-  }
-}
-
-/// Tile provider that uses [CachedNetworkImageProvider] for disk caching.
-///
-/// Previously viewed map tiles are available offline because the image cache
-/// persists to disk (via the `cached_network_image` package which is already
-/// a project dependency for species thumbnails).
-class _CachingTileProvider extends TileProvider {
-  @override
-  ImageProvider getImage(
-    TileCoordinates coordinates,
-    TileLayer options,
-  ) {
-    return CachedNetworkImageProvider(
-      getTileUrl(coordinates, options),
     );
   }
 }

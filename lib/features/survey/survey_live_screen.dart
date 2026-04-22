@@ -26,8 +26,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 
+import '../../core/theme/score_colors.dart';
 import '../../shared/providers/settings_providers.dart';
 import '../../shared/widgets/app_help_bottom_sheet.dart';
+import '../../shared/widgets/confirm_destructive.dart';
 import '../audio/audio_providers.dart';
 import '../audio/ring_buffer.dart';
 import '../explore/explore_providers.dart';
@@ -78,6 +80,7 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
   bool _finalizing = false;
   Timer? _uiUpdateTimer;
   late final TabController _tabController;
+  late final SurveyController _surveyController;
 
   @override
   void initState() {
@@ -85,9 +88,9 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
     _tabController = TabController(length: 3, vsync: this);
     WidgetsBinding.instance.addObserver(this);
 
-    final controller = ref.read(surveyControllerProvider);
-    controller.onStateChanged = _onControllerStateChanged;
-    controller.onAutoStop = _onAutoStop;
+    _surveyController = ref.read(surveyControllerProvider);
+    _surveyController.onStateChanged = _onControllerStateChanged;
+    _surveyController.onAutoStop = _onAutoStop;
 
     // Listen for "Stop" button pressed in the foreground notification.
     FlutterForegroundTask.addTaskDataCallback(_onNotificationData);
@@ -214,24 +217,14 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
 
   Future<void> _confirmStop() async {
     final l10n = AppLocalizations.of(context)!;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.surveyStopTitle),
-        content: Text(l10n.surveyStopMessage),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(l10n.cancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(l10n.surveyStopConfirm),
-          ),
-        ],
-      ),
+    final confirmed = await confirmDestructive(
+      context,
+      title: l10n.surveyStopTitle,
+      body: l10n.surveyStopMessage,
+      confirmLabel: l10n.surveyStopConfirm,
+      cancelLabel: l10n.cancel,
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
     await _finalizeAndReview();
   }
 
@@ -240,28 +233,48 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
     _finalizing = true;
     _uiUpdateTimer?.cancel();
 
-    final controller = ref.read(surveyControllerProvider);
-    final captureNotifier = ref.read(captureStateProvider.notifier);
+    try {
+      final controller = ref.read(surveyControllerProvider);
+      final captureNotifier = ref.read(captureStateProvider.notifier);
 
-    await captureNotifier.stop();
-    final session = await controller.stopSurvey();
-    _onControllerStateChanged();
+      await captureNotifier.stop();
+      final session = await controller.stopSurvey();
+      _onControllerStateChanged();
 
-    if (session != null && mounted) {
-      final repo = ref.read(sessionRepositoryProvider);
-      session.sessionNumber = await repo.nextSessionNumber(session.type);
-      await repo.save(session);
-      ref.invalidate(sessionListProvider);
+      if (session != null && mounted) {
+        final repo = ref.read(sessionRepositoryProvider);
+        session.sessionNumber = await repo.nextSessionNumber(session.type);
+        await repo.save(session);
+        ref.invalidate(sessionListProvider);
 
+        if (mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute<void>(
+              builder: (_) => SessionReviewScreen(session: session),
+            ),
+          );
+        }
+      } else if (mounted) {
+        Navigator.of(context).pop();
+      }
+    } catch (e, st) {
+      debugPrint('[SurveyLiveScreen] finalize error: $e\n$st');
       if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute<void>(
-            builder: (_) => SessionReviewScreen(session: session),
+        final l10n = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${l10n.statusError}: $e'),
+            duration: const Duration(seconds: 4),
           ),
         );
       }
-    } else {
-      if (mounted) Navigator.of(context).pop();
+    } finally {
+      _finalizing = false;
+      if (mounted) {
+        _uiUpdateTimer ??= Timer.periodic(const Duration(seconds: 1), (_) {
+          if (mounted) setState(() {});
+        });
+      }
     }
   }
 
@@ -275,6 +288,12 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
 
   @override
   void dispose() {
+    if (_surveyController.onStateChanged == _onControllerStateChanged) {
+      _surveyController.onStateChanged = null;
+    }
+    if (_surveyController.onAutoStop == _onAutoStop) {
+      _surveyController.onAutoStop = null;
+    }
     WidgetsBinding.instance.removeObserver(this);
     FlutterForegroundTask.removeTaskDataCallback(_onNotificationData);
     _uiUpdateTimer?.cancel();
@@ -708,11 +727,8 @@ class _SurveySummaryTab extends StatelessWidget {
                   '${(sp.bestConfidence * 100).toStringAsFixed(0)}%',
                   style: theme.textTheme.labelSmall?.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: sp.bestConfidence >= 0.7
-                        ? Colors.green
-                        : sp.bestConfidence >= 0.4
-                            ? Colors.amber
-                            : Colors.red,
+                    color: (theme.extension<ScoreColors>() ?? ScoreColors.light)
+                        .forScore(sp.bestConfidence),
                   ),
                 ),
               ],

@@ -6,37 +6,37 @@ This page explains the recurring controls and symbols used across BirdNET Live. 
 
 | Control | Where you see it | What it does |
 |---|---|---|
-| `tune_rounded` | Home footer, Live, Point Count, Survey, File Analysis, Session Review | Opens Settings. In mode screens, it opens the settings most relevant to that workflow. |
-| `search_rounded` | Home footer | Opens Explore. |
-| `library_music_outlined` | Home footer | Opens Session Library. |
-| `help_outline_rounded` / `help_outline` | Home footer, Explore header, Survey dashboard, Session Review toolbar | Opens Help or a screen-specific help sheet. |
-| `info_outline` | Home footer, info bars, help sheets | Shows general information or summary context. |
-| `arrow_back_rounded` | Live Mode | Returns to the previous screen. |
-| `open_in_new` | About screen, documentation links | Opens an external page such as the online User Guide. |
+| :material-tune: **Settings** | Home footer, Live, Point Count, Survey, File Analysis, Session Review | Opens Settings. In mode screens, it opens the settings most relevant to that workflow. |
+| :material-magnify: **Explore** | Home footer | Opens Explore. |
+| :material-music-box-multiple-outline: **Library** | Home footer | Opens Session Library. |
+| :material-help-circle-outline: **Help** | Home footer, Explore header, Survey dashboard, Session Review toolbar | Opens Help or a screen-specific help sheet. |
+| :material-information-outline: **Info / About** | Home footer, info bars, help sheets | Shows general information or summary context. |
+| :material-arrow-left: **Back** | Live Mode | Returns to the previous screen. |
+| :material-open-in-new: **Open external** | About screen, documentation links | Opens an external page such as the online User Guide. |
 
 ## Start, Stop, and Session Controls
 
 | Control | Meaning |
 |---|---|
-| `mic` | Start live listening. |
-| `stop_rounded` | Stop an active recording, point count, or survey. |
-| `play_arrow_rounded` | Start a configured setup flow or resume from a paused-ready state. |
-| `close` | Cancel an active file analysis. |
-| `timer_rounded` | Duration or time remaining. |
-| `error_outline` | Model or processing error. |
+| :material-microphone: **Mic** | Start live listening. |
+| :material-stop: **Stop** | Stop an active recording, point count, or survey. |
+| :material-play: **Play** | Start a configured setup flow or resume from a paused-ready state. |
+| :material-close: **Close / Cancel** | Cancel an active file analysis. |
+| :material-timer: **Timer** | Duration or time remaining. |
+| :material-alert-circle-outline: **Error** | Model or processing error. |
 
 ## Location and Time Controls
 
 | Control | Meaning |
 |---|---|
-| `my_location` | Use the device's current GPS position. |
-| `edit_location_alt` | Enter coordinates manually. |
-| `location_off` | Skip location or show that location is unavailable. |
-| `location_on` / `location_on_rounded` | Confirm a location, show coordinates, or label a mapped session. |
-| `refresh` | Re-read the current location or refresh a prediction list. |
-| `map` | Pick coordinates from the map picker. |
-| `calendar_today` / `calendar_today_rounded` | Set or display a date. |
-| `clear` | Remove a selected date. |
+| :material-crosshairs-gps: **Current location** | Use the device's current GPS position. |
+| :material-map-marker-plus: **Manual coordinates** | Enter coordinates manually. |
+| :material-map-marker-off: **No location** | Skip location or show that location is unavailable. |
+| :material-map-marker: **Has location** | Confirm a location, show coordinates, or label a mapped session. |
+| :material-refresh: **Refresh** | Re-read the current location or refresh a prediction list. |
+| :material-map: **Map picker** | Pick coordinates from the map picker. |
+| :material-calendar: **Date** | Set or display a date. |
+| :material-close: **Clear** | Remove a selected date. |
 
 ## Explore and Species Symbols
 
@@ -52,19 +52,19 @@ These controls are used on the Session Review screen.
 
 | Control | Meaning |
 |---|---|
-| `add_circle_outline` | Add content, such as a species or annotation. |
-| `undo` / `redo` | Step backward or forward through review edits. |
-| `content_cut_outlined` / `content_cut` | Enter trim mode or show that trim mode is active. |
-| `save` | Save review changes. |
-| `share` | Export or share the session. |
-| `delete_outline` | Discard the session. |
-| `play_arrow_rounded` | Continue an unfinished survey from Session Review when that action is available. |
+| :material-plus-circle-outline: **Add** | Add content, such as a species or annotation. |
+| :material-undo-variant: **Undo** / :material-redo-variant: **Redo** | Step backward or forward through review edits. |
+| :material-content-cut: **Trim** | Enter trim mode or show that trim mode is active. |
+| :material-content-save: **Save** | Save review changes. |
+| :material-share-variant: **Share** | Export or share the session. |
+| :material-delete-outline: **Delete** | Discard the session. |
+| :material-play: **Continue** | Continue an unfinished survey from Session Review when that action is available. |
 
 ## Screen-Specific Status Bars
 
 ### Live Mode
 
-The Live info bar uses `info_outline` followed by compact labels such as:
+The Live info bar uses :material-information-outline: followed by compact labels such as:
 
 - `now` — detections currently visible in the live list
 - `spp` — unique species count
@@ -73,16 +73,16 @@ The Live info bar uses `info_outline` followed by compact labels such as:
 
 ### Point Count
 
-The point-count timer bar combines `stop_rounded`, `timer_rounded`, and a progress bar to show the remaining timed session.
+The point-count timer bar combines :material-stop: **Stop**, :material-timer: **Timer**, and a progress bar to show the remaining timed session.
 
 ### Survey
 
 The survey dashboard uses:
 
-- `map_outlined` — live map tab
-- `graphic_eq` — spectrogram tab
-- chart icon (`chartBar`) — summary tab
-- `bar_chart` and related stats labels in the survey summary view
+- :material-map-outline: **Map** — live map tab
+- :material-equalizer: **Spectrogram** — spectrogram tab
+- :material-chart-bar: **Summary** — summary tab
+- :material-chart-bar: stats labels in the survey summary view
 
 ## When in Doubt
 

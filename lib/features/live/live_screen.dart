@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -9,6 +10,7 @@ import '../../core/services/wakelock_service.dart';
 
 import '../../shared/providers/settings_providers.dart';
 import '../../shared/widgets/app_help_bottom_sheet.dart';
+import '../../shared/widgets/confirm_destructive.dart';
 import '../audio/audio_capture_service.dart';
 import '../audio/audio_providers.dart';
 import '../explore/explore_providers.dart';
@@ -167,24 +169,14 @@ class _LiveScreenState extends ConsumerState<LiveScreen>
   /// Show confirmation dialog, then finalize and navigate to review.
   Future<void> _confirmStop() async {
     final l10n = AppLocalizations.of(context)!;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.sessionStopTitle),
-        content: Text(l10n.sessionStopMessage),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(l10n.cancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(l10n.sessionStopConfirm),
-          ),
-        ],
-      ),
+    final confirmed = await confirmDestructive(
+      context,
+      title: l10n.sessionStopTitle,
+      body: l10n.sessionStopMessage,
+      confirmLabel: l10n.sessionStopConfirm,
+      cancelLabel: l10n.cancel,
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
     await _finalizeAndReview();
   }
 
@@ -621,46 +613,63 @@ class _CaptureButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     // Active → red stop button, paused → primary play button, idle → primary mic.
     final Color bgColor;
     final IconData icon;
     final Color iconColor;
+    final String semanticsLabel;
 
     if (isActive) {
       bgColor = theme.colorScheme.error;
       icon = Icons.stop_rounded;
       iconColor = theme.colorScheme.onError;
+      semanticsLabel = l10n.a11yLiveCaptureStop;
     } else if (isPaused) {
       bgColor = theme.colorScheme.primary;
       icon = Icons.play_arrow_rounded;
       iconColor = theme.colorScheme.onPrimary;
+      semanticsLabel = l10n.a11yLiveCaptureResume;
     } else {
       bgColor = theme.colorScheme.primary;
       icon = Icons.mic;
       iconColor = theme.colorScheme.onPrimary;
+      semanticsLabel = l10n.a11yLiveCaptureStart;
     }
 
-    return SizedBox(
-      width: 56,
-      height: 56,
-      child: Material(
-        shape: const CircleBorder(),
-        color: bgColor,
-        elevation: 4,
-        shadowColor: bgColor.withAlpha(120),
-        child: InkWell(
-          customBorder: const CircleBorder(),
-          onTap: isLoading ? null : onPressed,
-          child: isLoading
-              ? Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.5,
-                    color: theme.colorScheme.onPrimary,
+    return Semantics(
+      button: true,
+      enabled: !isLoading,
+      label: semanticsLabel,
+      child: SizedBox(
+        width: 56,
+        height: 56,
+        child: Material(
+          shape: const CircleBorder(),
+          color: bgColor,
+          elevation: 4,
+          shadowColor: bgColor.withAlpha(120),
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: isLoading
+                ? null
+                : () {
+                    HapticFeedback.lightImpact();
+                    onPressed();
+                  },
+            child: isLoading
+                ? Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: theme.colorScheme.onPrimary,
+                    ),
+                  )
+                : ExcludeSemantics(
+                    child: Icon(icon, color: iconColor, size: 28),
                   ),
-                )
-              : Icon(icon, color: iconColor, size: 28),
+          ),
         ),
       ),
     );
@@ -682,8 +691,8 @@ class _StatusBanner extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: theme.colorScheme.errorContainer,
         borderRadius: BorderRadius.circular(8),

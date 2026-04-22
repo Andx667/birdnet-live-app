@@ -1,22 +1,28 @@
+﻿// =============================================================================
+// Detection Sampler — Controls which survey detection clips are kept on disk
 // =============================================================================
-// Detection Sampler — Controls which survey detections are kept
-// =============================================================================
 //
-// A 6-hour survey at 0.25 Hz can produce thousands of detections.  The
-// sampler controls which detections are persisted to keep storage and
-// review manageable.  Three modes:
+// On a multi-hour survey the detection *records* themselves are cheap (a few
+// hundred bytes each) — we always keep every merged detection in the session
+// so the user has a complete log. What is expensive is the per-detection WAV
+// clip on disk. The sampler decides which clips survive; the records remain.
 //
-//   * **All** — keep everything above threshold.
-//   * **Top N per species** — keep only the N highest-scoring detections
-//     per species (min-heap eviction).
-//   * **Smart** — spatially and temporally distributed sampling.  For each
-//     species, detections within 500 m *and* 2 min of an existing kept
-//     detection are considered the "same spot" and only the highest-
-//     scoring one is retained.  This avoids large clusters at one spot
-//     while preserving the best detections along the full transect.
+// Three modes operate on **merged detections** (one record per continuous
+// appearance, closed when the species disappears or the session ends):
 //
-// All modes run inference on every window; sampling only affects which
-// results are *kept and clipped*.
+//   * **All** — keep every clip. The sampler is a no-op.
+//   * **Top N** — keep the N highest-confidence clips per species. When a
+//     better detection arrives, the weakest's clip is deleted (its record
+//     stays, with `audioClipPath` cleared). When a new detection is worse
+//     than the weakest existing clip, the new one's clip is dropped on
+//     arrival.
+//   * **Smart** — same per-species cap of N, but with spatial distribution.
+//     If a new detection lands at the same "spot" as an already-kept clip
+//     (within distance + time thresholds), only the higher-confidence clip
+//     survives — even if there's still a free slot. This prevents one
+//     stationary singer from grabbing all N slots.
+//
+// Records always live in the session. Only `audioClipPath` is affected.
 // =============================================================================
 
 import 'dart:io';
@@ -38,213 +44,163 @@ SamplingMode samplingModeFromString(String value) {
   };
 }
 
-/// Controls which detections are kept during a long-running survey.
+/// Controls which detection audio clips are retained during a survey.
+///
+/// All [DetectionRecord]s are kept in the session regardless of mode; the
+/// sampler only chooses whether each record's `audioClipPath` is preserved
+/// (file kept on disk) or cleared (file deleted, record stays without audio).
 class DetectionSampler {
   DetectionSampler({
     required this.mode,
     this.topN = 10,
     this.distanceThresholdMeters = 500,
     this.timeThresholdSeconds = 120,
-    this.globalCap = 500,
   });
 
   /// Active sampling mode.
   final SamplingMode mode;
 
-  /// Maximum detections per species (for topN mode).
+  /// Maximum number of clips to retain per species (Top N and Smart modes).
   final int topN;
 
-  /// Minimum distance (meters) between kept detections of the same species
-  /// for smart mode. Detections closer than this AND within
-  /// [timeThresholdSeconds] are considered the "same spot".
+  /// Same-spot distance threshold in meters (Smart mode only). Two
+  /// detections of the same species closer than this *and* within
+  /// [timeThresholdSeconds] are considered the same spot.
   final double distanceThresholdMeters;
 
-  /// Minimum time (seconds) between kept detections of the same species
-  /// for smart mode. Detections closer than this AND within
-  /// [distanceThresholdMeters] are considered the "same spot".
+  /// Same-spot time threshold in seconds (Smart mode only). See
+  /// [distanceThresholdMeters].
   final int timeThresholdSeconds;
 
-  /// Global cap on total kept detections (smart mode only).
-  final int globalCap;
+  /// Per-species lists of records whose clips are currently kept on disk,
+  /// sorted ascending by confidence (weakest at index 0).
+  final Map<String, List<DetectionRecord>> _keptClips = {};
 
-  /// Per-species heaps for topN mode.
-  /// Maps species name → sorted list (ascending by confidence).
-  final Map<String, List<DetectionRecord>> _speciesHeaps = {};
+  /// Total number of clips currently retained on disk.
+  int get keptClipCount => _keptClips.values.fold(0, (s, l) => s + l.length);
 
-  /// Per-species kept detections for smart mode.
-  final Map<String, List<DetectionRecord>> _smartHeaps = {};
+  /// Number of clips that have been dropped (records kept, audio deleted).
+  int get droppedClipCount => _droppedClipCount;
+  int _droppedClipCount = 0;
 
-  /// Total kept detection count.
-  int get keptCount {
-    return switch (mode) {
-      SamplingMode.all => _allCount,
-      SamplingMode.topN => _speciesHeaps.values.fold(0, (s, l) => s + l.length),
-      SamplingMode.smart => _smartHeaps.values.fold(0, (s, l) => s + l.length),
-    };
-  }
-
-  int _allCount = 0;
-
-  /// Decide whether a detection should be kept.
+  /// Notify the sampler that a merged detection has just closed (i.e. the
+  /// species disappeared or the session is ending). The record's
+  /// `audioClipPath` may be cleared in place if its clip is dropped, and
+  /// other previously-kept records may have their clips evicted to make
+  /// room.
   ///
-  /// Returns the [DetectionRecord] that was evicted (whose clip can be
-  /// deleted), or null if nothing was evicted.
-  DetectionRecord? shouldKeep(DetectionRecord detection) {
-    return switch (mode) {
-      SamplingMode.all => _keepAll(detection),
-      SamplingMode.topN => _keepTopN(detection),
-      SamplingMode.smart => _keepSmart(detection),
-    };
-  }
+  /// Returns `true` if the record's own clip was retained, `false` if it
+  /// was dropped on arrival (file already deleted, path cleared).
+  Future<bool> onRecordClosed(DetectionRecord record) async {
+    // All mode: keep every clip, no work to do.
+    if (mode == SamplingMode.all) return record.audioClipPath != null;
 
-  /// Whether the detection was accepted (check after calling shouldKeep).
-  bool wasAccepted(DetectionRecord detection) {
-    return switch (mode) {
-      SamplingMode.all => true,
-      SamplingMode.topN =>
-        _speciesHeaps[detection.scientificName]?.contains(detection) ?? false,
-      SamplingMode.smart =>
-        _smartHeaps[detection.scientificName]?.contains(detection) ?? false,
-    };
-  }
+    // No clip on this record â†’ nothing to manage.
+    if (record.audioClipPath == null) return false;
 
-  /// Enforce the global cap (smart mode). Returns evicted records.
-  List<DetectionRecord> enforceGlobalCap() {
-    if (mode != SamplingMode.smart) return const [];
-    final evicted = <DetectionRecord>[];
+    final species = record.scientificName;
+    final kept = _keptClips.putIfAbsent(species, () => []);
 
-    while (keptCount > globalCap) {
-      // Find the globally weakest detection.
-      DetectionRecord? weakest;
-      String? weakestKey;
-
-      for (final entry in _smartHeaps.entries) {
-        if (entry.value.isEmpty) continue;
-        final candidate = entry.value.first; // lowest confidence
-        if (weakest == null || candidate.confidence < weakest.confidence) {
-          weakest = candidate;
-          weakestKey = entry.key;
+    // Smart mode: check for a same-spot rival first. If one exists, the
+    // contest is between just those two regardless of free slots.
+    if (mode == SamplingMode.smart) {
+      final neighbor = _findSameSpot(record, kept);
+      if (neighbor != null) {
+        if (record.confidence > neighbor.confidence) {
+          // New record wins the spot; evict the neighbor's clip.
+          kept.remove(neighbor);
+          await _evictClip(neighbor);
+          _insertSorted(kept, record);
+          return true;
+        } else {
+          // Existing record wins; drop the new one's clip.
+          await _evictClip(record);
+          return false;
         }
       }
-
-      if (weakest == null || weakestKey == null) break;
-      _smartHeaps[weakestKey]!.remove(weakest);
-      if (_smartHeaps[weakestKey]!.isEmpty) _smartHeaps.remove(weakestKey);
-      evicted.add(weakest);
+      // No same-spot rival â†’ fall through to standard Top N logic.
     }
 
-    return evicted;
+    // Top N admission (shared by Top N and Smart-with-no-rival).
+    if (kept.length < topN) {
+      _insertSorted(kept, record);
+      return true;
+    }
+
+    // Heap full — compare against the weakest.
+    final weakest = kept.first;
+    if (record.confidence > weakest.confidence) {
+      kept.removeAt(0);
+      await _evictClip(weakest);
+      _insertSorted(kept, record);
+      return true;
+    }
+
+    // New record is no better than the weakest kept clip — drop it.
+    await _evictClip(record);
+    return false;
   }
 
-  /// Delete clip files for evicted detections.
-  static Future<void> deleteClips(List<DetectionRecord> evicted) async {
-    for (final record in evicted) {
-      if (record.audioClipPath != null) {
-        try {
-          final file = File(record.audioClipPath!);
-          if (await file.exists()) await file.delete();
-        } catch (e) {
-          debugPrint('[DetectionSampler] failed to delete clip: $e');
-        }
-      }
+  /// Delete a record's audio file and clear its `audioClipPath`.
+  ///
+  /// Mutates the record in place so existing references in the session list
+  /// reflect the change without needing a list-replace.
+  Future<void> _evictClip(DetectionRecord record) async {
+    final path = record.audioClipPath;
+    record.audioClipPath = null;
+    _droppedClipCount++;
+    if (path == null) return;
+    try {
+      final file = File(path);
+      if (await file.exists()) await file.delete();
+    } catch (e) {
+      debugPrint('[DetectionSampler] failed to delete clip: $e');
     }
   }
 
-  /// Get all kept detections (for session finalization).
-  List<DetectionRecord> get keptDetections {
-    return switch (mode) {
-      SamplingMode.all => const [], // caller manages the list
-      SamplingMode.topN => [
-          for (final heap in _speciesHeaps.values) ...heap,
-        ],
-      SamplingMode.smart => [
-          for (final heap in _smartHeaps.values) ...heap,
-        ],
-    };
+  /// Find an already-kept record at the "same spot" as [candidate], or null.
+  DetectionRecord? _findSameSpot(
+    DetectionRecord candidate,
+    List<DetectionRecord> kept,
+  ) {
+    for (final existing in kept) {
+      if (_isSameSpot(candidate, existing)) return existing;
+    }
+    return null;
   }
 
-  // ── Private ─────────────────────────────────────────────────────────────
-
-  DetectionRecord? _keepAll(DetectionRecord detection) {
-    _allCount++;
-    return null; // always keep, never evict
-  }
-
-  DetectionRecord? _keepTopN(DetectionRecord detection) {
-    final species = detection.scientificName;
-    final heap = _speciesHeaps.putIfAbsent(species, () => []);
-
-    if (heap.length < topN) {
-      _insertSorted(heap, detection);
-      return null;
-    }
-
-    // Heap is full — check if new detection is better than the worst.
-    if (detection.confidence > heap.first.confidence) {
-      final evicted = heap.removeAt(0);
-      _insertSorted(heap, detection);
-      return evicted;
-    }
-
-    // New detection is worse — discard it (return it as "evicted").
-    return detection;
-  }
-
-  DetectionRecord? _keepSmart(DetectionRecord detection) {
-    final species = detection.scientificName;
-    final heap = _smartHeaps.putIfAbsent(species, () => []);
-
-    // Find an existing detection at the "same spot" — within both distance
-    // and time thresholds.
-    DetectionRecord? neighbor;
-    for (final existing in heap) {
-      if (_isSameSpot(detection, existing)) {
-        neighbor = existing;
-        break;
-      }
-    }
-
-    if (neighbor == null) {
-      // No nearby detection — accept unconditionally.
-      _insertSorted(heap, detection);
-      return null;
-    }
-
-    // Same spot: keep only the higher-confidence one.
-    if (detection.confidence > neighbor.confidence) {
-      heap.remove(neighbor);
-      _insertSorted(heap, detection);
-      return neighbor;
-    }
-
-    // Existing is better — discard the new detection.
-    return detection;
-  }
-
-  /// Whether two detections are at the "same spot" (close in both space
-  /// and time).
+  /// Whether two detections are at the same spot (close in space and time).
+  ///
+  /// If GPS is missing on either record, falls back to a time-only check —
+  /// missing-GPS records are never silently treated as identical location.
   bool _isSameSpot(DetectionRecord a, DetectionRecord b) {
     final timeDiff = a.timestamp.difference(b.timestamp).inSeconds.abs();
     if (timeDiff > timeThresholdSeconds) return false;
 
+    if (a.latitude == null ||
+        a.longitude == null ||
+        b.latitude == null ||
+        b.longitude == null) {
+      // No GPS on at least one side: time alone decides.
+      return true;
+    }
+
     final dist = _haversineMeters(
-      a.latitude,
-      a.longitude,
-      b.latitude,
-      b.longitude,
+      a.latitude!,
+      a.longitude!,
+      b.latitude!,
+      b.longitude!,
     );
     return dist <= distanceThresholdMeters;
   }
 
-  /// Haversine distance in meters. Returns 0 if coordinates are missing,
-  /// which makes detections without GPS cluster together (same spot).
+  /// Haversine distance in meters between two GPS coordinates.
   static double _haversineMeters(
-    double? lat1,
-    double? lon1,
-    double? lat2,
-    double? lon2,
+    double lat1,
+    double lon1,
+    double lat2,
+    double lon2,
   ) {
-    if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) return 0;
     const earthRadius = 6371000.0; // meters
     final dLat = _radians(lat2 - lat1);
     final dLon = _radians(lon2 - lon1);

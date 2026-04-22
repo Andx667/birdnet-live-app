@@ -255,6 +255,13 @@ final pointCountDurationProvider =
   return IntSettingNotifier(prefs, PrefKeys.pointCountDuration, 5);
 });
 
+/// Last used observer name in Point Count (persisted for convenience).
+final pointCountLastObserverProvider =
+    StateNotifierProvider<StringSettingNotifier, String>((ref) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return StringSettingNotifier(prefs, PrefKeys.pointCountLastObserver, '');
+});
+
 // ---------------------------------------------------------------------------
 // Survey Mode
 // ---------------------------------------------------------------------------

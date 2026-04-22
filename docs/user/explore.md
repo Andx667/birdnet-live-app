@@ -4,13 +4,13 @@ Explore shows species predicted for the current location and season using the Bi
 
 ## How to Open It
 
-Open **Explore** from the Home footer using the `search_rounded` button.
+Open **Explore** from the Home footer using the :material-magnify: button.
 
 ## App Bar and Header
 
 ### App bar
 
-- `refresh` — refresh location and rebuild the predicted species list
+- :material-refresh: — refresh location and rebuild the predicted species list
 
 ### Location header
 
@@ -18,7 +18,7 @@ The header shows:
 
 - current reverse-geocoded place name when available
 - coordinates below the place name
-- `help_outline` — open the Explore help sheet
+- :material-help-circle-outline: — open the Explore help sheet
 
 ## Species List
 

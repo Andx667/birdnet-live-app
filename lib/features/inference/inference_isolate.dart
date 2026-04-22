@@ -111,11 +111,17 @@ class InferenceIsolate {
 
     _responseSubscription = receivePort.listen((message) {
       if (message is SendPort) {
-        sendPortCompleter.complete(message);
+        if (!sendPortCompleter.isCompleted) {
+          sendPortCompleter.complete(message);
+        }
       } else if (message is _WorkerReady) {
-        readyCompleter.complete();
+        if (!readyCompleter.isCompleted) {
+          readyCompleter.complete();
+        }
       } else if (message is _WorkerInitError) {
-        readyCompleter.completeError(Exception(message.error));
+        if (!readyCompleter.isCompleted) {
+          readyCompleter.completeError(Exception(message.error));
+        }
       } else if (message is _WorkerResponse) {
         final c = _responseCompleter.remove(message.requestId);
         if (c != null) {
@@ -128,10 +134,22 @@ class InferenceIsolate {
       }
     });
 
-    _sendPort = await sendPortCompleter.future;
-    debugPrint('[InferenceIsolate] waiting for model init …');
-    await readyCompleter.future;
-    debugPrint('[InferenceIsolate] model ready');
+    try {
+      _sendPort = await sendPortCompleter.future.timeout(
+        const Duration(minutes: 2),
+      );
+      debugPrint('[InferenceIsolate] waiting for model init …');
+      await readyCompleter.future.timeout(const Duration(minutes: 2));
+      debugPrint('[InferenceIsolate] model ready');
+    } catch (_) {
+      receivePort.close();
+      await _responseSubscription?.cancel();
+      _responseSubscription = null;
+      _sendPort = null;
+      _isolate?.kill(priority: Isolate.immediate);
+      _isolate = null;
+      rethrow;
+    }
   }
 
   /// Stop the background isolate and free resources.

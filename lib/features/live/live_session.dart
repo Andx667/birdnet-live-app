@@ -74,6 +74,22 @@ enum SessionType {
   survey,
 }
 
+/// Why a session ended.
+///
+/// Used primarily for survey sessions that can auto-stop on max duration
+/// or low battery, but applicable to any session type. `null` means the
+/// session was stopped manually or pre-dates this field.
+enum SessionStopReason {
+  /// User tapped Stop.
+  manual,
+
+  /// Configured maximum duration was reached.
+  maxDuration,
+
+  /// Battery dropped below the configured auto-stop threshold.
+  lowBattery,
+}
+
 /// How a detection was created.
 enum DetectionSource {
   /// Automatically detected by the inference model.
@@ -92,11 +108,12 @@ enum DetectionSource {
 /// Unlike [Detection] (which holds a full [Species] object), this stores
 /// only the essential fields needed for history display and export.
 class DetectionRecord {
-  const DetectionRecord({
+  DetectionRecord({
     required this.scientificName,
     required this.commonName,
     required this.confidence,
     required this.timestamp,
+    this.endTimestamp,
     this.audioClipPath,
     this.source = DetectionSource.auto,
     this.latitude,
@@ -114,11 +131,25 @@ class DetectionRecord {
   /// Confidence score (0.0–1.0).
   final double confidence;
 
-  /// Wall-clock time of the detection.
+  /// Wall-clock time when this detection first appeared.
   final DateTime timestamp;
 
+  /// Wall-clock time when the species' card disappeared from the live
+  /// view (i.e. when continuous detection ended). May be `null` for:
+  ///   * detections still in progress,
+  ///   * legacy sessions saved before this field existed,
+  ///   * manual annotations.
+  ///
+  /// When `null`, consumers should treat the detection as a single
+  /// inference window starting at [timestamp].
+  final DateTime? endTimestamp;
+
   /// Path to the saved audio clip for this detection (if available).
-  final String? audioClipPath;
+  ///
+  /// Mutable: the survey detection sampler may clear this (and delete the
+  /// underlying file) when an audio clip is dropped to enforce per-species
+  /// or spatial caps. The detection record itself is always retained.
+  String? audioClipPath;
 
   /// How this detection was created.
   final DetectionSource source;
@@ -159,6 +190,9 @@ class DetectionRecord {
       commonName: json['commonName'] as String,
       confidence: (json['confidence'] as num).toDouble(),
       timestamp: DateTime.parse(json['timestamp'] as String),
+      endTimestamp: json['endTimestamp'] != null
+          ? DateTime.parse(json['endTimestamp'] as String)
+          : null,
       audioClipPath: json['audioClipPath'] as String?,
       source: switch (json['source'] as String?) {
         'manual' => DetectionSource.manual,
@@ -176,6 +210,8 @@ class DetectionRecord {
         'commonName': commonName,
         'confidence': confidence,
         'timestamp': timestamp.toIso8601String(),
+        if (endTimestamp != null)
+          'endTimestamp': endTimestamp!.toIso8601String(),
         if (audioClipPath != null) 'audioClipPath': audioClipPath,
         if (source != DetectionSource.auto) 'source': source.name,
         if (latitude != null) 'detLat': latitude,
@@ -259,6 +295,8 @@ class LiveSession {
     this.distanceMeters,
     this.transectId,
     this.observerName,
+    this.stopReason,
+    this.stopReasonValue,
   })  : detections = detections ?? [],
         annotations = annotations ?? [],
         gpsTrack = gpsTrack ?? [];
@@ -332,6 +370,15 @@ class LiveSession {
 
   /// Name of the observer (remembered across sessions).
   String? observerName;
+
+  /// Why the session ended. `null` for legacy sessions or sessions still
+  /// active. Surveys set this when they auto-stop.
+  SessionStopReason? stopReason;
+
+  /// Numeric value associated with [stopReason] (e.g. battery % for
+  /// [SessionStopReason.lowBattery], or duration hours for
+  /// [SessionStopReason.maxDuration]). `null` when not applicable.
+  num? stopReasonValue;
 
   /// Whether this session is still active (no end time).
   bool get isActive => endTime == null;
@@ -419,6 +466,13 @@ class LiveSession {
       distanceMeters: (json['distanceMeters'] as num?)?.toDouble(),
       transectId: json['transectId'] as String?,
       observerName: json['observerName'] as String?,
+      stopReason: json['stopReason'] != null
+          ? SessionStopReason.values.firstWhere(
+              (r) => r.name == (json['stopReason'] as String),
+              orElse: () => SessionStopReason.manual,
+            )
+          : null,
+      stopReasonValue: json['stopReasonValue'] as num?,
     );
   }
 
@@ -445,6 +499,8 @@ class LiveSession {
         if (distanceMeters != null) 'distanceMeters': distanceMeters,
         if (transectId != null) 'transectId': transectId,
         if (observerName != null) 'observerName': observerName,
+        if (stopReason != null) 'stopReason': stopReason!.name,
+        if (stopReasonValue != null) 'stopReasonValue': stopReasonValue,
       };
 
   @override

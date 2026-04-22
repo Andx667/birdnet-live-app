@@ -349,6 +349,7 @@ class SurveyController {
           'sampling=${samplingMode.name})');
     } catch (e, st) {
       debugPrint('[SurveyController] startSurvey error: $e\n$st');
+      await _cleanupFailedStart();
       _state = SurveyState.error;
       _errorMessage = e.toString();
       _notifyListeners();
@@ -478,16 +479,38 @@ class SurveyController {
           '${existingSession.gpsTrack.length} GPS points)');
     } catch (e, st) {
       debugPrint('[SurveyController] resumeSurvey error: $e\n$st');
+      await _cleanupFailedStart();
       _state = SurveyState.error;
       _errorMessage = e.toString();
       _notifyListeners();
     }
   }
 
+  Future<void> _cleanupFailedStart() async {
+    _inferenceTimer?.cancel();
+    _inferenceTimer = null;
+    _persistTimer?.cancel();
+    _persistTimer = null;
+
+    await _notificationService.stop();
+    await _gpsTracker?.stopTracking();
+    await recordingService.stopRecording();
+
+    _gpsTracker = null;
+    _sampler = null;
+    _maxEndTime = null;
+    _inferring = false;
+    _session = null;
+    _sessionDetections.clear();
+    _currentLiveDetections = const [];
+    _activeCardSpecies.clear();
+  }
+
   /// Stop and finalize the survey.
   Future<LiveSession?> stopSurvey() async {
     if (_session == null) return null;
     _state = SurveyState.stopping;
+    _errorMessage = null;
     _notifyListeners();
 
     // Stop timers.
@@ -511,16 +534,21 @@ class SurveyController {
       _session!.distanceMeters = _gpsTracker!.distanceMeters;
     }
 
+    // Ensure the session has a representative lat/lon so the review screen
+    // can show a map even when the GPS track is empty or very short.
+    if (_session!.latitude == null || _session!.longitude == null) {
+      final track = _gpsTracker?.track ?? const <GpsPoint>[];
+      if (track.isNotEmpty) {
+        final last = track.last;
+        _session!.latitude = last.latitude;
+        _session!.longitude = last.longitude;
+      }
+    }
+
     // Stop recording.
     final recordingPath = await recordingService.stopRecording();
     if (recordingPath != null) {
       _session!.recordingPath = recordingPath;
-    }
-
-    // Enforce global cap on detections (smart mode).
-    if (_sampler != null) {
-      final evicted = _sampler!.enforceGlobalCap();
-      await DetectionSampler.deleteClips(evicted);
     }
 
     if (kDebugMode) {
@@ -529,25 +557,56 @@ class SurveyController {
       MemoryMonitor.stop();
     }
 
+    // Close any still-open detection windows so that long-running cards
+    // visible at survey end get a proper [endTimestamp]. Each closed
+    // record is then handed to the sampler, which may drop its clip.
+    if (_activeCardSpecies.isNotEmpty) {
+      final now = DateTime.now();
+      for (final existing in _activeCardSpecies.values.toList()) {
+        final closed = DetectionRecord(
+          scientificName: existing.scientificName,
+          commonName: existing.commonName,
+          confidence: existing.confidence,
+          timestamp: existing.timestamp,
+          endTimestamp: now,
+          audioClipPath: existing.audioClipPath,
+          source: existing.source,
+          latitude: existing.latitude,
+          longitude: existing.longitude,
+        );
+        final sIdx = _sessionDetections.indexOf(existing);
+        if (sIdx != -1) _sessionDetections[sIdx] = closed;
+        final lsIdx = _session!.detections.indexOf(existing);
+        if (lsIdx != -1) _session!.detections[lsIdx] = closed;
+        await _sampler?.onRecordClosed(closed);
+      }
+    }
+
     _session!.end();
     final completedSession = _session!;
 
-    // Final persist.
-    await _persistSession();
+    try {
+      // Final persist.
+      await _persistSession();
 
-    // Delete recovery file.
-    await _deleteRecoveryFile();
+      // Delete recovery file.
+      await _deleteRecoveryFile();
+    } catch (e, st) {
+      debugPrint('[SurveyController] finalize persist error: $e\n$st');
+      _errorMessage = e.toString();
+    } finally {
+      // Reset state even if persistence cleanup fails so the controller
+      // cannot get stuck in the stopping state.
+      _session = null;
+      _sessionDetections.clear();
+      _currentLiveDetections = const [];
+      _activeCardSpecies.clear();
+      _gpsTracker = null;
+      _sampler = null;
 
-    // Reset state.
-    _session = null;
-    _sessionDetections.clear();
-    _currentLiveDetections = const [];
-    _activeCardSpecies.clear();
-    _gpsTracker = null;
-    _sampler = null;
-
-    _state = SurveyState.finalized;
-    _notifyListeners();
+      _state = SurveyState.finalized;
+      _notifyListeners();
+    }
 
     debugPrint('[SurveyController] survey finalized');
     return completedSession;
@@ -586,7 +645,13 @@ class SurveyController {
   }) async {
     // Check auto-stop conditions.
     if (_maxEndTime != null && DateTime.now().isAfter(_maxEndTime!)) {
-      _triggerAutoStop('Maximum survey duration reached');
+      _triggerAutoStop(
+        'Maximum survey duration reached',
+        reasonCode: SessionStopReason.maxDuration,
+        value: _maxEndTime!
+            .difference(_session?.startTime ?? _maxEndTime!)
+            .inHours,
+      );
       return;
     }
 
@@ -638,10 +703,38 @@ class SurveyController {
 
         final appeared =
             currentNames.difference(_activeCardSpecies.keys.toSet());
+        // Species that disappeared → close their detection window so
+        // the review screen can highlight the full duration during
+        // which they were continuously above threshold.
         final disappeared =
             _activeCardSpecies.keys.toSet().difference(currentNames);
+        final closingNow = DateTime.now();
         for (final name in disappeared) {
-          _activeCardSpecies.remove(name);
+          final existing = _activeCardSpecies.remove(name);
+          if (existing == null) continue;
+          // Mutate endTimestamp in place via list-replace (endTimestamp is
+          // a final field). The new record carries the same audioClipPath
+          // reference, which the sampler may then mutate to null in place.
+          final closed = DetectionRecord(
+            scientificName: existing.scientificName,
+            commonName: existing.commonName,
+            confidence: existing.confidence,
+            timestamp: existing.timestamp,
+            endTimestamp: closingNow,
+            audioClipPath: existing.audioClipPath,
+            source: existing.source,
+            latitude: existing.latitude,
+            longitude: existing.longitude,
+          );
+          final sIdx = _sessionDetections.indexOf(existing);
+          if (sIdx != -1) _sessionDetections[sIdx] = closed;
+          final lsIdx = _session!.detections.indexOf(existing);
+          if (lsIdx != -1) _session!.detections[lsIdx] = closed;
+
+          // Hand the closed record to the sampler. The sampler may delete
+          // the clip file and clear `audioClipPath` on this record (or on
+          // a previously-kept record it's now evicting).
+          await _sampler?.onRecordClosed(closed);
         }
 
         // Get current GPS position for detection tagging.
@@ -669,23 +762,12 @@ class SurveyController {
               longitude: gpsPoint?.longitude,
             );
 
-            // Check detection sampling.
-            final evicted = _sampler?.shouldKeep(record);
-
-            final accepted = _sampler == null ||
-                _sampler!.mode == SamplingMode.all ||
-                _sampler!.wasAccepted(record);
-
-            if (accepted) {
-              _session!.addDetection(record);
-              _sessionDetections.insert(0, record);
-              _activeCardSpecies[name] = record;
-            }
-
-            // Delete evicted clip if any.
-            if (evicted != null && evicted != record) {
-              DetectionSampler.deleteClips([evicted]);
-            }
+            // Records are always added to the session. Audio-clip retention
+            // is decided later, when the detection closes (see disappeared
+            // branch above and finalize), via [DetectionSampler].
+            _session!.addDetection(record);
+            _sessionDetections.insert(0, record);
+            _activeCardSpecies[name] = record;
           } else if (_activeCardSpecies.containsKey(name)) {
             // Update confidence if higher — also move to end so it
             // appears at the top of the recent detections list.
@@ -697,6 +779,7 @@ class SurveyController {
                 confidence: detection.confidence,
                 timestamp: existing.timestamp,
                 audioClipPath: existing.audioClipPath ?? clipPath,
+                source: existing.source,
                 latitude: existing.latitude ?? gpsPoint?.latitude,
                 longitude: existing.longitude ?? gpsPoint?.longitude,
               );
@@ -803,7 +886,11 @@ class SurveyController {
     try {
       final level = await _battery.batteryLevel;
       if (level <= _autoStopBattery) {
-        _triggerAutoStop('Battery below $_autoStopBattery%');
+        _triggerAutoStop(
+          'Battery below $_autoStopBattery%',
+          reasonCode: SessionStopReason.lowBattery,
+          value: level,
+        );
       }
     } catch (e) {
       debugPrint('[SurveyController] battery check error: $e');
@@ -812,9 +899,21 @@ class SurveyController {
 
   // ── Auto-stop ───────────────────────────────────────────────────────────
 
-  void _triggerAutoStop(String reason) {
+  void _triggerAutoStop(
+    String reason, {
+    SessionStopReason? reasonCode,
+    num? value,
+  }) {
     debugPrint('[SurveyController] auto-stop: $reason');
-    onAutoStop?.call(reason);
+    if (_session != null && reasonCode != null) {
+      _session!.stopReason = reasonCode;
+      _session!.stopReasonValue = value;
+    }
+    final autoStopHandler = onAutoStop;
+    if (autoStopHandler != null) {
+      autoStopHandler(reason);
+      return;
+    }
     stopSurvey();
   }
 

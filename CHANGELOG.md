@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-04-22
+
+### Changed
+- Onboarding screens now use smaller icons and reduced top padding to prevent overflow on compact displays
+- Terms of Use and Privacy Policy text (onboarding gate and Terms step) updated to reflect that both map tiles and reverse geocoding share a single one-time consent
+- User-facing copy made taxonomically agnostic across all 7 locales — replaced "bird species", "bird identification", "bird detection", and "bird calls" with "species", "species identification", "detection", and "animal calls" respectively (the app supports more than birds)
+- Terms gate now also explicitly forbids use for poaching, illegal wildlife trade, and military purposes, matching the published Terms of Use
+
+## [0.5.0] - 2026-04-22
+
+### Added
+- Point Count setup now collects a custom name and observer name (parity with Survey); observer is remembered across sessions
+- Onboarding gained a dedicated Terms & Privacy step with deep links to the full Terms of Use and Privacy Policy
+- Session auto-stop reasons (manual, duration, battery, storage) and ETA hints during long-running sessions
+- Loading skeleton for species info while taxonomy data resolves
+- Accessibility labels for live capture controls and confidence metrics; haptic feedback on selection changes
+- Session review now tracks playback position and highlights the active detection window
+- New shared `WizardScaffold` for multi-step setup wizards (Live, Point Count, Survey, File Analysis)
+- Shared loading, error, empty-state, and confirmation-dialog widgets across the app
+- `ScoreColors` theme extension providing a consistent five-step confidence color scale
+- Settings help tooltips and expanded UI tooltips throughout the app
+- JSON export now includes full session metadata (custom name, session number, observer, transect ID, distance, stop reason)
+- Detection windows now record end timestamps (live and survey) for accurate review and export
+
+### Changed
+- Reverse geocoding is now gated by the same one-time consent prompt as map tiles (no requests to OpenStreetMap until the user approves)
+- Detection sampling for surveys reworked with clearer logic, expanded test coverage, and improved documentation
+- Map handling and location services hardened (permission flow, lifecycle, and error states)
+- Survey finalization flow hardened against edge cases during cleanup
+- Documentation updated to use Material Design icon names consistently
+
+### Fixed
+- Runtime cleanup edge cases on session stop and screen disposal
+- Integration test warnings cleaned up
+
 ## [0.4.0] - 2026-04-22
 
 ### Added

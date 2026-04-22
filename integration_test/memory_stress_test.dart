@@ -17,7 +17,6 @@
 
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -43,7 +42,6 @@ void main() {
   late ClassifierModel audioModel;
   late GeoModel geoModel;
   late List<Species> audioLabels;
-  late Set<String> geoSpeciesNames;
   late Float32List testAudio; // 3 s of audio for inference
   late String tempDir;
 
@@ -104,7 +102,6 @@ void main() {
     geoModel = GeoModel();
     geoModel.loadLabels(geoLabelsText);
     await geoModel.loadModel(geoOnnxPath);
-    geoSpeciesNames = geoModel.labels.map((l) => l.scientificName).toSet();
     debugPrint('[MemStress] geo model loaded '
         '(${geoModel.labels.length} species)');
 

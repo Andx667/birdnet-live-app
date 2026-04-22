@@ -95,6 +95,7 @@ abstract final class PrefKeys {
 
   // Point count settings
   static const String pointCountDuration = 'point_count_duration';
+  static const String pointCountLastObserver = 'point_count_last_observer';
 
   // Survey settings
   static const String surveyInferenceRate = 'survey_inference_rate';

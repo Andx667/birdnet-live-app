@@ -145,7 +145,6 @@ class _LogoHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final packageInfo = ref.watch(packageInfoProvider);
     final logoSize = compact ? 72.0 : 120.0;
     return Column(
       children: [
@@ -188,15 +187,11 @@ class _LogoHeader extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 4),
-        packageInfo.when(
-          data: (info) => Text(
-            'v${info.version} ${l10n.homeDeveloperPreview}',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurface.withAlpha(100),
-            ),
+        Text(
+          l10n.homeDeveloperPreview,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurface.withAlpha(100),
           ),
-          loading: () => const SizedBox.shrink(),
-          error: (_, __) => const SizedBox.shrink(),
         ),
       ],
     );

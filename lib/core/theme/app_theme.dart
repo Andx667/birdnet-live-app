@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'score_colors.dart';
+
 // =============================================================================
 // BirdNET Live — Application Theme
 // =============================================================================
@@ -85,6 +87,7 @@ abstract final class AppTheme {
       colorScheme: colorScheme,
       brightness: Brightness.dark,
       scaffoldBackgroundColor: colorScheme.surface,
+      extensions: const <ThemeExtension<dynamic>>[ScoreColors.dark],
 
       // ── App Bar ──
       appBarTheme: AppBarTheme(
@@ -222,6 +225,7 @@ abstract final class AppTheme {
       colorScheme: colorScheme,
       brightness: Brightness.light,
       scaffoldBackgroundColor: colorScheme.surface,
+      extensions: const <ThemeExtension<dynamic>>[ScoreColors.light],
 
       // ── App Bar ──
       appBarTheme: AppBarTheme(

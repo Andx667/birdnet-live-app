@@ -16,6 +16,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/theme/score_colors.dart';
 import '../../../shared/providers/settings_providers.dart';
 import '../../../shared/services/taxonomy_service.dart';
 import '../../explore/explore_providers.dart';
@@ -89,7 +90,7 @@ class DetectionTile extends ConsumerWidget {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -135,13 +136,19 @@ class DetectionTile extends ConsumerWidget {
                         ),
                       if (!showSciNames) const Spacer(),
                       const SizedBox(width: 8),
-                      Text(
-                        detection.confidencePercent,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: _confidenceColor(
-                            detection.confidence,
-                            theme,
+                      Semantics(
+                        label: AppLocalizations.of(context)!
+                            .a11yConfidencePercent(
+                                (detection.confidence * 100).round()),
+                        excludeSemantics: true,
+                        child: Text(
+                          detection.confidencePercent,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: _confidenceColor(
+                              detection.confidence,
+                              theme,
+                            ),
                           ),
                         ),
                       ),
@@ -179,11 +186,10 @@ class DetectionTile extends ConsumerWidget {
     );
   }
 
-  /// Map confidence to a color: red → amber → green.
+  /// Map confidence to a color via the [ScoreColors] theme extension.
   Color _confidenceColor(double confidence, ThemeData theme) {
-    if (confidence >= 0.7) return Colors.green;
-    if (confidence >= 0.4) return Colors.amber;
-    return Colors.red;
+    final scoreColors = theme.extension<ScoreColors>() ?? ScoreColors.light;
+    return scoreColors.forScore(confidence);
   }
 
   Widget _buildSpeciesImage(AsyncValue<TaxonomyService> taxonomyAsync) {

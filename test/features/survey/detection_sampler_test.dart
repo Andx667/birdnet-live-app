@@ -1,24 +1,56 @@
+﻿// =============================================================================
+// Detection Sampler Tests — Clip-retention semantics for All / TopN / Smart
 // =============================================================================
-// Detection Sampler Tests — All / TopN / Smart sampling modes
+//
+// The sampler never removes detection records; it only decides which records
+// keep their `audioClipPath` (clip retained on disk) vs have it cleared
+// (clip deleted, record stays without audio).
 // =============================================================================
 
-import 'package:birdnet_live/features/survey/detection_sampler.dart';
+import 'dart:io';
+
 import 'package:birdnet_live/features/live/live_session.dart';
+import 'package:birdnet_live/features/survey/detection_sampler.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-DetectionRecord _det(String sci, double conf,
-    {Duration offset = Duration.zero, double? latitude, double? longitude}) {
+late Directory _tmp;
+
+Future<DetectionRecord> _det(
+  String sci,
+  double conf, {
+  Duration offset = Duration.zero,
+  double? latitude,
+  double? longitude,
+  bool withClip = true,
+}) async {
+  String? clipPath;
+  if (withClip) {
+    final f = await File(
+      '${_tmp.path}/clip_${sci}_${conf}_${offset.inMilliseconds}.wav',
+    ).create(recursive: true);
+    await f.writeAsString('fake');
+    clipPath = f.path;
+  }
   return DetectionRecord(
     scientificName: sci,
     commonName: sci,
     confidence: conf,
     timestamp: DateTime.utc(2025, 7, 1, 12).add(offset),
+    audioClipPath: clipPath,
     latitude: latitude,
     longitude: longitude,
   );
 }
 
 void main() {
+  setUpAll(() async {
+    _tmp = await Directory.systemTemp.createTemp('sampler_test_');
+  });
+
+  tearDownAll(() async {
+    if (await _tmp.exists()) await _tmp.delete(recursive: true);
+  });
+
   group('samplingModeFromString', () {
     test('parses known modes', () {
       expect(samplingModeFromString('all'), SamplingMode.all);
@@ -33,175 +65,222 @@ void main() {
   });
 
   group('SamplingMode.all', () {
-    test('keeps all detections and never evicts', () {
+    test('keeps every clip and never evicts', () async {
       final sampler = DetectionSampler(mode: SamplingMode.all);
-      final d1 = _det('Parus major', 0.9);
-      final d2 = _det('Parus major', 0.5);
-      final d3 = _det('Turdus merula', 0.7);
+      final d1 = await _det('Parus major', 0.9);
+      final d2 = await _det('Parus major', 0.5);
+      final d3 = await _det('Turdus merula', 0.7);
 
-      expect(sampler.shouldKeep(d1), isNull);
-      expect(sampler.shouldKeep(d2), isNull);
-      expect(sampler.shouldKeep(d3), isNull);
-      expect(sampler.keptCount, 3);
+      expect(await sampler.onRecordClosed(d1), isTrue);
+      expect(await sampler.onRecordClosed(d2), isTrue);
+      expect(await sampler.onRecordClosed(d3), isTrue);
+      expect(d1.audioClipPath, isNotNull);
+      expect(d2.audioClipPath, isNotNull);
+      expect(d3.audioClipPath, isNotNull);
+      expect(sampler.droppedClipCount, 0);
     });
   });
 
   group('SamplingMode.topN', () {
-    test('keeps up to N per species', () {
+    test('keeps up to N clips per species', () async {
       final sampler = DetectionSampler(mode: SamplingMode.topN, topN: 2);
-      final d1 = _det('Parus major', 0.9, offset: const Duration(seconds: 0));
-      final d2 = _det('Parus major', 0.8, offset: const Duration(seconds: 3));
-      final d3 = _det('Parus major', 0.7, offset: const Duration(seconds: 6));
+      final d1 =
+          await _det('Parus major', 0.9, offset: const Duration(seconds: 0));
+      final d2 =
+          await _det('Parus major', 0.8, offset: const Duration(seconds: 3));
+      final d3 =
+          await _det('Parus major', 0.7, offset: const Duration(seconds: 6));
 
-      expect(sampler.shouldKeep(d1), isNull); // accepted
-      expect(sampler.shouldKeep(d2), isNull); // accepted
-      // d3 is worse than both d1 and d2, so it's evicted (returned as-is).
-      final evicted = sampler.shouldKeep(d3);
-      expect(evicted, d3);
-      expect(sampler.keptCount, 2);
+      expect(await sampler.onRecordClosed(d1), isTrue);
+      expect(await sampler.onRecordClosed(d2), isTrue);
+      expect(await sampler.onRecordClosed(d3), isFalse);
+
+      expect(d1.audioClipPath, isNotNull);
+      expect(d2.audioClipPath, isNotNull);
+      expect(d3.audioClipPath, isNull);
+      expect(sampler.keptClipCount, 2);
+      expect(sampler.droppedClipCount, 1);
     });
 
-    test('evicts weakest when a better one arrives', () {
+    test('evicts weakest clip when a better record arrives', () async {
       final sampler = DetectionSampler(mode: SamplingMode.topN, topN: 2);
-      final d1 = _det('Parus major', 0.5, offset: const Duration(seconds: 0));
-      final d2 = _det('Parus major', 0.6, offset: const Duration(seconds: 3));
-      final d3 = _det('Parus major', 0.9, offset: const Duration(seconds: 6));
+      final d1 =
+          await _det('Parus major', 0.5, offset: const Duration(seconds: 0));
+      final d2 =
+          await _det('Parus major', 0.6, offset: const Duration(seconds: 3));
+      final d3 =
+          await _det('Parus major', 0.9, offset: const Duration(seconds: 6));
 
-      sampler.shouldKeep(d1);
-      sampler.shouldKeep(d2);
-      final evicted = sampler.shouldKeep(d3);
-      expect(evicted, d1); // d1 was weakest
-      expect(sampler.keptCount, 2);
-      expect(sampler.wasAccepted(d3), isTrue);
+      await sampler.onRecordClosed(d1);
+      await sampler.onRecordClosed(d2);
+      expect(await sampler.onRecordClosed(d3), isTrue);
+
+      expect(d1.audioClipPath, isNull, reason: 'd1 was weakest, evicted');
+      expect(d2.audioClipPath, isNotNull);
+      expect(d3.audioClipPath, isNotNull);
+      expect(sampler.keptClipCount, 2);
     });
 
-    test('tracks species independently', () {
+    test('tracks species independently', () async {
       final sampler = DetectionSampler(mode: SamplingMode.topN, topN: 1);
-      final d1 = _det('Parus major', 0.9);
-      final d2 = _det('Turdus merula', 0.8);
+      final d1 = await _det('Parus major', 0.9);
+      final d2 = await _det('Turdus merula', 0.8);
 
-      sampler.shouldKeep(d1);
-      sampler.shouldKeep(d2);
-      expect(sampler.keptCount, 2);
+      await sampler.onRecordClosed(d1);
+      await sampler.onRecordClosed(d2);
+      expect(sampler.keptClipCount, 2);
+      expect(d1.audioClipPath, isNotNull);
+      expect(d2.audioClipPath, isNotNull);
     });
 
-    test('keptDetections returns all kept', () {
-      final sampler = DetectionSampler(mode: SamplingMode.topN, topN: 2);
-      final d1 = _det('Parus major', 0.9, offset: const Duration(seconds: 0));
-      final d2 = _det('Parus major', 0.7, offset: const Duration(seconds: 3));
+    test('records without clips are ignored', () async {
+      final sampler = DetectionSampler(mode: SamplingMode.topN, topN: 1);
+      final d1 = await _det('Parus major', 0.5, withClip: false);
+      expect(await sampler.onRecordClosed(d1), isFalse);
+      expect(sampler.keptClipCount, 0);
+      expect(sampler.droppedClipCount, 0);
+    });
 
-      sampler.shouldKeep(d1);
-      sampler.shouldKeep(d2);
+    test('deletes evicted file from disk', () async {
+      final sampler = DetectionSampler(mode: SamplingMode.topN, topN: 1);
+      final d1 = await _det('Parus major', 0.5);
+      final d2 =
+          await _det('Parus major', 0.9, offset: const Duration(seconds: 3));
+      final d1Path = d1.audioClipPath!;
 
-      final kept = sampler.keptDetections;
-      expect(kept.length, 2);
-      expect(kept, contains(d1));
-      expect(kept, contains(d2));
+      await sampler.onRecordClosed(d1);
+      expect(await File(d1Path).exists(), isTrue);
+
+      await sampler.onRecordClosed(d2);
+      expect(d1.audioClipPath, isNull);
+      expect(await File(d1Path).exists(), isFalse);
     });
   });
 
   group('SamplingMode.smart', () {
-    test('keeps detections far apart in space', () {
+    test('keeps detections far apart in space', () async {
       final sampler = DetectionSampler(
         mode: SamplingMode.smart,
+        topN: 5,
         distanceThresholdMeters: 500,
         timeThresholdSeconds: 120,
       );
 
-      // Two detections ~10 km apart — both kept.
-      final d1 = _det('Parus major', 0.9,
+      final d1 = await _det('Parus major', 0.9,
           offset: const Duration(seconds: 0), latitude: 52.0, longitude: 13.0);
-      final d2 = _det('Parus major', 0.8,
+      final d2 = await _det('Parus major', 0.8,
           offset: const Duration(seconds: 30),
           latitude: 52.1,
           longitude: 13.0); // ~11 km north
 
-      expect(sampler.shouldKeep(d1), isNull);
-      expect(sampler.shouldKeep(d2), isNull);
-      expect(sampler.keptCount, 2);
+      expect(await sampler.onRecordClosed(d1), isTrue);
+      expect(await sampler.onRecordClosed(d2), isTrue);
+      expect(sampler.keptClipCount, 2);
     });
 
-    test('evicts weaker detection at same spot', () {
+    test('evicts weaker clip at the same spot', () async {
       final sampler = DetectionSampler(
         mode: SamplingMode.smart,
+        topN: 5,
         distanceThresholdMeters: 500,
         timeThresholdSeconds: 120,
       );
 
-      // Two detections at nearly the same location within 2 min.
-      final d1 = _det('Parus major', 0.5,
+      final d1 = await _det('Parus major', 0.5,
           offset: const Duration(seconds: 0), latitude: 52.0, longitude: 13.0);
-      final d2 = _det('Parus major', 0.9,
+      final d2 = await _det('Parus major', 0.9,
           offset: const Duration(seconds: 30),
           latitude: 52.0001,
           longitude: 13.0001); // ~14 m away
 
-      sampler.shouldKeep(d1);
-      final evicted = sampler.shouldKeep(d2);
-      expect(evicted, d1); // weaker one evicted
-      expect(sampler.keptCount, 1);
-      expect(sampler.wasAccepted(d2), isTrue);
+      await sampler.onRecordClosed(d1);
+      expect(await sampler.onRecordClosed(d2), isTrue);
+      expect(d1.audioClipPath, isNull);
+      expect(d2.audioClipPath, isNotNull);
+      expect(sampler.keptClipCount, 1);
     });
 
-    test('keeps both if time apart exceeds threshold', () {
+    test('keeps both when time apart exceeds threshold', () async {
       final sampler = DetectionSampler(
         mode: SamplingMode.smart,
+        topN: 5,
         distanceThresholdMeters: 500,
         timeThresholdSeconds: 120,
       );
 
-      // Same location, but 5 min apart.
-      final d1 = _det('Parus major', 0.9,
+      final d1 = await _det('Parus major', 0.9,
           offset: Duration.zero, latitude: 52.0, longitude: 13.0);
-      final d2 = _det('Parus major', 0.8,
+      final d2 = await _det('Parus major', 0.8,
           offset: const Duration(minutes: 5), latitude: 52.0, longitude: 13.0);
 
-      expect(sampler.shouldKeep(d1), isNull);
-      expect(sampler.shouldKeep(d2), isNull);
-      expect(sampler.keptCount, 2);
+      expect(await sampler.onRecordClosed(d1), isTrue);
+      expect(await sampler.onRecordClosed(d2), isTrue);
+      expect(sampler.keptClipCount, 2);
     });
 
-    test('discards new detection if weaker at same spot', () {
+    test('drops new clip if weaker at the same spot', () async {
       final sampler = DetectionSampler(
         mode: SamplingMode.smart,
+        topN: 5,
         distanceThresholdMeters: 500,
         timeThresholdSeconds: 120,
       );
 
-      final d1 = _det('Parus major', 0.9,
+      final d1 = await _det('Parus major', 0.9,
           offset: Duration.zero, latitude: 52.0, longitude: 13.0);
-      final d2 = _det('Parus major', 0.3,
+      final d2 = await _det('Parus major', 0.3,
           offset: const Duration(seconds: 30), latitude: 52.0, longitude: 13.0);
 
-      sampler.shouldKeep(d1);
-      final evicted = sampler.shouldKeep(d2);
-      expect(evicted, d2); // new detection is weaker, discarded
-      expect(sampler.keptCount, 1);
-      expect(sampler.wasAccepted(d1), isTrue);
+      await sampler.onRecordClosed(d1);
+      expect(await sampler.onRecordClosed(d2), isFalse);
+      expect(d1.audioClipPath, isNotNull);
+      expect(d2.audioClipPath, isNull);
+      expect(sampler.keptClipCount, 1);
     });
 
-    test('enforceGlobalCap removes weakest across species', () {
+    test('still enforces per-species topN when spots are all distinct',
+        () async {
       final sampler = DetectionSampler(
         mode: SamplingMode.smart,
-        globalCap: 2,
+        topN: 2,
+        distanceThresholdMeters: 500,
+        timeThresholdSeconds: 120,
       );
 
-      // Three detections of different species, far apart.
-      final d1 = _det('Parus major', 0.9,
+      final d1 = await _det('Parus major', 0.5,
           offset: Duration.zero, latitude: 52.0, longitude: 13.0);
-      final d2 = _det('Turdus merula', 0.3,
-          offset: const Duration(seconds: 30), latitude: 53.0, longitude: 14.0);
-      final d3 = _det('Fringilla coelebs', 0.7,
-          offset: const Duration(seconds: 60), latitude: 54.0, longitude: 15.0);
+      final d2 = await _det('Parus major', 0.6,
+          offset: const Duration(minutes: 10), latitude: 52.5, longitude: 13.0);
+      final d3 = await _det('Parus major', 0.9,
+          offset: const Duration(minutes: 20), latitude: 53.0, longitude: 13.0);
 
-      sampler.shouldKeep(d1);
-      sampler.shouldKeep(d2);
-      sampler.shouldKeep(d3);
+      await sampler.onRecordClosed(d1);
+      await sampler.onRecordClosed(d2);
+      expect(await sampler.onRecordClosed(d3), isTrue);
 
-      final evicted = sampler.enforceGlobalCap();
-      expect(evicted.length, 1);
-      expect(evicted.first.confidence, 0.3);
-      expect(sampler.keptCount, 2);
+      expect(d1.audioClipPath, isNull);
+      expect(d2.audioClipPath, isNotNull);
+      expect(d3.audioClipPath, isNotNull);
+      expect(sampler.keptClipCount, 2);
+    });
+
+    test('missing GPS falls back to time-only same-spot check', () async {
+      final sampler = DetectionSampler(
+        mode: SamplingMode.smart,
+        topN: 5,
+        distanceThresholdMeters: 500,
+        timeThresholdSeconds: 120,
+      );
+
+      // No GPS on either record; within the time window â†’ same spot.
+      final d1 = await _det('Parus major', 0.5, offset: Duration.zero);
+      final d2 =
+          await _det('Parus major', 0.9, offset: const Duration(seconds: 30));
+
+      await sampler.onRecordClosed(d1);
+      expect(await sampler.onRecordClosed(d2), isTrue);
+      expect(d1.audioClipPath, isNull);
+      expect(d2.audioClipPath, isNotNull);
     });
   });
 }

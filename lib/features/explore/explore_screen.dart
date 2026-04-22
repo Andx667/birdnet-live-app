@@ -21,6 +21,9 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/services/reverse_geocoding_service.dart';
 import '../../shared/widgets/app_help_bottom_sheet.dart';
 import '../../shared/widgets/content_width_constraint.dart';
+import '../../shared/widgets/empty_view.dart';
+import '../../shared/widgets/error_view.dart';
+import '../../shared/widgets/loading_view.dart';
 import 'explore_providers.dart';
 import 'widgets/species_card.dart';
 import 'widgets/species_info_overlay.dart';
@@ -52,20 +55,24 @@ class ExploreScreen extends ConsumerWidget {
       ),
       body: ContentWidthConstraint(
           child: speciesAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(),
-        ),
-        error: (error, _) => _ErrorView(
+        loading: () => const LoadingView(),
+        error: (error, _) => ErrorView(
+          title: l10n.statusError,
           message: error.toString(),
           onRetry: () {
             ref.invalidate(currentLocationProvider);
             ref.invalidate(exploreSpeciesProvider);
           },
+          retryLabel: l10n.retry,
         ),
         data: (species) {
           if (species.isEmpty) {
-            return _EmptyView(
-              locationAvailable: locationAsync.valueOrNull != null,
+            final locationAvailable = locationAsync.valueOrNull != null;
+            return EmptyView(
+              icon: locationAvailable ? Icons.search_off : Icons.location_off,
+              title: locationAvailable
+                  ? l10n.exploreNoSpecies
+                  : l10n.exploreNoLocation,
             );
           }
 
@@ -314,95 +321,6 @@ class _ExploreHelpLink extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Empty state
-// ---------------------------------------------------------------------------
-
-class _EmptyView extends StatelessWidget {
-  const _EmptyView({required this.locationAvailable});
-
-  final bool locationAvailable;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context)!;
-
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              locationAvailable ? Icons.search_off : Icons.location_off,
-              size: 64,
-              color: theme.colorScheme.onSurface.withAlpha(80),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              locationAvailable
-                  ? l10n.exploreNoSpecies
-                  : l10n.exploreNoLocation,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurface.withAlpha(150),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Error view
-// ---------------------------------------------------------------------------
-
-class _ErrorView extends StatelessWidget {
-  const _ErrorView({required this.message, required this.onRetry});
-
-  final String message;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context)!;
-
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: 64,
-              color: theme.colorScheme.error,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withAlpha(170),
-              ),
-            ),
-            const SizedBox(height: 16),
-            FilledButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh),
-              label: Text(l10n.retry),
-            ),
-          ],
-        ),
       ),
     );
   }

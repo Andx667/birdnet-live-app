@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:introduction_screen/introduction_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/constants/app_constants.dart';
 import '../../shared/providers/app_providers.dart';
 
 /// Onboarding carousel shown on first launch.
@@ -28,8 +30,8 @@ class OnboardingScreen extends ConsumerWidget {
             child: ClipOval(
               child: Image.asset(
                 'assets/images/app-icon.png',
-                width: 120,
-                height: 120,
+                width: 80,
+                height: 80,
                 fit: BoxFit.cover,
               ),
             ),
@@ -57,7 +59,14 @@ class OnboardingScreen extends ConsumerWidget {
           image: _buildIcon(Icons.security, theme),
           decoration: _pageDecoration(theme),
         ),
-        // 5. Ready
+        // 5. Terms & Privacy
+        PageViewModel(
+          title: l10n.onboardingTermsTitle,
+          bodyWidget: _TermsBody(l10n: l10n, theme: theme),
+          image: _buildIcon(Icons.gavel_rounded, theme),
+          decoration: _pageDecoration(theme),
+        ),
+        // 6. Ready
         PageViewModel(
           title: l10n.onboardingReadyTitle,
           body: l10n.onboardingReadyBody,
@@ -100,7 +109,7 @@ class OnboardingScreen extends ConsumerWidget {
     return Center(
       child: Icon(
         icon,
-        size: 120,
+        size: 80,
         color: theme.colorScheme.primary,
       ),
     );
@@ -116,7 +125,55 @@ class OnboardingScreen extends ConsumerWidget {
         color: theme.colorScheme.onSurface.withAlpha(200),
       ),
       bodyPadding: const EdgeInsets.symmetric(horizontal: 24),
-      imagePadding: const EdgeInsets.only(top: 80),
+      imagePadding: const EdgeInsets.only(top: 32),
+    );
+  }
+}
+
+/// Body for the Terms & Privacy onboarding page.
+///
+/// Shows a condensed summary plus tappable links to the full Terms of Use
+/// and Privacy Policy hosted in the documentation site.
+class _TermsBody extends StatelessWidget {
+  const _TermsBody({required this.l10n, required this.theme});
+
+  final AppLocalizations l10n;
+  final ThemeData theme;
+
+  Future<void> _open(String path) async {
+    final uri = Uri.parse('${AppConstants.docsUrl}$path');
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bodyStyle = theme.textTheme.bodyLarge!.copyWith(
+      color: theme.colorScheme.onSurface.withAlpha(200),
+    );
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(l10n.onboardingTermsBody, style: bodyStyle),
+        const SizedBox(height: 16),
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 8,
+          runSpacing: 4,
+          children: [
+            TextButton.icon(
+              onPressed: () => _open('/terms/'),
+              icon: const Icon(Icons.gavel_rounded, size: 18),
+              label: Text(l10n.onboardingTermsLink),
+            ),
+            TextButton.icon(
+              onPressed: () => _open('/privacy/'),
+              icon: const Icon(Icons.privacy_tip_outlined, size: 18),
+              label: Text(l10n.onboardingPrivacyLink),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

@@ -48,6 +48,7 @@ import 'dart:ui' as ui;
 
 import 'package:fftea/fftea.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
@@ -59,10 +60,12 @@ import 'package:just_audio/just_audio.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../core/constants/app_constants.dart';
+import '../../core/theme/score_colors.dart';
 import '../../shared/models/gps_point.dart';
 import '../../shared/models/taxonomy_species.dart';
 import '../../shared/providers/settings_providers.dart';
 import '../../shared/widgets/app_help_bottom_sheet.dart';
+import '../../shared/widgets/stat_chip.dart';
 import '../explore/explore_providers.dart';
 import '../explore/widgets/species_info_overlay.dart';
 import '../live/live_providers.dart';
@@ -100,10 +103,19 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
   final Set<String> _expandedSpecies = {};
   final AudioPlayer _player = AudioPlayer();
   final AudioPlayer _clipPlayer = AudioPlayer();
+  StreamSubscription<Duration>? _positionSubscription;
+  StreamSubscription<PlayerState>? _playerStateSubscription;
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
   bool _isPlaying = false;
   bool _audioAvailable = false;
+
+  /// When set, playback automatically pauses once [_position] reaches
+  /// this value. Set by [_seekToCluster] so a single-cluster playback
+  /// stops at the end of the detection's continuous-detection window.
+  /// Cleared on any other player interaction (manual play/pause, drag,
+  /// tap-to-seek, completion).
+  Duration? _autoStopPosition;
   bool _isDirty = false;
   bool _trimMode = false;
   double? _trimStartSec;
@@ -270,11 +282,19 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
         _audioAvailable = true;
       });
 
-      _player.positionStream.listen((pos) {
+      _positionSubscription = _player.positionStream.listen((pos) {
         if (!mounted) return;
+        final stopAt = _autoStopPosition;
+        if (stopAt != null && pos >= stopAt) {
+          _autoStopPosition = null;
+          _player.pause();
+          // Snap to the exact stop position so the playhead doesn't
+          // visually overshoot the end of the cluster.
+          _player.seek(stopAt);
+        }
         setState(() => _position = pos);
       });
-      _player.playerStateStream.listen((state) {
+      _playerStateSubscription = _player.playerStateStream.listen((state) {
         if (mounted) {
           setState(() => _isPlaying = state.playing);
           if (state.processingState == ProcessingState.completed) {
@@ -499,6 +519,8 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
 
   @override
   void dispose() {
+    _positionSubscription?.cancel();
+    _playerStateSubscription?.cancel();
     if (!identical(_spectrogramImage, _fullSpectrogramImage)) {
       _spectrogramImage?.dispose();
     }
@@ -951,11 +973,25 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
   void _seekToCluster(_DetectionCluster cluster) {
     // Full recording available — seek the main player.
     if (_audioAvailable && _duration != Duration.zero) {
+      final clipOffset = Duration(microseconds: (_clipOffsetSec * 1e6).round());
       final offset =
           cluster.firstTimestamp.difference(widget.session.startTime);
-      final clipOffset = Duration(microseconds: (_clipOffsetSec * 1e6).round());
       final seekPos = offset - clipOffset;
       if (seekPos.isNegative || seekPos > _duration) return;
+
+      // Compute the cluster's end position in clip coordinates so we
+      // can auto-pause once playback walks past the detection. Use the
+      // recorded continuous-detection end when available; otherwise
+      // fall back to a single inference window.
+      final windowSec = widget.session.settings.windowDuration;
+      final lastRecord = cluster.records.last;
+      final endTs = lastRecord.endTimestamp ??
+          lastRecord.timestamp.add(Duration(seconds: windowSec));
+      var stopPos = endTs.difference(widget.session.startTime) - clipOffset;
+      if (stopPos > _duration) stopPos = _duration;
+      // Guard against degenerate ranges (end before start).
+      _autoStopPosition = stopPos > seekPos ? stopPos : null;
+
       _player.seek(seekPos);
       if (!_isPlaying) _player.play();
       return;
@@ -980,11 +1016,15 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
     if (!_audioAvailable || _duration == Duration.zero) return;
     if (position.isNegative) position = Duration.zero;
     if (position > _duration) position = _duration;
+    // Manual seek cancels any pending auto-stop — the user is taking
+    // over the timeline.
+    _autoStopPosition = null;
     _player.seek(position);
     if (!_isPlaying) _player.play();
   }
 
   void _pausePlayer() {
+    _autoStopPosition = null;
     if (_isPlaying) _player.pause();
   }
 
@@ -1181,6 +1221,7 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
           ),
           leading: IconButton(
             icon: const Icon(Icons.close),
+            tooltip: l10n.tooltipClose,
             onPressed: () async {
               if (_isDirty) {
                 final canPop = await _onWillPop();
@@ -1350,7 +1391,9 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
             : null,
       ),
       if (widget.session.type == SessionType.survey &&
-          widget.session.gpsTrack.isNotEmpty)
+          (widget.session.gpsTrack.isNotEmpty ||
+              (widget.session.latitude != null &&
+                  widget.session.longitude != null)))
         Stack(
           children: [
             SizedBox(
@@ -1360,8 +1403,13 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
                   gpsTrack: widget.session.gpsTrack,
                   detections: _detections,
                   autoFollow: false,
-                  fitAllPoints: true,
+                  fitAllPoints: widget.session.gpsTrack.length >= 2,
                   highlightedDetection: _highlightedDetection,
+                  initialCenter: widget.session.latitude != null &&
+                          widget.session.longitude != null
+                      ? LatLng(
+                          widget.session.latitude!, widget.session.longitude!)
+                      : null,
                 ),
               ),
             ),
@@ -1422,6 +1470,8 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
                 child: _PlayPauseButton(
                   isPlaying: _isPlaying,
                   onToggle: () {
+                    // Manual play/pause cancels any pending auto-stop.
+                    _autoStopPosition = null;
                     if (_isPlaying) {
                       _player.pause();
                     } else {
@@ -1512,6 +1562,9 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
           sessionStart: widget.session.startTime,
           isExpanded: isExpanded,
           isActive: isActive,
+          activePositionSec: _isPlaying ? _position.inMicroseconds / 1e6 : null,
+          clipOffsetSec: _clipOffsetSec,
+          windowSec: widget.session.settings.windowDuration,
           isSurvey: widget.session.type == SessionType.survey,
           audioAvailable: _audioAvailable,
           onToggleExpand: () => setState(() {
@@ -1538,14 +1591,22 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
 
   /// Whether any detection in [group] spans the current playback position.
   bool _isSpeciesActive(_SpeciesGroup group) {
-    if (!_isPlaying && !_audioAvailable) return false;
+    // Only highlight while audio is actually playing — a paused player
+    // (whether by the user or by the cluster auto-stop) should leave the
+    // species list in its idle styling.
+    if (!_isPlaying) return false;
     final windowSec = widget.session.settings.windowDuration;
     final clipOffset = Duration(microseconds: (_clipOffsetSec * 1e6).round());
     for (final r in group.allRecords) {
       final offset = r.timestamp.difference(widget.session.startTime);
       // Map the absolute offset into clip-relative coordinates.
       final rel = offset - clipOffset;
-      final detEnd = rel + Duration(seconds: windowSec);
+      // Honour the recorded continuous-detection duration when present;
+      // otherwise fall back to a single inference window starting at the
+      // detection timestamp.
+      final detEnd = r.endTimestamp != null
+          ? r.endTimestamp!.difference(widget.session.startTime) - clipOffset
+          : rel + Duration(seconds: windowSec);
       if (_position >= rel && _position <= detEnd) return true;
     }
     return false;

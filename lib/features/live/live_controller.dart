@@ -452,6 +452,29 @@ class LiveController {
       MemoryMonitor.stop();
     }
 
+    // Close any still-open detection windows so that long-running cards
+    // visible at session end get a proper [endTimestamp].
+    if (_activeCardSpecies.isNotEmpty) {
+      final now = DateTime.now();
+      for (final existing in _activeCardSpecies.values) {
+        final closed = DetectionRecord(
+          scientificName: existing.scientificName,
+          commonName: existing.commonName,
+          confidence: existing.confidence,
+          timestamp: existing.timestamp,
+          endTimestamp: now,
+          audioClipPath: existing.audioClipPath,
+          source: existing.source,
+          latitude: existing.latitude,
+          longitude: existing.longitude,
+        );
+        final sessionIdx = _sessionDetections.indexOf(existing);
+        if (sessionIdx != -1) _sessionDetections[sessionIdx] = closed;
+        final lsIdx = _session!.detections.indexOf(existing);
+        if (lsIdx != -1) _session!.detections[lsIdx] = closed;
+      }
+    }
+
     _session!.end();
     final completedSession = _session!;
 
@@ -577,11 +600,31 @@ class LiveController {
         final appeared =
             currentNames.difference(_activeCardSpecies.keys.toSet());
 
-        // Species that disappeared → remove from tracking.
+        // Species that disappeared → close the detection window and
+        // stop tracking. Stamping `endTimestamp` lets the review screen
+        // visualize the full duration during which the species was on
+        // screen, instead of just the first inference window.
         final disappeared =
             _activeCardSpecies.keys.toSet().difference(currentNames);
+        final now = DateTime.now();
         for (final name in disappeared) {
-          _activeCardSpecies.remove(name);
+          final existing = _activeCardSpecies.remove(name);
+          if (existing == null) continue;
+          final closed = DetectionRecord(
+            scientificName: existing.scientificName,
+            commonName: existing.commonName,
+            confidence: existing.confidence,
+            timestamp: existing.timestamp,
+            endTimestamp: now,
+            audioClipPath: existing.audioClipPath,
+            source: existing.source,
+            latitude: existing.latitude,
+            longitude: existing.longitude,
+          );
+          final sessionIdx = _sessionDetections.indexOf(existing);
+          if (sessionIdx != -1) _sessionDetections[sessionIdx] = closed;
+          final lsIdx = _session!.detections.indexOf(existing);
+          if (lsIdx != -1) _session!.detections[lsIdx] = closed;
         }
 
         // Save detection clip if user requested per-detection clips
@@ -616,6 +659,9 @@ class LiveController {
                 confidence: detection.confidence,
                 timestamp: existing.timestamp,
                 audioClipPath: existing.audioClipPath ?? clipPath,
+                source: existing.source,
+                latitude: existing.latitude,
+                longitude: existing.longitude,
               );
               final sessionIdx = _sessionDetections.indexOf(existing);
               if (sessionIdx != -1) _sessionDetections[sessionIdx] = updated;
