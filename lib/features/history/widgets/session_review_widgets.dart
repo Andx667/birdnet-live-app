@@ -603,6 +603,9 @@ class _SpeciesTile extends ConsumerWidget {
     required this.onSeekCluster,
     required this.onDeleteCluster,
     required this.onReplaceCluster,
+    this.activePositionSec,
+    this.clipOffsetSec = 0.0,
+    this.windowSec = 3,
     this.isSurvey = false,
     this.audioAvailable = false,
     this.onShowOnMap,
@@ -612,6 +615,21 @@ class _SpeciesTile extends ConsumerWidget {
   final DateTime sessionStart;
   final bool isExpanded;
   final bool isActive;
+
+  /// Current playback position in seconds within the loaded clip, or
+  /// `null` when no audio is available / not playing. Used to highlight
+  /// the cluster currently being heard.
+  final double? activePositionSec;
+
+  /// Offset (in seconds) of the loaded audio clip relative to the
+  /// session start. Detection-only mode loads short clips; this lets
+  /// the tile map detection timestamps into clip-relative coordinates.
+  final double clipOffsetSec;
+
+  /// Inference window duration (seconds) — used to extend each
+  /// detection's active interval so a cluster stays highlighted while
+  /// its analysis window is still being heard.
+  final int windowSec;
   final bool isSurvey;
   final bool audioAvailable;
   final VoidCallback onToggleExpand;
@@ -633,7 +651,12 @@ class _SpeciesTile extends ConsumerWidget {
             ?.commonNameForLocale(speciesLocale) ??
         group.commonName;
 
-    final offset = group.firstTimestamp.difference(sessionStart);
+    // Show offsets relative to the *current clip* (not the original
+    // session start) so that the spectrogram playhead, the player
+    // position, and the detection labels all share the same time axis
+    // after the audio has been cropped.
+    final offset = group.firstTimestamp.difference(sessionStart) -
+        Duration(microseconds: (clipOffsetSec * 1e6).round());
     final offsetStr = _fmtOffset(offset);
 
     return AnimatedContainer(
@@ -823,6 +846,9 @@ class _SpeciesTile extends ConsumerWidget {
                     _ClusterRow(
                       cluster: cluster,
                       sessionStart: sessionStart,
+                      clipOffsetSec: clipOffsetSec,
+                      windowSec: windowSec,
+                      isActive: _isClusterActive(cluster),
                       onSeek: () => onSeekCluster(cluster),
                       onDelete: () => onDeleteCluster(cluster),
                       onReplace: () => onReplaceCluster(cluster),
@@ -854,10 +880,32 @@ class _SpeciesTile extends ConsumerWidget {
     return '$m:$s';
   }
 
+  /// Whether [cluster] contains any record whose analysis window spans
+  /// the current playback position (mapped into clip-relative time).
+  ///
+  /// Returns `false` when there is no active position — the cluster row
+  /// stays in its idle styling.
+  bool _isClusterActive(_DetectionCluster cluster) {
+    final pos = activePositionSec;
+    if (pos == null) return false;
+    for (final r in cluster.records) {
+      final startSec =
+          r.timestamp.difference(sessionStart).inMicroseconds / 1e6 -
+              clipOffsetSec;
+      // Use the recorded end of continuous detection when available;
+      // otherwise fall back to a single inference window.
+      final endSec = r.endTimestamp != null
+          ? r.endTimestamp!.difference(sessionStart).inMicroseconds / 1e6 -
+              clipOffsetSec
+          : startSec + windowSec;
+      if (pos >= startSec && pos <= endSec) return true;
+    }
+    return false;
+  }
+
   Color _confidenceColor(double confidence, ThemeData theme) {
-    if (confidence >= 0.7) return Colors.green;
-    if (confidence >= 0.4) return Colors.amber;
-    return Colors.red;
+    final colors = theme.extension<ScoreColors>() ?? ScoreColors.light;
+    return colors.forScore(confidence);
   }
 }
 
@@ -872,6 +920,9 @@ class _ClusterRow extends StatelessWidget {
     required this.onSeek,
     required this.onDelete,
     required this.onReplace,
+    this.clipOffsetSec = 0.0,
+    this.windowSec = 3,
+    this.isActive = false,
     this.isSurvey = false,
     this.audioAvailable = false,
     this.onShowOnMap,
@@ -882,6 +933,9 @@ class _ClusterRow extends StatelessWidget {
   final VoidCallback onSeek;
   final VoidCallback onDelete;
   final VoidCallback onReplace;
+  final double clipOffsetSec;
+  final int windowSec;
+  final bool isActive;
   final bool isSurvey;
   final bool audioAvailable;
   final VoidCallback? onShowOnMap;
@@ -889,99 +943,122 @@ class _ClusterRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final start = cluster.firstTimestamp.difference(sessionStart);
-    final end = cluster.lastTimestamp.difference(sessionStart) +
-        const Duration(seconds: 3); // Include window duration.
-    final isSingle = cluster.count == 1;
+    final clipOffsetDur = Duration(microseconds: (clipOffsetSec * 1e6).round());
+    final start =
+        cluster.firstTimestamp.difference(sessionStart) - clipOffsetDur;
+    // Prefer the recorded continuous-detection end. Fall back to the
+    // last record's analysis-window end when [endTimestamp] is missing
+    // (legacy sessions or in-progress records).
+    final lastRecord = cluster.records.last;
+    final lastEnd = lastRecord.endTimestamp ??
+        lastRecord.timestamp.add(Duration(seconds: windowSec));
+    final end = lastEnd.difference(sessionStart) - clipOffsetDur;
+    // Always show the full span (start – end) so users can see the
+    // duration of continuous detections at a glance. For very short
+    // detections where the formatted strings would be identical, fall
+    // back to a single timestamp to keep the row compact.
+    final startStr = _fmtOffset(start);
+    final endStr = _fmtOffset(end);
+    final timeStr = startStr == endStr ? startStr : '$startStr \u2013 $endStr';
 
-    final timeStr = isSingle
-        ? _fmtOffset(start)
-        : '${_fmtOffset(start)} – ${_fmtOffset(end)}';
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-      child: Row(
-        children: [
-          if (audioAvailable || cluster.hasAudioClip)
-            InkWell(
-              onTap: onSeek,
-              borderRadius: BorderRadius.circular(24),
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Icon(
-                  Icons.play_arrow_rounded,
-                  size: 24,
-                  color: theme.colorScheme.primary,
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+      decoration: BoxDecoration(
+        color: isActive
+            ? theme.colorScheme.primary.withAlpha(28)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      margin: const EdgeInsets.symmetric(vertical: 1, horizontal: 4),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+        child: Row(
+          children: [
+            if (audioAvailable || cluster.hasAudioClip)
+              InkWell(
+                onTap: onSeek,
+                borderRadius: BorderRadius.circular(24),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Icon(
+                    isActive ? Icons.graphic_eq : Icons.play_arrow_rounded,
+                    size: 24,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+              )
+            else
+              const SizedBox(width: 48),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Text(
+                timeStr,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: isActive
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.onSurface.withAlpha(180),
+                  fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
                 ),
               ),
-            )
-          else
-            const SizedBox(width: 48),
-          const SizedBox(width: 4),
-          Expanded(
-            child: Text(
-              timeStr,
+            ),
+            if (cluster.count > 1)
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: Text(
+                  '×${cluster.count}',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withAlpha(120),
+                  ),
+                ),
+              ),
+            Text(
+              cluster.bestConfidencePercent,
               style: theme.textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w500,
                 color: theme.colorScheme.onSurface.withAlpha(180),
               ),
             ),
-          ),
-          if (cluster.count > 1)
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: Text(
-                '×${cluster.count}',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withAlpha(120),
+            const SizedBox(width: 4),
+            if (isSurvey && onShowOnMap != null)
+              InkWell(
+                onTap: onShowOnMap,
+                borderRadius: BorderRadius.circular(24),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Icon(
+                    Icons.location_on_outlined,
+                    size: 24,
+                    color: theme.colorScheme.onSurface.withAlpha(100),
+                  ),
                 ),
               ),
-            ),
-          Text(
-            cluster.bestConfidencePercent,
-            style: theme.textTheme.bodySmall?.copyWith(
-              fontWeight: FontWeight.w500,
-              color: theme.colorScheme.onSurface.withAlpha(180),
-            ),
-          ),
-          const SizedBox(width: 4),
-          if (isSurvey && onShowOnMap != null)
             InkWell(
-              onTap: onShowOnMap,
+              onTap: onReplace,
               borderRadius: BorderRadius.circular(24),
               child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: Icon(
-                  Icons.location_on_outlined,
+                  Icons.swap_horiz,
                   size: 24,
                   color: theme.colorScheme.onSurface.withAlpha(100),
                 ),
               ),
             ),
-          InkWell(
-            onTap: onReplace,
-            borderRadius: BorderRadius.circular(24),
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Icon(
-                Icons.swap_horiz,
-                size: 24,
-                color: theme.colorScheme.onSurface.withAlpha(100),
+            InkWell(
+              onTap: onDelete,
+              borderRadius: BorderRadius.circular(24),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Icon(
+                  Icons.close,
+                  size: 24,
+                  color: theme.colorScheme.onSurface.withAlpha(100),
+                ),
               ),
             ),
-          ),
-          InkWell(
-            onTap: onDelete,
-            borderRadius: BorderRadius.circular(24),
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Icon(
-                Icons.close,
-                size: 24,
-                color: theme.colorScheme.onSurface.withAlpha(100),
-              ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -113,6 +113,7 @@ class DetectionRecord {
     required this.commonName,
     required this.confidence,
     required this.timestamp,
+    this.endTimestamp,
     this.audioClipPath,
     this.source = DetectionSource.auto,
     this.latitude,
@@ -130,8 +131,18 @@ class DetectionRecord {
   /// Confidence score (0.0–1.0).
   final double confidence;
 
-  /// Wall-clock time of the detection.
+  /// Wall-clock time when this detection first appeared.
   final DateTime timestamp;
+
+  /// Wall-clock time when the species' card disappeared from the live
+  /// view (i.e. when continuous detection ended). May be `null` for:
+  ///   * detections still in progress,
+  ///   * legacy sessions saved before this field existed,
+  ///   * manual annotations.
+  ///
+  /// When `null`, consumers should treat the detection as a single
+  /// inference window starting at [timestamp].
+  final DateTime? endTimestamp;
 
   /// Path to the saved audio clip for this detection (if available).
   final String? audioClipPath;
@@ -175,6 +186,9 @@ class DetectionRecord {
       commonName: json['commonName'] as String,
       confidence: (json['confidence'] as num).toDouble(),
       timestamp: DateTime.parse(json['timestamp'] as String),
+      endTimestamp: json['endTimestamp'] != null
+          ? DateTime.parse(json['endTimestamp'] as String)
+          : null,
       audioClipPath: json['audioClipPath'] as String?,
       source: switch (json['source'] as String?) {
         'manual' => DetectionSource.manual,
@@ -192,6 +206,8 @@ class DetectionRecord {
         'commonName': commonName,
         'confidence': confidence,
         'timestamp': timestamp.toIso8601String(),
+        if (endTimestamp != null)
+          'endTimestamp': endTimestamp!.toIso8601String(),
         if (audioClipPath != null) 'audioClipPath': audioClipPath,
         if (source != DetectionSource.auto) 'source': source.name,
         if (latitude != null) 'detLat': latitude,

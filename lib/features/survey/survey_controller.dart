@@ -563,6 +563,29 @@ class SurveyController {
       MemoryMonitor.stop();
     }
 
+    // Close any still-open detection windows so that long-running cards
+    // visible at survey end get a proper [endTimestamp].
+    if (_activeCardSpecies.isNotEmpty) {
+      final now = DateTime.now();
+      for (final existing in _activeCardSpecies.values) {
+        final closed = DetectionRecord(
+          scientificName: existing.scientificName,
+          commonName: existing.commonName,
+          confidence: existing.confidence,
+          timestamp: existing.timestamp,
+          endTimestamp: now,
+          audioClipPath: existing.audioClipPath,
+          source: existing.source,
+          latitude: existing.latitude,
+          longitude: existing.longitude,
+        );
+        final sIdx = _sessionDetections.indexOf(existing);
+        if (sIdx != -1) _sessionDetections[sIdx] = closed;
+        final lsIdx = _session!.detections.indexOf(existing);
+        if (lsIdx != -1) _session!.detections[lsIdx] = closed;
+      }
+    }
+
     _session!.end();
     final completedSession = _session!;
 
@@ -684,10 +707,30 @@ class SurveyController {
 
         final appeared =
             currentNames.difference(_activeCardSpecies.keys.toSet());
+        // Species that disappeared → close their detection window so
+        // the review screen can highlight the full duration during
+        // which they were continuously above threshold.
         final disappeared =
             _activeCardSpecies.keys.toSet().difference(currentNames);
+        final closingNow = DateTime.now();
         for (final name in disappeared) {
-          _activeCardSpecies.remove(name);
+          final existing = _activeCardSpecies.remove(name);
+          if (existing == null) continue;
+          final closed = DetectionRecord(
+            scientificName: existing.scientificName,
+            commonName: existing.commonName,
+            confidence: existing.confidence,
+            timestamp: existing.timestamp,
+            endTimestamp: closingNow,
+            audioClipPath: existing.audioClipPath,
+            source: existing.source,
+            latitude: existing.latitude,
+            longitude: existing.longitude,
+          );
+          final sIdx = _sessionDetections.indexOf(existing);
+          if (sIdx != -1) _sessionDetections[sIdx] = closed;
+          final lsIdx = _session!.detections.indexOf(existing);
+          if (lsIdx != -1) _session!.detections[lsIdx] = closed;
         }
 
         // Get current GPS position for detection tagging.
@@ -743,6 +786,7 @@ class SurveyController {
                 confidence: detection.confidence,
                 timestamp: existing.timestamp,
                 audioClipPath: existing.audioClipPath ?? clipPath,
+                source: existing.source,
                 latitude: existing.latitude ?? gpsPoint?.latitude,
                 longitude: existing.longitude ?? gpsPoint?.longitude,
               );

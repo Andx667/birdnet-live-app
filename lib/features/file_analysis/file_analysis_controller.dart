@@ -31,6 +31,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate' as dart_isolate;
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -398,6 +399,14 @@ class FileAnalysisController {
 
       final allDetections = <DetectionRecord>[];
       final speciesSet = <String>{};
+      // Active species → index into [allDetections] of the in-progress
+      // record. While a species stays above threshold across consecutive
+      // windows, its single record's [endTimestamp] is extended; once it
+      // dips below (or analysis ends), the record is left closed.
+      final activeIndex = <String, int>{};
+      // Names that were above threshold in the previous window. Used to
+      // detect species that dropped out so we stop extending their record.
+      var previousWindowNames = <String>{};
 
       // 4. Slide over windows.
       for (var w = 0; w < totalWindows; w++) {
@@ -441,17 +450,53 @@ class FileAnalysisController {
               .toList();
         }
 
-        // Convert to detection records.
-        for (final d in filtered) {
-          final record = DetectionRecord(
-            scientificName: d.species.scientificName,
-            commonName: d.species.commonName,
-            confidence: d.confidence,
-            timestamp: windowTimestamp,
-          );
-          allDetections.add(record);
-          speciesSet.add(d.species.scientificName);
+        // Convert to detection records, merging consecutive windows of
+        // the same species into a single record whose [endTimestamp]
+        // grows as long as the species stays above threshold.
+        final windowEnd = windowTimestamp.add(
+          Duration(milliseconds: (windowDuration * 1000).round()),
+        );
+        final currentNames = <String>{
+          for (final d in filtered) d.species.scientificName,
+        };
+        // Species that were active last window but not this one — stop
+        // extending them; their last [endTimestamp] is already correct.
+        for (final name in previousWindowNames.difference(currentNames)) {
+          activeIndex.remove(name);
         }
+        for (final d in filtered) {
+          final name = d.species.scientificName;
+          final existingIdx = activeIndex[name];
+          if (existingIdx == null) {
+            // New continuous detection for this species.
+            final record = DetectionRecord(
+              scientificName: name,
+              commonName: d.species.commonName,
+              confidence: d.confidence,
+              timestamp: windowTimestamp,
+              endTimestamp: windowEnd,
+            );
+            allDetections.add(record);
+            activeIndex[name] = allDetections.length - 1;
+            speciesSet.add(name);
+          } else {
+            // Continuation — extend the existing record's window and
+            // bump confidence to the highest value seen so far.
+            final existing = allDetections[existingIdx];
+            allDetections[existingIdx] = DetectionRecord(
+              scientificName: existing.scientificName,
+              commonName: existing.commonName,
+              confidence: math.max(existing.confidence, d.confidence),
+              timestamp: existing.timestamp,
+              endTimestamp: windowEnd,
+              audioClipPath: existing.audioClipPath,
+              source: existing.source,
+              latitude: existing.latitude,
+              longitude: existing.longitude,
+            );
+          }
+        }
+        previousWindowNames = currentNames;
 
         // Update progress.
         _progress = AnalysisProgress(
