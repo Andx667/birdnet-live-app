@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-04-22
+
+### Changed
+- Onboarding screens now use smaller icons and reduced top padding to prevent overflow on compact displays
+- Terms of Use and Privacy Policy text (onboarding gate and Terms step) updated to reflect that both map tiles and reverse geocoding share a single one-time consent
+- User-facing copy made taxonomically agnostic across all 7 locales — replaced "bird species", "bird identification", "bird detection", and "bird calls" with "species", "species identification", "detection", and "animal calls" respectively (the app supports more than birds)
+- Terms gate now also explicitly forbids use for poaching, illegal wildlife trade, and military purposes, matching the published Terms of Use
+
 ## [0.5.0] - 2026-04-22
 
 ### Added
