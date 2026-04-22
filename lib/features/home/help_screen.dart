@@ -39,6 +39,47 @@ class HelpScreen extends StatelessWidget {
           ),
           const SizedBox(height: 20),
 
+          Row(
+            children: [
+              Icon(Icons.info_outline,
+                  size: 22, color: theme.colorScheme.primary),
+              const SizedBox(width: 8),
+              Text(
+                l10n.helpControlsTitle,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _ControlCard(
+            icon: Icons.tune_rounded,
+            title: l10n.settings,
+            body: l10n.helpControlSettings,
+          ),
+          _ControlCard(
+            icon: Icons.search_rounded,
+            title: l10n.exploreMode,
+            body: l10n.helpControlExplore,
+          ),
+          _ControlCard(
+            icon: Icons.library_music_outlined,
+            title: l10n.sessionLibraryTitle,
+            body: l10n.helpControlSessions,
+          ),
+          _ControlCard(
+            icon: Icons.help_outline_rounded,
+            title: l10n.helpTitle,
+            body: l10n.helpControlHelp,
+          ),
+          _ControlCard(
+            icon: Icons.info_outline,
+            title: l10n.about,
+            body: l10n.helpControlAbout,
+          ),
+          const SizedBox(height: 20),
+
           // ── Mode sections ───────────────────────────────────
           _HelpSection(
             icon: Icons.mic_rounded,
@@ -84,7 +125,7 @@ class HelpScreen extends StatelessWidget {
           // ── Tips ────────────────────────────────────────────
           Row(
             children: [
-              Icon(Icons.lightbulb_outline,
+              Icon(Icons.info_outline,
                   size: 22, color: theme.colorScheme.primary),
               const SizedBox(width: 8),
               Text(
@@ -209,6 +250,68 @@ class _HelpSection extends StatelessWidget {
   }
 }
 
+class _ControlCard extends StatelessWidget {
+  const _ControlCard({
+    required this.icon,
+    required this.title,
+    required this.body,
+  });
+
+  final IconData icon;
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      elevation: 0,
+      color: theme.colorScheme.surfaceContainerLow,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withAlpha(24),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: theme.colorScheme.primary, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    body,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurface.withAlpha(180),
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Tip Row — Bullet-style tip
 // ─────────────────────────────────────────────────────────────────────────────
@@ -228,7 +331,7 @@ class _TipRow extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: 6),
             child: Icon(
-              Icons.check_circle_outline,
+              Icons.chevron_right,
               size: 16,
               color: theme.colorScheme.primary.withAlpha(180),
             ),

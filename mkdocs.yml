@@ -52,6 +52,15 @@ nav:
   - User Guide:
     - Overview: user/index.md
     - Getting Started: user/getting-started.md
+    - Icons & Controls: user/icons-and-controls.md
+    - Live Mode: user/live-mode.md
+    - Explore: user/explore.md
+    - Session Library: user/session-library.md
+    - Session Review: user/session-review.md
+    - Point Count Mode: user/point-count-mode.md
+    - Survey Mode: user/survey-mode.md
+    - File Analysis: user/file-analysis.md
+    - Settings: user/settings.md
     - FAQ: user/faq.md
   - Developer Guide:
       - Overview: developer/index.md

@@ -199,13 +199,14 @@ class _LocationHeaderState extends State<_LocationHeader> {
                   ),
                 ),
               ),
-              GestureDetector(
-                onTap: () => _showExploreHelp(context),
-                child: Icon(
+              IconButton(
+                onPressed: () => _showExploreHelp(context),
+                icon: Icon(
                   Icons.help_outline,
                   size: 22,
                   color: theme.colorScheme.onSurface.withAlpha(120),
                 ),
+                tooltip: l10n.exploreHelpTitle,
               ),
             ],
           ),

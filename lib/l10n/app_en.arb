@@ -821,7 +821,7 @@
   "@exploreHelpTitle": {
     "description": "Title for explore screen help overlay"
   },
-  "exploreHelpBody": "This list shows species predicted to occur at your location based on BirdNET's geo-model — a neural network trained on GBIF occurrence data and environmental features.\n\nThe model predicts which species are likely present at a given coordinate and time of year. It is a convenience tool for casual users and citizen scientists, not a precise distribution model. Researchers should use expert-curated species lists instead.",
+  "exploreHelpBody": "Explore ranks species for the current location and season using the BirdNET geo-model. Use refresh to rebuild the list, and tap a species card to open the detail overlay. Treat it as a quick in-app reference, not as a replacement for your own site knowledge.",
   "@exploreHelpBody": {
     "description": "Body text for explore screen help overlay"
   },
@@ -1602,7 +1602,7 @@
   "@helpTitle": {
     "description": "Help screen title and menu label"
   },
-  "helpIntro": "BirdNET Live identifies species in real time using on-device AI. Point your phone at animal sounds, and the app will tell you what you're hearing — no internet needed.",
+  "helpIntro": "BirdNET Live is built around a small set of repeatable screens: Home, mode screens, Session Review, and Settings. This help page explains what the app is showing and where the main controls live.",
   "@helpIntro": {
     "description": "Introduction paragraph on the help screen"
   },
@@ -1610,7 +1610,7 @@
   "@helpLiveTitle": {
     "description": "Section title for Live mode help"
   },
-  "helpLiveBody": "Opens the microphone and shows real-time species detections as they happen. A scrolling spectrogram visualizes the audio. Tap any detected species for detailed information.\n\nConfidence scores indicate how certain the model is. Higher thresholds mean fewer but more reliable results.",
+  "helpLiveBody": "Live Mode opens the microphone, shows model status in the top bar, and updates the spectrogram and detection list continuously. The large center button changes between mic, play, and stop depending on state, and the settings button opens the Live-specific controls.",
   "@helpLiveBody": {
     "description": "Help body text for Live mode"
   },
@@ -1618,7 +1618,7 @@
   "@helpPointCountTitle": {
     "description": "Section title for Point Count help"
   },
-  "helpPointCountBody": "Timed point-count surveys, a standard bioacoustic monitoring method. Set a duration and the app records detections at a fixed location. Your GPS coordinates are saved with the session.\n\nIdeal for monitoring species abundance at study sites over time.",
+  "helpPointCountBody": "Point Count Mode uses a short setup flow for duration and location, then switches to a timed live screen. The top bar shows stop, remaining time, and settings, while the info bar summarizes detections and unique species during the count.",
   "@helpPointCountBody": {
     "description": "Help body text for Point Count mode"
   },
@@ -1626,7 +1626,7 @@
   "@helpSurveyTitle": {
     "description": "Section title for Survey mode help"
   },
-  "helpSurveyBody": "Walk a transect while the app continuously identifies species in the background. GPS tracks your route and pins each detection on the map.\n\nA signal quality indicator shows whether audio conditions are good. After the survey, review your track, detections, and species on an interactive map.",
+  "helpSurveyBody": "Survey Mode starts with details and parameter steps, then opens a live dashboard with Map, Spectrogram, and Summary tabs. The top bar holds stop, help, and settings, and recent detections below the tabs open the species overlay when tapped.",
   "@helpSurveyBody": {
     "description": "Help body text for Survey mode"
   },
@@ -1634,7 +1634,7 @@
   "@helpFileAnalysisTitle": {
     "description": "Section title for File Analysis help"
   },
-  "helpFileAnalysisBody": "Analyze pre-recorded audio files offline. Select a WAV or FLAC file, choose the geographic context, and the app processes it in 3-second chunks — the same way it handles live audio.\n\nUseful for analyzing field recordings made with external recorders.",
+  "helpFileAnalysisBody": "File Analysis is a four-step wizard: pick a file, set location and date, choose parameters, and run analysis. The settings button opens the File Analysis settings subset, and completed analyses open in Session Review.",
   "@helpFileAnalysisBody": {
     "description": "Help body text for File Analysis mode"
   },
@@ -1642,7 +1642,7 @@
   "@helpExploreTitle": {
     "description": "Section title for Explore help"
   },
-  "helpExploreBody": "See which species are predicted at your location based on geography and time of year. Uses the BirdNET geo-model trained on GBIF occurrence data.\n\nTap any species to learn more about it, see photos, and hear reference recordings.",
+  "helpExploreBody": "Explore builds a location-based species list from the BirdNET geo-model. Use refresh to rebuild the list, the help button in the location header for context, and tap any species card to open images, descriptions, links, and the seasonal chart.",
   "@helpExploreBody": {
     "description": "Help body text for Explore feature"
   },
@@ -1650,23 +1650,23 @@
   "@helpSessionsTitle": {
     "description": "Section title for Sessions help"
   },
-  "helpSessionsBody": "All your sessions are saved automatically. In the session library you can review detections, play back audio, view spectrograms, and export results.\n\nEditing tools let you add or remove species, annotate recordings, and trim audio. Export bundles include CSV, JSON, Raven Pro selection tables, and the recording.",
+  "helpSessionsBody": "Session Library stores saved sessions and processed files. From there you can search, sort, change view mode, and open Session Review. Session Review adds playback, spectrogram navigation, trimming, annotations, export, and save or discard actions.",
   "@helpSessionsBody": {
     "description": "Help body text for Sessions feature"
   },
-  "helpTipsTitle": "Tips for Best Results",
+  "helpTipsTitle": "App Basics",
   "@helpTipsTitle": {
     "description": "Section title for general tips"
   },
-  "helpTipQuiet": "Keep the environment quiet — human speech, music, and wind noise reduce detection accuracy.",
+  "helpTipQuiet": "Use the settings button to open only the controls relevant to the current screen.",
   "@helpTipQuiet": {
     "description": "Tip about keeping quiet"
   },
-  "helpTipMic": "Keep the microphone unobstructed. Don't cover it or put the phone in a pocket.",
+  "helpTipMic": "The main action button changes by state: mic starts Live Mode, play starts or resumes, and stop ends an active run.",
   "@helpTipMic": {
     "description": "Tip about microphone placement"
   },
-  "helpTipBasics": "The app analyzes audio locally on your device in 3-second segments. Keep the app open to continue processing.",
+  "helpTipBasics": "Completed Live, Point Count, Survey, and File Analysis runs all open in Session Review for inspection, editing, and export.",
   "@helpTipBasics": {
     "description": "Tip explaining how the app processes audio locally"
   },
@@ -1674,11 +1674,35 @@
   "@helpTipGuide": {
     "description": "Tip referencing the online user guide"
   },
-  "helpTipThreshold": "Lower the confidence threshold in settings to see more detections, or raise it for higher precision.",
+  "helpTipThreshold": "Confidence threshold is the main control for detection strictness. Lower values show more candidates; higher values keep only stronger matches.",
   "@helpTipThreshold": {
     "description": "Tip about confidence threshold"
   },
-  "helpTipGeoFilter": "Enable the species filter in settings to limit results to species expected at your location.",
+  "helpTipGeoFilter": "Location-aware workflows can use current GPS, manual coordinates, or no location. Explore and location-based filtering depend on that choice.",
+  "helpControlsTitle": "Common Controls",
+  "@helpControlsTitle": {
+    "description": "Section title for common controls on the help screen"
+  },
+  "helpControlSettings": "Open the settings filtered for the current workflow.",
+  "@helpControlSettings": {
+    "description": "Description of the settings button on the help screen"
+  },
+  "helpControlExplore": "Open the location-based species list.",
+  "@helpControlExplore": {
+    "description": "Description of the Explore button on the help screen"
+  },
+  "helpControlSessions": "Open saved sessions and reviewed analyses.",
+  "@helpControlSessions": {
+    "description": "Description of the session library button on the help screen"
+  },
+  "helpControlHelp": "Open help for the current screen or workflow.",
+  "@helpControlHelp": {
+    "description": "Description of the help button on the help screen"
+  },
+  "helpControlAbout": "Open version, model, links, and documentation shortcuts.",
+  "@helpControlAbout": {
+    "description": "Description of the about button on the help screen"
+  },
   "@helpTipGeoFilter": {
     "description": "Tip about geographic filtering"
   },
