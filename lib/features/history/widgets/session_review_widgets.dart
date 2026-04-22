@@ -204,6 +204,14 @@ class _SummaryHeader extends StatelessWidget {
                 value: session.transectId!,
               ),
             ],
+            if (session.stopReason != null &&
+                session.stopReason != SessionStopReason.manual) ...[
+              const SizedBox(height: 6),
+              _StopReasonBanner(
+                reason: session.stopReason!,
+                value: session.stopReasonValue,
+              ),
+            ],
           ],
         ],
       ),
@@ -216,6 +224,61 @@ class _SummaryHeader extends StatelessWidget {
     final seconds = d.inSeconds.remainder(60);
     if (hours > 0) return '${hours}h ${minutes}m';
     return '${minutes}m ${seconds}s';
+  }
+}
+
+/// Subtle inline banner that surfaces the auto-stop reason for a survey.
+///
+/// Hidden when the session was stopped manually or pre-dates the
+/// `stopReason` field. Uses the secondary tonal palette so it sits
+/// quietly under the other survey stat chips.
+class _StopReasonBanner extends StatelessWidget {
+  const _StopReasonBanner({required this.reason, required this.value});
+
+  final SessionStopReason reason;
+  final num? value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+
+    final IconData icon;
+    final String text;
+    switch (reason) {
+      case SessionStopReason.maxDuration:
+        icon = Icons.timer_off_outlined;
+        text = l10n.sessionAutoStopMaxDuration;
+        break;
+      case SessionStopReason.lowBattery:
+        icon = Icons.battery_alert_outlined;
+        text = l10n.sessionAutoStopLowBattery((value ?? 0).round());
+        break;
+      case SessionStopReason.manual:
+        return const SizedBox.shrink();
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.secondaryContainer.withAlpha(120),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: theme.colorScheme.onSecondaryContainer),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSecondaryContainer,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

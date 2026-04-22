@@ -1120,6 +1120,28 @@
       "percent": { "type": "int", "example": "60" }
     }
   },
+  "fileAnalysisEtaRemaining": "≈ {time} remaining",
+  "@fileAnalysisEtaRemaining": {
+    "description": "Estimated time remaining shown below the progress bar",
+    "placeholders": {
+      "time": { "type": "String", "example": "1m 23s" }
+    }
+  },
+  "fileAnalysisEtaCalculating": "Estimating time remaining…",
+  "@fileAnalysisEtaCalculating": {
+    "description": "Placeholder shown before enough samples exist to estimate ETA"
+  },
+  "sessionAutoStopMaxDuration": "Auto-stopped: maximum duration reached",
+  "@sessionAutoStopMaxDuration": {
+    "description": "Banner shown on the review screen when a survey ended because it hit its max duration"
+  },
+  "sessionAutoStopLowBattery": "Auto-stopped: battery dropped to {percent}%",
+  "@sessionAutoStopLowBattery": {
+    "description": "Banner shown on the review screen when a survey ended because the battery dropped below the configured threshold",
+    "placeholders": {
+      "percent": { "type": "int", "example": "15" }
+    }
+  },
   "fileAnalysisNext": "Next",
   "@fileAnalysisNext": {
     "description": "Next button in wizard navigation"

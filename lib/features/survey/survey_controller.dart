@@ -626,7 +626,13 @@ class SurveyController {
   }) async {
     // Check auto-stop conditions.
     if (_maxEndTime != null && DateTime.now().isAfter(_maxEndTime!)) {
-      _triggerAutoStop('Maximum survey duration reached');
+      _triggerAutoStop(
+        'Maximum survey duration reached',
+        reasonCode: SessionStopReason.maxDuration,
+        value: _maxEndTime!
+            .difference(_session?.startTime ?? _maxEndTime!)
+            .inHours,
+      );
       return;
     }
 
@@ -843,7 +849,11 @@ class SurveyController {
     try {
       final level = await _battery.batteryLevel;
       if (level <= _autoStopBattery) {
-        _triggerAutoStop('Battery below $_autoStopBattery%');
+        _triggerAutoStop(
+          'Battery below $_autoStopBattery%',
+          reasonCode: SessionStopReason.lowBattery,
+          value: level,
+        );
       }
     } catch (e) {
       debugPrint('[SurveyController] battery check error: $e');
@@ -852,8 +862,16 @@ class SurveyController {
 
   // ── Auto-stop ───────────────────────────────────────────────────────────
 
-  void _triggerAutoStop(String reason) {
+  void _triggerAutoStop(
+    String reason, {
+    SessionStopReason? reasonCode,
+    num? value,
+  }) {
     debugPrint('[SurveyController] auto-stop: $reason');
+    if (_session != null && reasonCode != null) {
+      _session!.stopReason = reasonCode;
+      _session!.stopReasonValue = value;
+    }
     final autoStopHandler = onAutoStop;
     if (autoStopHandler != null) {
       autoStopHandler(reason);

@@ -74,6 +74,22 @@ enum SessionType {
   survey,
 }
 
+/// Why a session ended.
+///
+/// Used primarily for survey sessions that can auto-stop on max duration
+/// or low battery, but applicable to any session type. `null` means the
+/// session was stopped manually or pre-dates this field.
+enum SessionStopReason {
+  /// User tapped Stop.
+  manual,
+
+  /// Configured maximum duration was reached.
+  maxDuration,
+
+  /// Battery dropped below the configured auto-stop threshold.
+  lowBattery,
+}
+
 /// How a detection was created.
 enum DetectionSource {
   /// Automatically detected by the inference model.
@@ -259,6 +275,8 @@ class LiveSession {
     this.distanceMeters,
     this.transectId,
     this.observerName,
+    this.stopReason,
+    this.stopReasonValue,
   })  : detections = detections ?? [],
         annotations = annotations ?? [],
         gpsTrack = gpsTrack ?? [];
@@ -332,6 +350,15 @@ class LiveSession {
 
   /// Name of the observer (remembered across sessions).
   String? observerName;
+
+  /// Why the session ended. `null` for legacy sessions or sessions still
+  /// active. Surveys set this when they auto-stop.
+  SessionStopReason? stopReason;
+
+  /// Numeric value associated with [stopReason] (e.g. battery % for
+  /// [SessionStopReason.lowBattery], or duration hours for
+  /// [SessionStopReason.maxDuration]). `null` when not applicable.
+  num? stopReasonValue;
 
   /// Whether this session is still active (no end time).
   bool get isActive => endTime == null;
@@ -419,6 +446,13 @@ class LiveSession {
       distanceMeters: (json['distanceMeters'] as num?)?.toDouble(),
       transectId: json['transectId'] as String?,
       observerName: json['observerName'] as String?,
+      stopReason: json['stopReason'] != null
+          ? SessionStopReason.values.firstWhere(
+              (r) => r.name == (json['stopReason'] as String),
+              orElse: () => SessionStopReason.manual,
+            )
+          : null,
+      stopReasonValue: json['stopReasonValue'] as num?,
     );
   }
 
@@ -445,6 +479,8 @@ class LiveSession {
         if (distanceMeters != null) 'distanceMeters': distanceMeters,
         if (transectId != null) 'transectId': transectId,
         if (observerName != null) 'observerName': observerName,
+        if (stopReason != null) 'stopReason': stopReason!.name,
+        if (stopReasonValue != null) 'stopReasonValue': stopReasonValue,
       };
 
   @override

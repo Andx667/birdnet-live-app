@@ -26,6 +26,8 @@
 // Uses PageView for smooth horizontal transitions between steps.
 // =============================================================================
 
+import 'dart:async';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -1080,7 +1082,7 @@ class _ParamTile extends StatelessWidget {
 // Step 4: Analysis Progress
 // =============================================================================
 
-class _AnalysisStep extends StatelessWidget {
+class _AnalysisStep extends StatefulWidget {
   const _AnalysisStep({
     required this.state,
     required this.progress,
@@ -1096,9 +1098,87 @@ class _AnalysisStep extends StatelessWidget {
   final VoidCallback onCancel;
 
   @override
+  State<_AnalysisStep> createState() => _AnalysisStepState();
+}
+
+class _AnalysisStepState extends State<_AnalysisStep> {
+  final Stopwatch _stopwatch = Stopwatch();
+  Timer? _ticker;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncStopwatch();
+  }
+
+  @override
+  void didUpdateWidget(covariant _AnalysisStep oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.state != widget.state) {
+      _syncStopwatch();
+    }
+  }
+
+  void _syncStopwatch() {
+    if (widget.state == FileAnalysisState.analyzing) {
+      if (!_stopwatch.isRunning) {
+        _stopwatch.start();
+      }
+      _ticker ??= Timer.periodic(const Duration(seconds: 1), (_) {
+        if (mounted) setState(() {});
+      });
+    } else {
+      _ticker?.cancel();
+      _ticker = null;
+      _stopwatch.stop();
+      if (widget.state != FileAnalysisState.analyzing &&
+          widget.state != FileAnalysisState.complete) {
+        _stopwatch.reset();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    _stopwatch.stop();
+    super.dispose();
+  }
+
+  /// Format an estimated remaining duration as e.g. "45s", "1m 23s", "1h 5m".
+  String _formatRemaining(Duration d) {
+    final totalSeconds = d.inSeconds;
+    if (totalSeconds < 60) return '${totalSeconds}s';
+    final hours = d.inHours;
+    final minutes = d.inMinutes.remainder(60);
+    final seconds = totalSeconds.remainder(60);
+    if (hours > 0) return '${hours}h ${minutes}m';
+    return '${minutes}m ${seconds}s';
+  }
+
+  /// Compute ETA label, or null while still warming up (< ~2 seconds or < 2% done).
+  String? _etaLabel(AppLocalizations l10n) {
+    final fraction = widget.progress.fraction;
+    final elapsed = _stopwatch.elapsed;
+    if (elapsed.inMilliseconds < 2000 || fraction < 0.02) {
+      return l10n.fileAnalysisEtaCalculating;
+    }
+    final estimatedTotalMs = elapsed.inMilliseconds / fraction;
+    final remainingMs = (estimatedTotalMs - elapsed.inMilliseconds).round();
+    if (remainingMs <= 0) return null;
+    return l10n.fileAnalysisEtaRemaining(
+        _formatRemaining(Duration(milliseconds: remainingMs)));
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
+    final state = widget.state;
+    final progress = widget.progress;
+    final fileInfo = widget.fileInfo;
+    final errorMessage = widget.errorMessage;
+    final onCancel = widget.onCancel;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -1128,12 +1208,12 @@ class _AnalysisStep extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        fileInfo!.fileName,
+                        fileInfo.fileName,
                         style: theme.textTheme.titleSmall,
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '${fileInfo!.durationText} · ${fileInfo!.format} · ${fileInfo!.fileSizeText}',
+                        '${fileInfo.durationText} · ${fileInfo.format} · ${fileInfo.fileSizeText}',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
@@ -1169,7 +1249,23 @@ class _AnalysisStep extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 24),
+
+            // ── ETA ───────────────────────────────────────────
+            Builder(builder: (_) {
+              final eta = _etaLabel(l10n);
+              if (eta == null) return const SizedBox(height: 24);
+              return Padding(
+                padding: const EdgeInsets.only(top: 4, bottom: 24),
+                child: Center(
+                  child: Text(
+                    eta,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              );
+            }),
 
             // ── Stats cards ───────────────────────────────────
             Row(

@@ -281,6 +281,10 @@
   "a11yLiveCaptureResume": "Pokračovat v nahrávání",
   "a11yConfidencePercent": "Spolehlivost {percent} procent",
   "a11yLikelihoodPercent": "Pravděpodobnost {percent} procent",
+  "fileAnalysisEtaRemaining": "≈ zbývá {time}",
+  "fileAnalysisEtaCalculating": "Odhad zbývajícího času…",
+  "sessionAutoStopMaxDuration": "Automaticky ukončeno: dosažena maximální doba",
+  "sessionAutoStopLowBattery": "Automaticky ukončeno: baterie klesla na {percent}%",
   "fileAnalysisNext": "Další",
   "fileAnalysisStart": "Spustit analýzu",
 

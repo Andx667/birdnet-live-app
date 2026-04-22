@@ -8,6 +8,7 @@ import '../../shared/providers/settings_providers.dart';
 import '../../shared/widgets/content_width_constraint.dart';
 import '../about/about_screen.dart';
 import '../audio/audio_providers.dart';
+import '../spectrogram/color_maps.dart';
 
 // ---------------------------------------------------------------------------
 // Settings context — determines which settings are visible
@@ -241,7 +242,7 @@ class SettingsScreen extends ConsumerWidget {
               },
               onChanged: (v) => ref.read(fftSizeProvider.notifier).set(v),
             ),
-            _ChoiceTile<String>(
+            _ColorMapChoiceTile(
               title: l10n.settingsColorMap,
               value: ref.watch(colorMapProvider),
               options: {
@@ -824,6 +825,74 @@ class _ChoiceTile<T> extends StatelessWidget {
         underline: const SizedBox.shrink(),
         items: options.entries
             .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
+            .toList(),
+        onChanged: (v) {
+          if (v != null) onChanged(v);
+        },
+      ),
+    );
+  }
+}
+
+/// Variant of [_ChoiceTile] for color-map selection that shows a small
+/// gradient swatch next to each option's label, both in the closed dropdown
+/// and in the expanded menu.
+class _ColorMapChoiceTile extends StatelessWidget {
+  const _ColorMapChoiceTile({
+    required this.title,
+    required this.value,
+    required this.options,
+    required this.onChanged,
+  });
+
+  final String title;
+  final String value;
+  final Map<String, String> options;
+  final ValueChanged<String> onChanged;
+
+  /// Build a horizontal gradient strip from the named color map's LUT.
+  Widget _swatch(String name, {double width = 56, double height = 14}) {
+    final stops = List<double>.generate(11, (i) => i / 10);
+    final colors =
+        stops.map((s) => SpectrogramColorMap.color(name, s)).toList();
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(3),
+      child: Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(colors: colors, stops: stops),
+        ),
+      ),
+    );
+  }
+
+  Widget _row(String name, String label) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _swatch(name),
+        const SizedBox(width: 10),
+        Text(label),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      title: Text(title),
+      trailing: DropdownButton<String>(
+        value: value,
+        underline: const SizedBox.shrink(),
+        selectedItemBuilder: (_) => options.entries
+            .map((e) => Center(child: _row(e.key, e.value)))
+            .toList(),
+        items: options.entries
+            .map((e) => DropdownMenuItem(
+                  value: e.key,
+                  child: _row(e.key, e.value),
+                ))
             .toList(),
         onChanged: (v) {
           if (v != null) onChanged(v);

@@ -281,6 +281,10 @@
   "a11yLiveCaptureResume": "Retomar gravação",
   "a11yConfidencePercent": "Confiança {percent} por cento",
   "a11yLikelihoodPercent": "Probabilidade {percent} por cento",
+  "fileAnalysisEtaRemaining": "≈ {time} restantes",
+  "fileAnalysisEtaCalculating": "Estimando tempo restante…",
+  "sessionAutoStopMaxDuration": "Parado automaticamente: duração máxima atingida",
+  "sessionAutoStopLowBattery": "Parado automaticamente: bateria em {percent}%",
   "fileAnalysisNext": "Próximo",
   "fileAnalysisStart": "Iniciar análise",
 
