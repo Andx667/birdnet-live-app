@@ -349,6 +349,7 @@ class SurveyController {
           'sampling=${samplingMode.name})');
     } catch (e, st) {
       debugPrint('[SurveyController] startSurvey error: $e\n$st');
+      await _cleanupFailedStart();
       _state = SurveyState.error;
       _errorMessage = e.toString();
       _notifyListeners();
@@ -478,10 +479,31 @@ class SurveyController {
           '${existingSession.gpsTrack.length} GPS points)');
     } catch (e, st) {
       debugPrint('[SurveyController] resumeSurvey error: $e\n$st');
+      await _cleanupFailedStart();
       _state = SurveyState.error;
       _errorMessage = e.toString();
       _notifyListeners();
     }
+  }
+
+  Future<void> _cleanupFailedStart() async {
+    _inferenceTimer?.cancel();
+    _inferenceTimer = null;
+    _persistTimer?.cancel();
+    _persistTimer = null;
+
+    await _notificationService.stop();
+    await _gpsTracker?.stopTracking();
+    await recordingService.stopRecording();
+
+    _gpsTracker = null;
+    _sampler = null;
+    _maxEndTime = null;
+    _inferring = false;
+    _session = null;
+    _sessionDetections.clear();
+    _currentLiveDetections = const [];
+    _activeCardSpecies.clear();
   }
 
   /// Stop and finalize the survey.

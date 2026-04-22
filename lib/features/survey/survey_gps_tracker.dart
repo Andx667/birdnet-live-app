@@ -84,7 +84,18 @@ class SurveyGpsTracker {
 
     _positionSub = Geolocator.getPositionStream(
       locationSettings: locationSettings,
-    ).listen(_onPosition);
+    ).listen(
+      _onPosition,
+      onError: (Object error, StackTrace stackTrace) {
+        debugPrint('[SurveyGpsTracker] position stream error: $error');
+        _positionSub = null;
+      },
+      onDone: () {
+        debugPrint('[SurveyGpsTracker] position stream ended');
+        _positionSub = null;
+      },
+      cancelOnError: true,
+    );
 
     debugPrint('[SurveyGpsTracker] tracking started '
         '(interval=${intervalSeconds}s, filter=${distanceFilterMeters}m)');

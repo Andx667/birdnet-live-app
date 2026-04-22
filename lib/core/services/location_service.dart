@@ -87,8 +87,8 @@ class LocationService {
       if (permission == LocationPermission.denied) {
         permission = await requestPermission();
       }
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
+      if (permission != LocationPermission.whileInUse &&
+          permission != LocationPermission.always) {
         debugPrint('[LocationService] permission denied: $permission');
         return _lastKnownLocation;
       }

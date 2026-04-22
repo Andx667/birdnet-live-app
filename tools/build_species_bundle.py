@@ -19,6 +19,7 @@ import gzip
 import hashlib
 import io
 import json
+import shutil
 import sys
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -395,6 +396,49 @@ def print_report(
     print("=" * 60)
 
 
+def backup_existing_outputs() -> dict[Path, Path]:
+    """Move current outputs aside so a failed rebuild can restore them."""
+    backups: dict[Path, Path] = {}
+    for path in (IMAGE_OUTPUT_DIR, DATA_OUTPUT_DIR):
+        backup = path.parent / f".{path.name}.backup"
+        if backup.exists():
+            shutil.rmtree(backup)
+        if path.exists():
+            path.replace(backup)
+            backups[path] = backup
+
+    csv_backup = TAXONOMY_CSV_PATH.with_suffix(f"{TAXONOMY_CSV_PATH.suffix}.backup")
+    if csv_backup.exists():
+        csv_backup.unlink()
+    if TAXONOMY_CSV_PATH.exists():
+        TAXONOMY_CSV_PATH.replace(csv_backup)
+        backups[TAXONOMY_CSV_PATH] = csv_backup
+
+    return backups
+
+
+def restore_backups(backups: dict[Path, Path]) -> None:
+    """Restore the last known-good outputs after a failed rebuild."""
+    for path in (IMAGE_OUTPUT_DIR, DATA_OUTPUT_DIR):
+        if path.exists():
+            shutil.rmtree(path)
+    if TAXONOMY_CSV_PATH.exists():
+        TAXONOMY_CSV_PATH.unlink()
+
+    for target, backup in backups.items():
+        if backup.exists():
+            backup.replace(target)
+
+
+def discard_backups(backups: dict[Path, Path]) -> None:
+    """Delete backups after a successful rebuild."""
+    for backup in backups.values():
+        if backup.is_dir() and backup.exists():
+            shutil.rmtree(backup)
+        elif backup.exists():
+            backup.unlink()
+
+
 def main():
     parser = argparse.ArgumentParser(description="Build offline species bundle")
     parser.add_argument(
@@ -427,35 +471,43 @@ def main():
     )
     print()
 
-    # 2. Clean output directories (not the cache)
-    print("Step 2: Preparing output directories ...")
-    for d in (IMAGE_OUTPUT_DIR, DATA_OUTPUT_DIR):
-        if d.exists():
-            for f in d.iterdir():
-                f.unlink()
-        d.mkdir(parents=True, exist_ok=True)
-    print()
+    backups = backup_existing_outputs()
+    try:
+        # 2. Clean output directories (not the cache)
+        print("Step 2: Preparing output directories ...")
+        for d in (IMAGE_OUTPUT_DIR, DATA_OUTPUT_DIR):
+            if d.exists():
+                for f in d.iterdir():
+                    f.unlink()
+            d.mkdir(parents=True, exist_ok=True)
+        print()
 
-    # 3. Download and resize images
-    print("Step 3: Images ...")
-    image_results = download_and_resize_images(
-        model_species, taxonomy,
-        args.image_width, args.image_height, args.quality, args.workers,
-    )
-    print()
+        # 3. Download and resize images
+        print("Step 3: Images ...")
+        image_results = download_and_resize_images(
+            model_species, taxonomy,
+            args.image_width, args.image_height, args.quality, args.workers,
+        )
+        print()
 
-    # 4. Extract descriptions
-    print("Step 4: Descriptions ...")
-    desc_coverage = extract_descriptions(model_species, taxonomy, DESCRIPTION_LOCALES)
-    print()
+        # 4. Extract descriptions
+        print("Step 4: Descriptions ...")
+        desc_coverage = extract_descriptions(model_species, taxonomy, DESCRIPTION_LOCALES)
+        print()
 
-    # 5. Rebuild taxonomy.csv
-    print("Step 5: Rebuilding taxonomy.csv ...")
-    csv_rows = rebuild_taxonomy_csv(model_species, taxonomy)
-    print()
+        # 5. Rebuild taxonomy.csv
+        print("Step 5: Rebuilding taxonomy.csv ...")
+        csv_rows = rebuild_taxonomy_csv(model_species, taxonomy)
+        print()
 
-    # 6. Report
-    print_report(len(model_species), overlap, image_results, desc_coverage, csv_rows)
+        # 6. Report
+        print_report(len(model_species), overlap, image_results, desc_coverage, csv_rows)
+    except Exception:
+        restore_backups(backups)
+        print("Build failed; restored previous species bundle outputs.", file=sys.stderr)
+        raise
+    else:
+        discard_backups(backups)
 
 
 if __name__ == "__main__":

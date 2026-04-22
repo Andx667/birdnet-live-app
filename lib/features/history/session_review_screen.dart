@@ -100,6 +100,8 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
   final Set<String> _expandedSpecies = {};
   final AudioPlayer _player = AudioPlayer();
   final AudioPlayer _clipPlayer = AudioPlayer();
+  StreamSubscription<Duration>? _positionSubscription;
+  StreamSubscription<PlayerState>? _playerStateSubscription;
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
   bool _isPlaying = false;
@@ -270,11 +272,11 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
         _audioAvailable = true;
       });
 
-      _player.positionStream.listen((pos) {
+      _positionSubscription = _player.positionStream.listen((pos) {
         if (!mounted) return;
         setState(() => _position = pos);
       });
-      _player.playerStateStream.listen((state) {
+      _playerStateSubscription = _player.playerStateStream.listen((state) {
         if (mounted) {
           setState(() => _isPlaying = state.playing);
           if (state.processingState == ProcessingState.completed) {
@@ -499,6 +501,8 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
 
   @override
   void dispose() {
+    _positionSubscription?.cancel();
+    _playerStateSubscription?.cancel();
     if (!identical(_spectrogramImage, _fullSpectrogramImage)) {
       _spectrogramImage?.dispose();
     }
