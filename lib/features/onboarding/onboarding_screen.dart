@@ -88,12 +88,13 @@ class OnboardingScreen extends ConsumerWidget {
         ref.read(onboardingCompleteProvider.notifier).complete();
       },
       dotsDecorator: DotsDecorator(
-        size: const Size(10, 10),
-        activeSize: const Size(22, 10),
+        size: const Size(8, 8),
+        activeSize: const Size(16, 8),
+        spacing: const EdgeInsets.symmetric(horizontal: 3),
         activeColor: theme.colorScheme.primary,
         color: theme.colorScheme.outline,
         activeShape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(5),
+          borderRadius: BorderRadius.circular(4),
         ),
       ),
       controlsPadding: EdgeInsets.fromLTRB(
