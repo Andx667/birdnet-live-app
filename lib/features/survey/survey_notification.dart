@@ -167,6 +167,9 @@ class SurveyNotificationService {
       serviceId: 256,
       notificationTitle: title,
       notificationText: text,
+      notificationIcon: const NotificationIcon(
+        metaDataName: 'com.birdnet.live.notification_icon',
+      ),
       notificationButtons: [
         NotificationButton(id: 'stop', text: _stopButtonText),
         NotificationButton(id: 'open', text: _openButtonText),
@@ -191,6 +194,9 @@ class SurveyNotificationService {
     await FlutterForegroundTask.updateService(
       notificationTitle: title,
       notificationText: text,
+      notificationIcon: const NotificationIcon(
+        metaDataName: 'com.birdnet.live.notification_icon',
+      ),
     );
   }
 
