@@ -1582,6 +1582,7 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
             commonName: group.commonName,
           ),
           onSeekCluster: _seekToCluster,
+          onPause: _pausePlayer,
           onDeleteCluster: (cluster) => _confirmDeleteDetection(group, cluster),
           onReplaceCluster: _replaceDetection,
           onShowOnMap: _showDetectionOnMap,
