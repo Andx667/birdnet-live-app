@@ -6,7 +6,6 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'core/theme/app_theme.dart';
 import 'shared/providers/app_providers.dart';
 import 'features/onboarding/onboarding_screen.dart';
-import 'features/onboarding/terms_gate_screen.dart';
 import 'features/home/home_screen.dart';
 
 /// Root application widget.
@@ -55,12 +54,12 @@ class _AppGate extends ConsumerWidget {
     final onboardingComplete = ref.watch(onboardingCompleteProvider);
     final termsAccepted = ref.watch(termsAcceptedProvider);
 
-    if (!onboardingComplete) {
+    // The onboarding flow now also captures Terms of Use acceptance, so a
+    // completed onboarding implies accepted terms. We still gate on both
+    // independently so a future settings reset of either flag re-shows the
+    // onboarding flow (rather than navigating to a separate terms screen).
+    if (!onboardingComplete || !termsAccepted) {
       return const OnboardingScreen();
-    }
-
-    if (!termsAccepted) {
-      return const TermsGateScreen();
     }
 
     return const HomeScreen();

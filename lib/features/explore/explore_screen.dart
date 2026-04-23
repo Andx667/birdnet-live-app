@@ -252,8 +252,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                       ? _GeoList(
                           species: localSpecies,
                           group: _group,
-                          locationAvailable:
-                              locationAsync.valueOrNull != null,
+                          locationAvailable: locationAsync.valueOrNull != null,
                         )
                       : _SearchResults(
                           query: _query,
@@ -330,9 +329,8 @@ class _GeoList extends ConsumerWidget {
     if (filtered.isEmpty) {
       return EmptyView(
         icon: locationAvailable ? Icons.search_off : Icons.location_off,
-        title: locationAvailable
-            ? l10n.exploreNoSpecies
-            : l10n.exploreNoLocation,
+        title:
+            locationAvailable ? l10n.exploreNoSpecies : l10n.exploreNoLocation,
       );
     }
 
@@ -398,8 +396,8 @@ class _SearchResults extends ConsumerWidget {
     final hits = taxonomy
         .search(query, limit: 200)
         .where((sp) => audioLabels.contains(sp.scientificName))
-        .where((sp) =>
-            group == _TaxonGroup.all || sp.taxonGroup == group.csvValue)
+        .where(
+            (sp) => group == _TaxonGroup.all || sp.taxonGroup == group.csvValue)
         .toList();
 
     if (hits.isEmpty) {
@@ -435,8 +433,8 @@ class _SearchResults extends ConsumerWidget {
       }
     }
     // Within "at your location", prefer higher geo scores.
-    atLocation.sort((a, b) =>
-        (b.local?.geoScore ?? 0).compareTo(a.local?.geoScore ?? 0));
+    atLocation.sort(
+        (a, b) => (b.local?.geoScore ?? 0).compareTo(a.local?.geoScore ?? 0));
 
     final items = <_ListEntry>[];
     if (atLocation.isNotEmpty) {

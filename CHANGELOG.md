@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.4] - 2026-04-23
+
+### Changed
+
+- **Onboarding flow rewritten end-to-end.** Replaced the `introduction_screen` package + separate Terms-Of-Use gate (which prompted for ToU twice) with a single custom PageView wizard. Pages now use a compact icon badge instead of an oversized centered icon, giving body text the screen real estate it deserves. The Permissions page is now interactive — tapping Grant on Microphone or Location triggers the actual OS prompt (via `record` and `geolocator`) and shows a green check on success. Terms & Privacy is the final page with an inline "I agree" checkbox; Get Started is disabled until checked, and on finish both `onboardingComplete` and `termsAccepted` are persisted in one shot. Skip jumps directly to the Terms page rather than bypassing acceptance.
+
+### Removed
+
+- `introduction_screen` dependency (no longer needed) and the standalone `TermsGateScreen` (its role is folded into the onboarding flow).
+
 ## [0.6.3] - 2026-04-23
 
 ### Changed
