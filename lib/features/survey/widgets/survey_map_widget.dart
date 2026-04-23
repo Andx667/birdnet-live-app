@@ -231,8 +231,10 @@ class _SurveyMapWidgetState extends ConsumerState<SurveyMapWidget> {
       markers.add(
         Marker(
           point: LatLng(det.latitude!, det.longitude!),
-          width: isHighlighted ? 44 : 32,
-          height: isHighlighted ? 44 : 32,
+          // Audio markers are rendered with an outer accent ring + corner
+          // play badge, so they need a larger bounding box than silent ones.
+          width: isHighlighted ? (hasAudio ? 56 : 44) : (hasAudio ? 44 : 32),
+          height: isHighlighted ? (hasAudio ? 56 : 44) : (hasAudio ? 44 : 32),
           child: GestureDetector(
             onTap: widget.onMarkerTap != null
                 ? () => widget.onMarkerTap!(det)
@@ -413,11 +415,15 @@ class _SpeciesMarker extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final borderColor = confidence >= 0.8
+    // Audio markers use the standard confidence color for the avatar border;
+    // silent markers fall back to a neutral grey so audio-bearing detections
+    // visually stand out at a glance.
+    final confidenceColor = confidence >= 0.8
         ? Colors.green
         : confidence >= 0.5
             ? Colors.amber.shade700
             : Colors.red;
+    final borderColor = hasAudio ? confidenceColor : Colors.grey.shade500;
 
     final size = isHighlighted ? 40.0 : 28.0;
 
@@ -459,26 +465,59 @@ class _SpeciesMarker extends ConsumerWidget {
 
     if (!hasAudio) return avatar;
 
-    // Tiny play badge in the bottom-right corner indicates that this
-    // marker has a saved audio clip the user can play.
-    final badgeSize = (size * 0.42).clamp(10.0, 18.0);
+    // Audio-bearing markers get two affordances:
+    //   • An outer accent ring around the avatar so they stand out at low
+    //     zoom even when the corner badge is hard to read.
+    //   • A larger play badge in the bottom-right corner that reads as a
+    //     tappable control on close inspection.
+    const ringWidth = 2.5;
+    final ringColor = Theme.of(context).colorScheme.primary;
+    final badgeSize = (size * 0.55).clamp(14.0, 22.0);
+    final outerSize = size + ringWidth * 2 + 2;
+    final badgeOffset = badgeSize * 0.25;
+
     return SizedBox(
-      width: size,
-      height: size,
+      width: outerSize + badgeOffset,
+      height: outerSize + badgeOffset,
       child: Stack(
         clipBehavior: Clip.none,
+        alignment: Alignment.center,
         children: [
-          avatar,
+          // Accent ring + soft halo behind the avatar.
+          Container(
+            width: outerSize,
+            height: outerSize,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: ringColor, width: ringWidth),
+              boxShadow: [
+                BoxShadow(
+                  color: ringColor.withAlpha(70),
+                  blurRadius: 6,
+                  spreadRadius: 0.5,
+                ),
+              ],
+            ),
+            child: Center(child: avatar),
+          ),
+          // Play badge anchored to the avatar's bottom-right.
           Positioned(
-            right: -2,
-            bottom: -2,
+            right: 0,
+            bottom: 0,
             child: Container(
               width: badgeSize,
               height: badgeSize,
               decoration: BoxDecoration(
-                color: Colors.black.withAlpha(200),
+                color: ringColor,
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 1),
+                border: Border.all(color: Colors.white, width: 1.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withAlpha(80),
+                    blurRadius: 3,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
               ),
               child: Icon(
                 Icons.play_arrow_rounded,
