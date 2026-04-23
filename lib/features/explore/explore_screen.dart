@@ -59,14 +59,6 @@ enum _TaxonGroup {
         _TaxonGroup.amphibia => l10n.exploreFilterAmphibians,
         _TaxonGroup.insecta => l10n.exploreFilterInsects,
       };
-
-  IconData get icon => switch (this) {
-        _TaxonGroup.all => Icons.apps,
-        _TaxonGroup.aves => Icons.flutter_dash,
-        _TaxonGroup.mammalia => Icons.pets,
-        _TaxonGroup.amphibia => Icons.water_drop,
-        _TaxonGroup.insecta => Icons.bug_report,
-      };
 }
 
 /// The Explore screen — browse species expected in your area, with optional
@@ -300,7 +292,6 @@ class _GroupFilterBar extends StatelessWidget {
           for (final g in _TaxonGroup.values) ...[
             FilterChip(
               label: Text(g.label(l10n)),
-              avatar: Icon(g.icon, size: 16),
               selected: selected == g,
               onSelected: (_) => onChanged(g),
             ),
