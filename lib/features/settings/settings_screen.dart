@@ -302,6 +302,18 @@ class SettingsScreen extends ConsumerWidget {
               value: ref.watch(logAmplitudeProvider),
               onChanged: (v) => ref.read(logAmplitudeProvider.notifier).set(v),
             ),
+            _ChoiceTile<String>(
+              title: l10n.settingsSpectrogramQuality,
+              helpBody: l10n.settingsHelpSpectrogramQuality,
+              value: ref.watch(spectrogramQualityProvider),
+              options: {
+                'low': l10n.settingsSpectrogramQualityLow,
+                'medium': l10n.settingsSpectrogramQualityMedium,
+                'high': l10n.settingsSpectrogramQualityHigh,
+              },
+              onChanged: (v) =>
+                  ref.read(spectrogramQualityProvider.notifier).set(v),
+            ),
             const Divider(),
           ],
 

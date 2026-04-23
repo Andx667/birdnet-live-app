@@ -72,6 +72,7 @@ class SpectrogramWidget extends StatefulWidget {
     this.showTimeAxis = true,
     this.maxDisplayFrequency = 0,
     this.logAmplitude = true,
+    this.filterQuality = FilterQuality.high,
   });
 
   /// The audio ring buffer to read samples from.
@@ -120,8 +121,29 @@ class SpectrogramWidget extends StatefulWidget {
   /// compresses the dynamic range, making quieter sounds more visible.
   final bool logAmplitude;
 
+  /// GPU [FilterQuality] used to upscale the internal spectrogram image
+  /// to the display rect.  Default [FilterQuality.high].  Older / low-end
+  /// devices can drop to [FilterQuality.low] to reduce GPU load.
+  final FilterQuality filterQuality;
+
   @override
   State<SpectrogramWidget> createState() => _SpectrogramWidgetState();
+}
+
+/// Maps the string value of `spectrogramQualityProvider` to a [FilterQuality].
+///
+/// Accepts `'low'`, `'medium'`, `'high'` (case-insensitive); any other
+/// value falls back to [FilterQuality.high].
+FilterQuality spectrogramFilterQualityFromString(String value) {
+  switch (value.toLowerCase()) {
+    case 'low':
+      return FilterQuality.low;
+    case 'medium':
+      return FilterQuality.medium;
+    case 'high':
+    default:
+      return FilterQuality.high;
+  }
 }
 
 class _SpectrogramWidgetState extends State<SpectrogramWidget>
@@ -193,7 +215,8 @@ class _SpectrogramWidgetState extends State<SpectrogramWidget>
         oldWidget.colorMapName != widget.colorMapName ||
         oldWidget.maxColumns != widget.maxColumns ||
         oldWidget.maxDisplayFrequency != widget.maxDisplayFrequency ||
-        oldWidget.logAmplitude != widget.logAmplitude) {
+        oldWidget.logAmplitude != widget.logAmplitude ||
+        oldWidget.filterQuality != widget.filterQuality) {
       _initProcessor();
     }
 
@@ -242,6 +265,7 @@ class _SpectrogramWidgetState extends State<SpectrogramWidget>
       showTimeAxis: widget.showTimeAxis,
       maxDisplayFrequency: widget.maxDisplayFrequency,
       hopDuration: _hopDuration,
+      filterQuality: widget.filterQuality,
       repaint: _repaintNotifier,
     );
 

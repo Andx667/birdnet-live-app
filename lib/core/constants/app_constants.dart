@@ -72,6 +72,7 @@ abstract final class PrefKeys {
   static const String spectrogramDuration = 'spectrogram_duration';
   static const String spectrogramMaxFreq = 'spectrogram_max_freq';
   static const String logAmplitude = 'log_amplitude';
+  static const String spectrogramQuality = 'spectrogram_quality';
 
   // Recording settings
   static const String recordingFormat = 'recording_format';
