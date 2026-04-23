@@ -106,11 +106,11 @@ final dbCeilingProvider =
   return DoubleSettingNotifier(prefs, PrefKeys.dbCeiling, 0);
 });
 
-/// Spectrogram visible duration in seconds (5, 10, 15, 20, 30 — default 15).
+/// Spectrogram visible duration in seconds (5, 10, 15, 20, 30 — default 20).
 final spectrogramDurationProvider =
     StateNotifierProvider<IntSettingNotifier, int>((ref) {
   final prefs = ref.watch(sharedPreferencesProvider);
-  return IntSettingNotifier(prefs, PrefKeys.spectrogramDuration, 15);
+  return IntSettingNotifier(prefs, PrefKeys.spectrogramDuration, 20);
 });
 
 /// Maximum frequency displayed in the spectrogram in Hz (default 16000).
@@ -125,6 +125,17 @@ final logAmplitudeProvider =
     StateNotifierProvider<BoolSettingNotifier, bool>((ref) {
   final prefs = ref.watch(sharedPreferencesProvider);
   return BoolSettingNotifier(prefs, PrefKeys.logAmplitude, true);
+});
+
+/// Spectrogram rendering quality — controls the GPU upscale [FilterQuality]
+/// used to draw the live spectrogram image.
+///
+/// Values: `'low'` | `'medium'` | `'high'`.  Default `'high'`.
+/// Older / low-end devices can drop to `'low'` to reduce GPU load.
+final spectrogramQualityProvider =
+    StateNotifierProvider<StringSettingNotifier, String>((ref) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return StringSettingNotifier(prefs, PrefKeys.spectrogramQuality, 'high');
 });
 
 // ---------------------------------------------------------------------------
@@ -148,17 +159,15 @@ final recordingModeProvider =
   return StringSettingNotifier(prefs, PrefKeys.recordingMode, 'full');
 });
 
-/// Pre-buffer seconds (default 5).
-final preBufferProvider = StateNotifierProvider<IntSettingNotifier, int>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return IntSettingNotifier(prefs, PrefKeys.preBuffer, 5);
-});
-
-/// Post-buffer seconds (default 5).
-final postBufferProvider =
+/// Clip context in seconds (default 1).
+///
+/// Number of seconds of audio captured before AND after each detection
+/// window. Total saved clip length = analysis window (e.g. 3 s) plus
+/// 2 × clipContext, so a context of 1 yields a 5 s clip.
+final clipContextProvider =
     StateNotifierProvider<IntSettingNotifier, int>((ref) {
   final prefs = ref.watch(sharedPreferencesProvider);
-  return IntSettingNotifier(prefs, PrefKeys.postBuffer, 5);
+  return IntSettingNotifier(prefs, PrefKeys.clipContext, 1);
 });
 
 // ---------------------------------------------------------------------------
@@ -302,18 +311,13 @@ final surveyRecordingModeProvider =
       prefs, PrefKeys.surveyRecordingMode, 'detections');
 });
 
-/// Survey clip pre-buffer in seconds (additive, default 3).
-final surveyClipPreBufferProvider =
+/// Survey clip context in seconds (default 1).
+///
+/// Same semantics as [clipContextProvider] but scoped to survey sessions.
+final surveyClipContextProvider =
     StateNotifierProvider<IntSettingNotifier, int>((ref) {
   final prefs = ref.watch(sharedPreferencesProvider);
-  return IntSettingNotifier(prefs, PrefKeys.surveyClipPreBuffer, 3);
-});
-
-/// Survey clip post-buffer in seconds (additive, default 3).
-final surveyClipPostBufferProvider =
-    StateNotifierProvider<IntSettingNotifier, int>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return IntSettingNotifier(prefs, PrefKeys.surveyClipPostBuffer, 3);
+  return IntSettingNotifier(prefs, PrefKeys.surveyClipContext, 1);
 });
 
 /// Detection sampling mode ('all', 'topN', 'smart' — default 'smart').

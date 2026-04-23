@@ -75,6 +75,7 @@ import '../recording/native_audio_decoder.dart';
 import '../spectrogram/color_maps.dart';
 import 'session_export.dart';
 import 'session_map_screen.dart';
+import 'widgets/clip_player_sheet.dart';
 import '../settings/settings_screen.dart';
 import '../survey/survey_live_screen.dart';
 import '../survey/widgets/survey_map_widget.dart';
@@ -105,10 +106,16 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
   final AudioPlayer _clipPlayer = AudioPlayer();
   StreamSubscription<Duration>? _positionSubscription;
   StreamSubscription<PlayerState>? _playerStateSubscription;
+  StreamSubscription<PlayerState>? _clipPlayerStateSubscription;
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
   bool _isPlaying = false;
   bool _audioAvailable = false;
+
+  /// Cluster currently being played via [_clipPlayer] (survey mode
+  /// without a full recording). Used to highlight the active row and
+  /// route taps on it to a pause action.
+  _DetectionCluster? _activeClipCluster;
 
   /// When set, playback automatically pauses once [_position] reaches
   /// this value. Set by [_seekToCluster] so a single-cluster playback
@@ -391,8 +398,14 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
   /// Uses a fixed FFT size and hop.  Each pixel column = one FFT frame.
   /// The painter scrolls through the image using pixels-per-second.
   Future<void> _buildSpectrogramImage(DecodedAudio audio) async {
-    const fftSize = 1024;
-    const hop = 512;
+    // Larger FFT (2048) gives ~12 Hz/bin resolution which renders
+    // formants and harmonic structure much more clearly than the
+    // previous 1024-point FFT (~23 Hz/bin). The hop is increased to
+    // 1024 so the per-second column count stays similar — keeping the
+    // total spectrogram-image memory comparable for long sessions while
+    // doubling the vertical (frequency) resolution.
+    const fftSize = 2048;
+    const hop = 1024;
     const maxFreqHz = 16000;
     const dbFloor = -80.0;
     const dbCeiling = 0.0;
@@ -521,6 +534,7 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
   void dispose() {
     _positionSubscription?.cancel();
     _playerStateSubscription?.cancel();
+    _clipPlayerStateSubscription?.cancel();
     if (!identical(_spectrogramImage, _fullSpectrogramImage)) {
       _spectrogramImage?.dispose();
     }
@@ -1009,6 +1023,17 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
     if (clip == null) return;
     await _clipPlayer.stop();
     await _clipPlayer.setFilePath(clip.audioClipPath!);
+    setState(() => _activeClipCluster = cluster);
+    _clipPlayerStateSubscription ??=
+        _clipPlayer.playerStateStream.listen((state) {
+      if (!mounted) return;
+      if (!state.playing ||
+          state.processingState == ProcessingState.completed) {
+        if (_activeClipCluster != null) {
+          setState(() => _activeClipCluster = null);
+        }
+      }
+    });
     _clipPlayer.play();
   }
 
@@ -1026,6 +1051,10 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
   void _pausePlayer() {
     _autoStopPosition = null;
     if (_isPlaying) _player.pause();
+    if (_clipPlayer.playing) _clipPlayer.pause();
+    if (_activeClipCluster != null) {
+      setState(() => _activeClipCluster = null);
+    }
   }
 
   // ── Add Content Menu ──────────────────────────────────────────────
@@ -1556,13 +1585,16 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
       itemBuilder: (context, index) {
         final group = _filteredSpeciesGroups[index];
         final isExpanded = _expandedSpecies.contains(group.scientificName);
-        final isActive = _isSpeciesActive(group);
+        final isActive = _isSpeciesActive(group) ||
+            (_activeClipCluster != null &&
+                group.clusters.contains(_activeClipCluster));
         return _SpeciesTile(
           group: group,
           sessionStart: widget.session.startTime,
           isExpanded: isExpanded,
           isActive: isActive,
           activePositionSec: _isPlaying ? _position.inMicroseconds / 1e6 : null,
+          activeCluster: _activeClipCluster,
           clipOffsetSec: _clipOffsetSec,
           windowSec: widget.session.settings.windowDuration,
           isSurvey: widget.session.type == SessionType.survey,
@@ -1581,6 +1613,7 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
             commonName: group.commonName,
           ),
           onSeekCluster: _seekToCluster,
+          onPause: _pausePlayer,
           onDeleteCluster: (cluster) => _confirmDeleteDetection(group, cluster),
           onReplaceCluster: _replaceDetection,
           onShowOnMap: _showDetectionOnMap,
@@ -1726,38 +1759,19 @@ class _FullscreenSurveyMapScreen extends StatefulWidget {
 
 class _FullscreenSurveyMapScreenState
     extends State<_FullscreenSurveyMapScreen> {
-  final AudioPlayer _clipPlayer = AudioPlayer();
-  DetectionRecord? _playingDetection;
-
-  @override
-  void dispose() {
-    _clipPlayer.dispose();
-    super.dispose();
-  }
+  DetectionRecord? _highlight;
 
   Future<void> _onMarkerTap(DetectionRecord detection) async {
-    // Find the detection's clip (or fall back to the best one at that spot).
-    final clip = detection.audioClipPath != null &&
-            File(detection.audioClipPath!).existsSync()
-        ? detection
-        : widget.detections
-            .where((d) =>
-                d.scientificName == detection.scientificName &&
-                d.audioClipPath != null &&
-                File(d.audioClipPath!).existsSync())
-            .firstOrNull;
-    if (clip == null) return;
+    // Only play markers whose own clip is still on disk. The map widget
+    // already prefers the audio-bearing record when grouping, so a tap on
+    // a "play badge" marker reaches us here with [audioClipPath] set; a
+    // tap on a no-audio marker is a silent no-op.
+    final path = detection.audioClipPath;
+    if (path == null || !File(path).existsSync()) return;
 
-    setState(() => _playingDetection = detection);
-    await _clipPlayer.stop();
-    await _clipPlayer.setFilePath(clip.audioClipPath!);
-    _clipPlayer.play();
-    _clipPlayer.playerStateStream
-        .where((s) => s.processingState == ProcessingState.completed)
-        .first
-        .then((_) {
-      if (mounted) setState(() => _playingDetection = null);
-    });
+    setState(() => _highlight = detection);
+    await showClipPlayerSheet(context, detection: detection);
+    if (mounted) setState(() => _highlight = null);
   }
 
   @override
@@ -1770,7 +1784,7 @@ class _FullscreenSurveyMapScreenState
         detections: widget.detections,
         autoFollow: false,
         fitAllPoints: true,
-        highlightedDetection: _playingDetection,
+        highlightedDetection: _highlight,
         onMarkerTap: _onMarkerTap,
       ),
     );

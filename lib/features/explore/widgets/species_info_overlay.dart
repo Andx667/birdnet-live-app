@@ -107,6 +107,18 @@ class _SpeciesInfoSheetState extends ConsumerState<_SpeciesInfoSheet> {
     }
   }
 
+  /// Pick the best Wikipedia URL for the active locale.
+  ///
+  /// Prefers the user's interface/species locale, falls back to English,
+  /// returns null if neither exists. Only locales bundled in taxonomy.csv
+  /// are considered (interface locales).
+  String? _pickWikipediaUrl(TaxonomySpecies detail) {
+    final urls = detail.wikipediaUrls;
+    if (urls == null || urls.isEmpty) return null;
+    final locale = ref.read(effectiveSpeciesLocaleProvider);
+    return urls[locale] ?? urls['en'];
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -231,8 +243,7 @@ class _SpeciesInfoSheetState extends ConsumerState<_SpeciesInfoSheet> {
                 if (_detail != null &&
                     (_detail!.ebirdUrl != null ||
                         _detail!.inatUrl != null ||
-                        (_detail!.wikipediaUrls != null &&
-                            _detail!.wikipediaUrls!.isNotEmpty))) ...[
+                        _pickWikipediaUrl(_detail!) != null)) ...[
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
                     child: Text(
@@ -260,12 +271,11 @@ class _SpeciesInfoSheetState extends ConsumerState<_SpeciesInfoSheet> {
                             iconAsset: 'assets/images/icon-inat.png',
                             url: _detail!.inatUrl!,
                           ),
-                        if (_detail!.wikipediaUrls != null &&
-                            _detail!.wikipediaUrls!.isNotEmpty)
+                        if (_pickWikipediaUrl(_detail!) != null)
                           _LinkChip(
                             label: 'Wikipedia',
                             iconAsset: 'assets/images/icon-wikipedia.png',
-                            url: _detail!.wikipediaUrls!.values.first,
+                            url: _pickWikipediaUrl(_detail!)!,
                           ),
                       ],
                     ),
@@ -375,14 +385,12 @@ class _LinkChip extends StatelessWidget {
     final theme = Theme.of(context);
 
     return ActionChip(
-      avatar: ClipOval(
-        child: Image.asset(
-          iconAsset,
-          width: 18,
-          height: 18,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => const Icon(Icons.public, size: 18),
-        ),
+      avatar: Image.asset(
+        iconAsset,
+        width: 18,
+        height: 18,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => const Icon(Icons.public, size: 18),
       ),
       label: Row(
         mainAxisSize: MainAxisSize.min,

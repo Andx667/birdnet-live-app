@@ -46,9 +46,6 @@ class TaxonomyService {
   /// Number of species in the CSV index.
   int get speciesCount => _csvIndex.length;
 
-  /// Base URL for the taxonomy API (kept for static URL helpers).
-  static const String _apiBase = 'https://birdnet.cornell.edu/taxonomy/api';
-
   // ---------------------------------------------------------------------------
   // CSV Loading
   // ---------------------------------------------------------------------------
@@ -147,18 +144,6 @@ class TaxonomyService {
   // ---------------------------------------------------------------------------
   // Image helpers
   // ---------------------------------------------------------------------------
-
-  /// Generate the thumbnail URL for a species.
-  ///
-  /// Uses the taxonomy API image proxy (150×100 WebP).
-  static String thumbUrl(String scientificName) =>
-      '$_apiBase/image/${Uri.encodeComponent(scientificName)}?size=thumb';
-
-  /// Generate the medium image URL for a species.
-  ///
-  /// Uses the taxonomy API image proxy (480×320 WebP).
-  static String mediumUrl(String scientificName) =>
-      '$_apiBase/image/${Uri.encodeComponent(scientificName)}?size=medium';
 
   /// Bundled asset image path for a species.
   ///

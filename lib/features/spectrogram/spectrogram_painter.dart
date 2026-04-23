@@ -59,6 +59,7 @@ class SpectrogramPainter extends CustomPainter {
     this.showTimeAxis = true,
     this.maxDisplayFrequency = 0,
     this.hopDuration = const Duration(milliseconds: 50),
+    this.filterQuality = FilterQuality.high,
     super.repaint,
   }) : _lut = SpectrogramColorMap.lut(colorMapName);
 
@@ -94,6 +95,11 @@ class SpectrogramPainter extends CustomPainter {
 
   /// Duration represented by each column — used for time axis labels.
   final Duration hopDuration;
+
+  /// GPU [FilterQuality] used to upscale the internal 1:1 spectrogram
+  /// image to the display rect.  Higher quality looks sharper but costs
+  /// more GPU per frame; older devices may want [FilterQuality.low].
+  final FilterQuality filterQuality;
 
   // ---------------------------------------------------------------------------
   // Internal state
@@ -178,7 +184,8 @@ class SpectrogramPainter extends CustomPainter {
 
     // Draw the spectrogram image scaled to the display area.
     // The internal image is at 1:1 pixel resolution (maxColumns × binCount).
-    // GPU bilinear filtering (FilterQuality.low) smooths the upscale.
+    // GPU bilinear filtering smooths the upscale; quality is user-configurable
+    // via the spectrogramQuality setting (low for older devices).
     if (_spectrogramImage != null) {
       final src = Rect.fromLTWH(
         0,
@@ -190,7 +197,7 @@ class SpectrogramPainter extends CustomPainter {
         _spectrogramImage!,
         src,
         spectrogramRect,
-        Paint()..filterQuality = FilterQuality.low,
+        Paint()..filterQuality = filterQuality,
       );
     }
 
@@ -213,7 +220,8 @@ class SpectrogramPainter extends CustomPainter {
     return oldDelegate.colorMapName != colorMapName ||
         oldDelegate.binCount != binCount ||
         oldDelegate.maxColumns != maxColumns ||
-        oldDelegate.maxDisplayFrequency != maxDisplayFrequency;
+        oldDelegate.maxDisplayFrequency != maxDisplayFrequency ||
+        oldDelegate.filterQuality != filterQuality;
   }
 
   // ---------------------------------------------------------------------------

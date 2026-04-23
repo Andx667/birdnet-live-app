@@ -143,9 +143,6 @@ class LiveController {
   /// Whether per-detection audio clips should be saved.
   bool _saveDetectionClips = false;
 
-  /// Recording mode chosen by the user for the current session.
-  RecordingMode _recordingMode = RecordingMode.full;
-
   /// Species currently shown on the live screen (have visible cards).
   ///
   /// Maps scientific name → active [DetectionRecord] in [_sessionDetections].
@@ -346,7 +343,6 @@ class LiveController {
     };
 
     // Recording: respect the user’s choice (full / clips / off).
-    _recordingMode = recordingMode;
     _saveDetectionClips = recordingMode == RecordingMode.detectionsOnly;
     if (recordingMode != RecordingMode.off) {
       final dir = await recordingService.startRecording(
@@ -378,16 +374,15 @@ class LiveController {
 
   /// Pause the current session.
   ///
-  /// Stops the inference timer and recording but keeps the session alive
-  /// so it can be resumed.  The detection list is preserved.
+  /// Stops the inference timer but keeps the recording running so the
+  /// audio file stays continuous and detection timestamps (which use
+  /// wall-clock) remain in sync with audio time across the pause.
+  /// The detection list is preserved.
   Future<void> pauseSession() async {
     if (_state != LiveState.active || _session == null) return;
 
     _inferenceTimer?.cancel();
     _inferenceTimer = null;
-
-    // Pause recording (don't finalize).
-    await recordingService.stopRecording();
 
     _state = LiveState.paused;
     _notifyListeners();
@@ -397,20 +392,12 @@ class LiveController {
 
   /// Resume a previously paused session.
   ///
-  /// Re-starts the inference timer with the same settings.
+  /// Re-starts the inference timer with the same settings. Recording was
+  /// not stopped on pause, so it keeps writing the same file.
   Future<void> resumeSession() async {
     if (_state != LiveState.paused || _session == null) return;
 
     final settings = _session!.settings;
-
-    // Restart recording with the same mode chosen at session start.
-    if (_recordingMode != RecordingMode.off) {
-      await recordingService.startRecording(
-        sessionId: _session!.id,
-        mode: _recordingMode,
-        format: recordingService.format,
-      );
-    }
 
     _state = LiveState.active;
     _notifyListeners();

@@ -38,13 +38,11 @@ import 'live_session.dart';
 /// The [RecordingService] instance, connected to the shared ring buffer.
 final recordingServiceProvider = Provider<RecordingService>((ref) {
   final ringBuffer = ref.watch(ringBufferProvider);
-  final preBuffer = ref.watch(preBufferProvider);
-  final postBuffer = ref.watch(postBufferProvider);
+  final clipContext = ref.watch(clipContextProvider);
   final service = RecordingService(
     ringBuffer: ringBuffer,
     sampleRate: AppConstants.sampleRate,
-    preBufferSeconds: preBuffer,
-    postBufferSeconds: postBuffer,
+    clipContextSeconds: clipContext,
   );
   ref.onDispose(service.dispose);
   return service;

@@ -694,6 +694,7 @@ class _PointCountSpectrogram extends ConsumerWidget {
     final durationSec = ref.watch(spectrogramDurationProvider);
     final maxFreq = ref.watch(spectrogramMaxFreqProvider);
     final logAmplitude = ref.watch(logAmplitudeProvider);
+    final quality = ref.watch(spectrogramQualityProvider);
 
     final hopSize = fftSize ~/ 2;
     const sampleRate = 32000;
@@ -711,6 +712,7 @@ class _PointCountSpectrogram extends ConsumerWidget {
       showTimeAxis: false,
       maxDisplayFrequency: maxFreq,
       logAmplitude: logAmplitude,
+      filterQuality: spectrogramFilterQualityFromString(quality),
     );
   }
 }

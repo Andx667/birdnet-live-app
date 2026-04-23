@@ -151,8 +151,6 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
     final samplingStr = ref.read(surveyDetectionSamplingProvider);
     final samplingMode = samplingModeFromString(samplingStr);
     final topN = ref.read(surveyTopNPerSpeciesProvider);
-    final clipPreBuffer = ref.read(surveyClipPreBufferProvider);
-    final clipPostBuffer = ref.read(surveyClipPostBufferProvider);
     final autoStopBattery = ref.read(surveyAutoStopBatteryProvider);
 
     final geoScores = await ref.read(geoScoresProvider.future);
@@ -175,8 +173,6 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
         samplingMode: samplingMode,
         topNPerSpecies: topN,
         backgroundGps: widget.backgroundGps,
-        clipPreBuffer: clipPreBuffer,
-        clipPostBuffer: clipPostBuffer,
         autoStopBattery: autoStopBattery,
       );
     } else {
@@ -200,8 +196,6 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
         startLatitude: widget.startLatitude,
         startLongitude: widget.startLongitude,
         backgroundGps: widget.backgroundGps,
-        clipPreBuffer: clipPreBuffer,
-        clipPostBuffer: clipPostBuffer,
         autoStopBattery: autoStopBattery,
       );
     }
@@ -582,6 +576,7 @@ class _SurveySpectrogram extends ConsumerWidget {
     final durationSec = ref.watch(spectrogramDurationProvider);
     final maxFreq = ref.watch(spectrogramMaxFreqProvider);
     final logAmplitude = ref.watch(logAmplitudeProvider);
+    final quality = ref.watch(spectrogramQualityProvider);
 
     final hopSize = fftSize ~/ 2;
     const sampleRate = 32000;
@@ -599,6 +594,7 @@ class _SurveySpectrogram extends ConsumerWidget {
       showTimeAxis: false,
       maxDisplayFrequency: maxFreq,
       logAmplitude: logAmplitude,
+      filterQuality: spectrogramFilterQualityFromString(quality),
     );
   }
 }

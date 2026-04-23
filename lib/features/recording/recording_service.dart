@@ -69,8 +69,8 @@ class RecordingService {
   RecordingService({
     required this.ringBuffer,
     this.sampleRate = 32000,
-    this.preBufferSeconds = 5,
-    this.postBufferSeconds = 5,
+    this.clipContextSeconds = 1,
+    this.windowSeconds = 3,
   });
 
   /// The shared ring buffer to read audio from.
@@ -79,11 +79,17 @@ class RecordingService {
   /// Audio sample rate in Hz.
   final int sampleRate;
 
-  /// Seconds of audio to include before a detection.
-  final int preBufferSeconds;
+  /// Seconds of audio captured before AND after each detection window.
+  ///
+  /// A clip is `windowSeconds + 2 * clipContextSeconds` long, centered on
+  /// the analyzed audio window that triggered the detection.
+  final int clipContextSeconds;
 
-  /// Seconds of audio to include after a detection.
-  final int postBufferSeconds;
+  /// Length of the inference window in seconds (typically 3).
+  ///
+  /// Used together with [clipContextSeconds] to compute the total clip
+  /// length saved per detection.
+  final int windowSeconds;
 
   AudioFileWriter? _writer;
   Timer? _flushTimer;
@@ -147,9 +153,12 @@ class RecordingService {
 
   /// Save an audio clip around a detection.
   ///
-  /// Reads `preBufferSeconds + postBufferSeconds` of audio from the ring
-  /// buffer centered on the current write position (i.e., the detection
-  /// just happened).
+  /// The detection callback fires at the end of an inference window, so the
+  /// last [windowSeconds] of audio represent the analyzed chunk. To capture
+  /// genuine "context" on both sides we (a) wait [clipContextSeconds] for
+  /// post-roll audio to land in the ring buffer, then (b) read the most
+  /// recent `windowSeconds + 2 * clipContextSeconds` seconds. The result
+  /// is a clip of `[pre-context | analyzed window | post-context]`.
   ///
   /// Returns the file path of the saved clip, or `null` if not recording.
   Future<String?> saveDetectionClip({
@@ -157,7 +166,14 @@ class RecordingService {
   }) async {
     if (!_isRecording || _sessionDir == null) return null;
 
-    final totalSamples = (preBufferSeconds + postBufferSeconds) * sampleRate;
+    if (clipContextSeconds > 0) {
+      await Future<void>.delayed(Duration(seconds: clipContextSeconds));
+      // Recording may have been stopped while we were waiting for post-roll.
+      if (!_isRecording || _sessionDir == null) return null;
+    }
+
+    final totalSeconds = windowSeconds + 2 * clipContextSeconds;
+    final totalSamples = totalSeconds * sampleRate;
     final samples = ringBuffer.readLast(totalSamples);
 
     // Skip silent clips (all zeros = no audio captured yet).

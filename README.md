@@ -8,7 +8,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
   <img src="https://img.shields.io/badge/flutter-%3E%3D3.0-blue.svg" alt="Flutter">
   <img src="https://img.shields.io/badge/platforms-Android%20%7C%20iOS%20%7C%20Windows-green.svg" alt="Platforms">
-  <img src="https://img.shields.io/badge/version-0.5.1-orange.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-0.6.0-orange.svg" alt="Version">
   <img src="https://img.shields.io/badge/species-5%2C250-brightgreen.svg" alt="Species: 5,250">
 </p>
 
@@ -52,7 +52,7 @@ The bioacoustics companion app for field researchers, conservationists, and bird
 
 BirdNET Live is available as a signed APK for sideloading. Download the latest release from the [Releases page](https://github.com/birdnet-team/birdnet-live-app/releases/latest), transfer the `.apk` file to your phone, and open it to install. You may need to allow installation from unknown sources in your device settings.
 
-> **Note:** The APK is ~227 MB because it includes the full BirdNET+ audio model (~145 MB) for offline inference.
+> **Note:** The APK is ~237 MB because it includes the full BirdNET+ audio model (~152 MB) for offline inference.
 
 ## Quick Start
 

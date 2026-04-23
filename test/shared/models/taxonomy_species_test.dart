@@ -149,33 +149,11 @@ void main() {
   // ─────────────────────────────────────────────────────────────────────────
 
   group('URL getters', () {
-    test('thumbUrl encodes scientific name', () {
-      const sp = TaxonomySpecies(
-        scientificName: 'Parus major',
-        commonName: 'Great Tit',
-      );
-      expect(sp.thumbUrl, contains('Parus%20major'));
-      expect(sp.thumbUrl, contains('size=thumb'));
-    });
+    // Removed: TaxonomySpecies no longer exposes taxonomy-API URL getters.
+    // The app is fully offline; species images come from bundled assets.
+  }, skip: true);
 
-    test('mediumUrl uses imageUrl when available', () {
-      const sp = TaxonomySpecies(
-        scientificName: 'Parus major',
-        commonName: 'Great Tit',
-        imageUrl: 'https://custom.example.com/img.webp',
-      );
-      expect(sp.mediumUrl, 'https://custom.example.com/img.webp');
-    });
-
-    test('mediumUrl falls back to API URL when imageUrl is null', () {
-      const sp = TaxonomySpecies(
-        scientificName: 'Parus major',
-        commonName: 'Great Tit',
-      );
-      expect(sp.mediumUrl, contains('Parus%20major'));
-      expect(sp.mediumUrl, contains('size=medium'));
-    });
-
+  group('External link getters', () {
     test('ebirdUrl is null when no ebird code', () {
       const sp = TaxonomySpecies(
         scientificName: 'Parus major',

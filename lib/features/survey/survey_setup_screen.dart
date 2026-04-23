@@ -538,8 +538,7 @@ class _ParametersStep extends ConsumerWidget {
     final gpsInterval = ref.watch(surveyGpsIntervalProvider);
     final maxDuration = ref.watch(surveyMaxDurationProvider);
     final recordingMode = ref.watch(surveyRecordingModeProvider);
-    final clipPreBuffer = ref.watch(surveyClipPreBufferProvider);
-    final clipPostBuffer = ref.watch(surveyClipPostBufferProvider);
+    final clipContext = ref.watch(surveyClipContextProvider);
     final sampling = ref.watch(surveyDetectionSamplingProvider);
     final topN = ref.watch(surveyTopNPerSpeciesProvider);
     final devicesAsync = ref.watch(inputDevicesProvider);
@@ -692,43 +691,14 @@ class _ParametersStep extends ConsumerWidget {
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    children: [
-                      Text(l10n.surveyClipBefore),
-                      Slider(
-                        value: clipPreBuffer.toDouble(),
-                        min: 0,
-                        max: 10,
-                        divisions: 10,
-                        label: '${clipPreBuffer}s',
-                        onChanged: (v) => ref
-                            .read(surveyClipPreBufferProvider.notifier)
-                            .set(v.round()),
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: Column(
-                    children: [
-                      Text(l10n.surveyClipAfter),
-                      Slider(
-                        value: clipPostBuffer.toDouble(),
-                        min: 0,
-                        max: 10,
-                        divisions: 10,
-                        label: '${clipPostBuffer}s',
-                        onChanged: (v) => ref
-                            .read(surveyClipPostBufferProvider.notifier)
-                            .set(v.round()),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+            child: Slider(
+              value: clipContext.toDouble(),
+              min: 0,
+              max: 5,
+              divisions: 5,
+              label: '±${clipContext}s',
+              onChanged: (v) =>
+                  ref.read(surveyClipContextProvider.notifier).set(v.round()),
             ),
           ),
         ],

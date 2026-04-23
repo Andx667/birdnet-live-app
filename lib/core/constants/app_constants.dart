@@ -72,12 +72,15 @@ abstract final class PrefKeys {
   static const String spectrogramDuration = 'spectrogram_duration';
   static const String spectrogramMaxFreq = 'spectrogram_max_freq';
   static const String logAmplitude = 'log_amplitude';
+  static const String spectrogramQuality = 'spectrogram_quality';
 
   // Recording settings
   static const String recordingFormat = 'recording_format';
   static const String recordingMode = 'recording_mode';
-  static const String preBuffer = 'pre_buffer';
-  static const String postBuffer = 'post_buffer';
+
+  /// Seconds of audio captured before AND after each detection window.
+  /// Total clip length = analysis window (e.g. 3 s) + 2 × clipContext.
+  static const String clipContext = 'clip_context';
 
   // Export settings
   static const String exportFormat = 'export_format';
@@ -103,8 +106,10 @@ abstract final class PrefKeys {
   static const String surveyMaxDuration = 'survey_max_duration';
   static const String surveyAutoStopBattery = 'survey_auto_stop_battery';
   static const String surveyRecordingMode = 'survey_recording_mode';
-  static const String surveyClipPreBuffer = 'survey_clip_pre_buffer';
-  static const String surveyClipPostBuffer = 'survey_clip_post_buffer';
+
+  /// Seconds of audio captured before AND after each detection window
+  /// in survey mode. Total clip = analysis window + 2 × surveyClipContext.
+  static const String surveyClipContext = 'survey_clip_context';
   static const String surveyDetectionSampling = 'survey_detection_sampling';
   static const String surveyTopNPerSpecies = 'survey_top_n_per_species';
   static const String surveyMicDeviceId = 'survey_mic_device_id';

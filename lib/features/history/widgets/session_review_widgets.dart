@@ -503,7 +503,7 @@ class _ReviewSpectrogramPainter extends CustomPainter {
         spectrogramImage,
         Rect.fromLTRB(srcX1, 0, srcX2, imgH),
         Rect.fromLTRB(dstX1, 0, dstX2, size.height),
-        Paint()..filterQuality = FilterQuality.medium,
+        Paint()..filterQuality = FilterQuality.high,
       );
     }
 
@@ -604,6 +604,8 @@ class _SpeciesTile extends ConsumerWidget {
     required this.onDeleteCluster,
     required this.onReplaceCluster,
     this.activePositionSec,
+    this.activeCluster,
+    this.onPause,
     this.clipOffsetSec = 0.0,
     this.windowSec = 3,
     this.isSurvey = false,
@@ -620,6 +622,11 @@ class _SpeciesTile extends ConsumerWidget {
   /// `null` when no audio is available / not playing. Used to highlight
   /// the cluster currently being heard.
   final double? activePositionSec;
+
+  /// Cluster currently being played via a per-detection clip player
+  /// (used in survey review where there is no full recording). Matched
+  /// by identity to highlight the active row.
+  final _DetectionCluster? activeCluster;
 
   /// Offset (in seconds) of the loaded audio clip relative to the
   /// session start. Detection-only mode loads short clips; this lets
@@ -638,6 +645,11 @@ class _SpeciesTile extends ConsumerWidget {
   final ValueChanged<_DetectionCluster> onDeleteCluster;
   final ValueChanged<_DetectionCluster> onReplaceCluster;
   final ValueChanged<DetectionRecord>? onShowOnMap;
+
+  /// Called when the user taps the play affordance on a row that is
+  /// currently being played (i.e. [isActive] is true). When `null`, the
+  /// active row falls back to re-seeking, preserving the old behavior.
+  final VoidCallback? onPause;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -686,9 +698,14 @@ class _SpeciesTile extends ConsumerWidget {
               child: Row(
                 children: [
                   // Seek to first detection (or just show offset if no audio).
+                  // When the species tile is currently being played and a
+                  // pause callback is wired up, the same button doubles as a
+                  // pause control so users can cancel playback.
                   if (audioAvailable || group.clusters.first.hasAudioClip)
                     InkWell(
-                      onTap: () => onSeekCluster(group.clusters.first),
+                      onTap: () => isActive && onPause != null
+                          ? onPause!()
+                          : onSeekCluster(group.clusters.first),
                       borderRadius: BorderRadius.circular(16),
                       child: Container(
                         width: 48,
@@ -698,7 +715,9 @@ class _SpeciesTile extends ConsumerWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              Icons.play_arrow_rounded,
+                              isActive && onPause != null
+                                  ? Icons.pause_rounded
+                                  : Icons.play_arrow_rounded,
                               size: 24,
                               color: theme.colorScheme.primary,
                             ),
@@ -850,6 +869,7 @@ class _SpeciesTile extends ConsumerWidget {
                       windowSec: windowSec,
                       isActive: _isClusterActive(cluster),
                       onSeek: () => onSeekCluster(cluster),
+                      onPause: onPause,
                       onDelete: () => onDeleteCluster(cluster),
                       onReplace: () => onReplaceCluster(cluster),
                       isSurvey: isSurvey,
@@ -886,6 +906,7 @@ class _SpeciesTile extends ConsumerWidget {
   /// Returns `false` when there is no active position — the cluster row
   /// stays in its idle styling.
   bool _isClusterActive(_DetectionCluster cluster) {
+    if (identical(activeCluster, cluster)) return true;
     final pos = activePositionSec;
     if (pos == null) return false;
     for (final r in cluster.records) {
@@ -920,6 +941,7 @@ class _ClusterRow extends StatelessWidget {
     required this.onSeek,
     required this.onDelete,
     required this.onReplace,
+    this.onPause,
     this.clipOffsetSec = 0.0,
     this.windowSec = 3,
     this.isActive = false,
@@ -933,6 +955,10 @@ class _ClusterRow extends StatelessWidget {
   final VoidCallback onSeek;
   final VoidCallback onDelete;
   final VoidCallback onReplace;
+
+  /// Pause callback used when this row is currently being played. When
+  /// `null`, an active row continues to behave like a re-seek.
+  final VoidCallback? onPause;
   final double clipOffsetSec;
   final int windowSec;
   final bool isActive;
@@ -977,12 +1003,16 @@ class _ClusterRow extends StatelessWidget {
           children: [
             if (audioAvailable || cluster.hasAudioClip)
               InkWell(
-                onTap: onSeek,
+                onTap: isActive && onPause != null ? onPause : onSeek,
                 borderRadius: BorderRadius.circular(24),
                 child: Padding(
                   padding: const EdgeInsets.all(12),
                   child: Icon(
-                    isActive ? Icons.graphic_eq : Icons.play_arrow_rounded,
+                    isActive
+                        ? (onPause != null
+                            ? Icons.pause_rounded
+                            : Icons.graphic_eq)
+                        : Icons.play_arrow_rounded,
                     size: 24,
                     color: theme.colorScheme.primary,
                   ),
@@ -1917,7 +1947,7 @@ class _TrimSpectrogramPainter extends CustomPainter {
         spectrogramImage,
         Rect.fromLTRB(srcX1, 0, srcX2, imgH),
         Rect.fromLTRB(0, 0, size.width, size.height),
-        Paint()..filterQuality = FilterQuality.medium,
+        Paint()..filterQuality = FilterQuality.high,
       );
     }
 

@@ -5,6 +5,55 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-04-23
+
+### Added
+- Spectrogram render quality is now user-configurable (Low / Medium / High) under Settings → Spectrogram, with High as the default for sharp live spectrograms and Low as a fallback for older phones
+- Survey foreground notification now uses a monochrome blue jay silhouette as the status-bar small icon instead of a generic circle
+- Species info overlay opens to the user's locale Wikipedia page when bundled (interface locales: en, de, fr, es, cs, pt, it), falling back to English
+
+### Changed
+- Default visible spectrogram duration raised from 15 s to 20 s for a wider live view
+- Live and Point Count spectrograms render with the configured filter quality (was hardcoded low) for noticeably crisper detail when upscaled
+- Session review spectrogram now uses FFT 2048 + high filter quality for sharper detection-clip previews
+- Live mode keeps the recording running across pause so audio and detection timestamps remain continuous; detections are now timestamped at the start of the analyzed window for accurate review playback
+- Recording capture uses a unified clip-context setting and now captures true pre+post audio around each detection
+- Survey detection markers only show the play badge when the audio clip actually exists on disk; markers gain a stronger audio affordance (accent ring, larger badge, grey border for silent markers)
+- Tapping the active play button in session review now pauses playback (works for both Live and Survey clips)
+- Species info overlay now uses fully bundled taxonomy data — eBird link is shown only when an `ebird_code` exists (insects and other non-birds correctly hide it), iNaturalist only when an `inat_id` exists, and Wikipedia only when a bundled URL exists for the active locale
+- eBird link chip uses the Cornell Lab sapsucker silhouette as its icon
+- German UI uses "Detektion" / "Detektionen" instead of "Erkennung" / "Erkennungen" throughout for clearer detection terminology
+
+### Fixed
+- Survey detection clip player honors the pause toggle (previously kept playing when tapping the active play button)
+
+### Privacy / Hardening
+- Verified the app makes no network calls beyond OSM map tiles and OSM Nominatim reverse geocoding (both gated by a single one-time consent); no taxonomy API, no analytics, no telemetry
+- Removed the unused `cached_network_image` dependency and dead taxonomy-API URL helpers (`thumbUrl` / `mediumUrl` getters and the static API base URL) so future code cannot accidentally reintroduce taxonomy-API fetches
+
+## [0.5.4] - 2026-04-22
+
+### Added
+- Survey map markers now show a small play badge on detections whose audio clip was retained, making it visually obvious which icons can be played back
+- Tapping a marker with audio opens a modal player overlay with a spectrogram preview, scrubber, and play/pause controls (replaces the old silent in-place playback)
+
+### Changed
+- Smart sampling: same-spot distance threshold reduced from 500 m to 250 m and a per-species minimum of 3 retained clips is always honored — the first three high-confidence detections of a species always survive, even when they share a spot
+- Survey foreground notification now refreshes about once per second so the lock-screen timer matches actual recording time (session disk persistence stays on its 30 s cadence)
+- Survey "elapsed" / total recorded time now excludes pause/resume gaps. `LiveSession` persists `recordedDurationSeconds`; resumed sessions accumulate active time across segments instead of measuring wall-clock from the original start
+- Detection map widget prefers audio-bearing detections when collapsing duplicates at the same location so the play badge is accurate
+- "Smart" sampling label kept untranslated across all locales (was "Intelligent" / "Inteligente" / etc.) to prevent layout overflow on narrow devices
+
+## [0.5.3] - 2026-04-22
+
+### Changed
+- Onboarding pages use a more compact layout (smaller icons, smaller title, tighter padding) so the Terms & Privacy page — including the Privacy Policy link — fits on one screen on compact devices
+
+## [0.5.2] - 2026-04-22
+
+### Fixed
+- Onboarding dots indicator no longer overflows on narrow displays now that the carousel has 6 pages (smaller dot size, tighter spacing, narrower active dot)
+
 ## [0.5.1] - 2026-04-22
 
 ### Changed

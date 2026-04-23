@@ -9,6 +9,8 @@
 // Privacy: Requires map tile consent (checked via SharedPreferences).
 // =============================================================================
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -197,7 +199,10 @@ class _SurveyMapWidgetState extends ConsumerState<SurveyMapWidget> {
     final markers = <Marker>[];
 
     // Group detections by location to prevent overlapping.
-    // We show each unique species at each location once.
+    // We show each unique species at each location once. When multiple
+    // detections share a spot, prefer the one whose audio clip survived
+    // the sampler AND is still on disk so the map's audio badge is
+    // accurate; otherwise pick the highest-confidence record.
     final detectionsByLocation = <String, DetectionRecord>{};
     for (final det in widget.detections) {
       if (det.latitude == null || det.longitude == null) continue;
@@ -205,7 +210,16 @@ class _SurveyMapWidgetState extends ConsumerState<SurveyMapWidget> {
       final key =
           '${det.latitude!.toStringAsFixed(5)}_${det.longitude!.toStringAsFixed(5)}_${det.scientificName}';
       final existing = detectionsByLocation[key];
-      if (existing == null || det.confidence > existing.confidence) {
+      if (existing == null) {
+        detectionsByLocation[key] = det;
+        continue;
+      }
+      final existingHasAudio = _hasPlayableClip(existing);
+      final candidateHasAudio = _hasPlayableClip(det);
+      if (candidateHasAudio && !existingHasAudio) {
+        detectionsByLocation[key] = det;
+      } else if (candidateHasAudio == existingHasAudio &&
+          det.confidence > existing.confidence) {
         detectionsByLocation[key] = det;
       }
     }
@@ -214,12 +228,15 @@ class _SurveyMapWidgetState extends ConsumerState<SurveyMapWidget> {
       final isHighlighted = widget.highlightedDetection != null &&
           det.scientificName == widget.highlightedDetection!.scientificName &&
           det.timestamp == widget.highlightedDetection!.timestamp;
+      final hasAudio = _hasPlayableClip(det);
 
       markers.add(
         Marker(
           point: LatLng(det.latitude!, det.longitude!),
-          width: isHighlighted ? 44 : 32,
-          height: isHighlighted ? 44 : 32,
+          // Audio markers are rendered with an outer accent ring + corner
+          // play badge, so they need a larger bounding box than silent ones.
+          width: isHighlighted ? (hasAudio ? 56 : 44) : (hasAudio ? 44 : 32),
+          height: isHighlighted ? (hasAudio ? 56 : 44) : (hasAudio ? 44 : 32),
           child: GestureDetector(
             onTap: widget.onMarkerTap != null
                 ? () => widget.onMarkerTap!(det)
@@ -228,6 +245,7 @@ class _SurveyMapWidgetState extends ConsumerState<SurveyMapWidget> {
               scientificName: det.scientificName,
               confidence: det.confidence,
               isHighlighted: isHighlighted,
+              hasAudio: hasAudio,
             ),
           ),
         ),
@@ -380,6 +398,17 @@ class _SurveyMapWidgetState extends ConsumerState<SurveyMapWidget> {
   }
 }
 
+/// Returns true when a detection has a recorded clip that is still on disk.
+/// We must check existence (not just the path) because clips may have been
+/// deleted out-of-band (sampler eviction, manual cleanup, expired temp dir),
+/// and we don't want to render a play badge for a marker whose tap would
+/// silently no-op.
+bool _hasPlayableClip(DetectionRecord det) {
+  final path = det.audioClipPath;
+  if (path == null) return false;
+  return File(path).existsSync();
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Species marker with thumbnail image
 // ─────────────────────────────────────────────────────────────────────────────
@@ -389,19 +418,25 @@ class _SpeciesMarker extends ConsumerWidget {
     required this.scientificName,
     required this.confidence,
     this.isHighlighted = false,
+    this.hasAudio = false,
   });
 
   final String scientificName;
   final double confidence;
   final bool isHighlighted;
+  final bool hasAudio;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final borderColor = confidence >= 0.8
+    // Audio markers use the standard confidence color for the avatar border;
+    // silent markers fall back to a neutral grey so audio-bearing detections
+    // visually stand out at a glance.
+    final confidenceColor = confidence >= 0.8
         ? Colors.green
         : confidence >= 0.5
             ? Colors.amber.shade700
             : Colors.red;
+    final borderColor = hasAudio ? confidenceColor : Colors.grey.shade500;
 
     final size = isHighlighted ? 40.0 : 28.0;
 
@@ -409,7 +444,7 @@ class _SpeciesMarker extends ConsumerWidget {
     final path = taxonomyAsync.valueOrNull?.assetImagePath(scientificName) ??
         'assets/images/dummy_species.png';
 
-    return Container(
+    final avatar = Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
@@ -438,6 +473,73 @@ class _SpeciesMarker extends ConsumerWidget {
                 Icon(Icons.music_note, size: size * 0.45, color: borderColor),
           ),
         ),
+      ),
+    );
+
+    if (!hasAudio) return avatar;
+
+    // Audio-bearing markers get two affordances:
+    //   • An outer accent ring around the avatar so they stand out at low
+    //     zoom even when the corner badge is hard to read.
+    //   • A larger play badge in the bottom-right corner that reads as a
+    //     tappable control on close inspection.
+    const ringWidth = 2.5;
+    final ringColor = Theme.of(context).colorScheme.primary;
+    final badgeSize = (size * 0.55).clamp(14.0, 22.0);
+    final outerSize = size + ringWidth * 2 + 2;
+    final badgeOffset = badgeSize * 0.25;
+
+    return SizedBox(
+      width: outerSize + badgeOffset,
+      height: outerSize + badgeOffset,
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.center,
+        children: [
+          // Accent ring + soft halo behind the avatar.
+          Container(
+            width: outerSize,
+            height: outerSize,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: ringColor, width: ringWidth),
+              boxShadow: [
+                BoxShadow(
+                  color: ringColor.withAlpha(70),
+                  blurRadius: 6,
+                  spreadRadius: 0.5,
+                ),
+              ],
+            ),
+            child: Center(child: avatar),
+          ),
+          // Play badge anchored to the avatar's bottom-right.
+          Positioned(
+            right: 0,
+            bottom: 0,
+            child: Container(
+              width: badgeSize,
+              height: badgeSize,
+              decoration: BoxDecoration(
+                color: ringColor,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 1.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withAlpha(80),
+                    blurRadius: 3,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+              ),
+              child: Icon(
+                Icons.play_arrow_rounded,
+                size: badgeSize * 0.85,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

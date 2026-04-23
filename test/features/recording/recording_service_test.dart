@@ -45,8 +45,8 @@ void main() {
       service = RecordingService(
         ringBuffer: ringBuffer,
         sampleRate: 1000,
-        preBufferSeconds: 1,
-        postBufferSeconds: 1,
+        clipContextSeconds: 0,
+        windowSeconds: 1,
       );
     });
 

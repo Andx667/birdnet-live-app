@@ -7,8 +7,9 @@
 // (required on Android 14+).
 //
 // The persistent notification shows live stats (elapsed time, detection
-// count, distance walked, battery level) and is updated every 30 seconds
-// from the main isolate via [update].
+// count, distance walked, battery level) and is updated about once per
+// second from the main isolate via [update] so the lock-screen timer
+// matches actual recording time.
 //
 // ### Notification layout
 //
@@ -166,6 +167,9 @@ class SurveyNotificationService {
       serviceId: 256,
       notificationTitle: title,
       notificationText: text,
+      notificationIcon: const NotificationIcon(
+        metaDataName: 'com.birdnet.live.notification_icon',
+      ),
       notificationButtons: [
         NotificationButton(id: 'stop', text: _stopButtonText),
         NotificationButton(id: 'open', text: _openButtonText),
@@ -190,6 +194,9 @@ class SurveyNotificationService {
     await FlutterForegroundTask.updateService(
       notificationTitle: title,
       notificationText: text,
+      notificationIcon: const NotificationIcon(
+        metaDataName: 'com.birdnet.live.notification_icon',
+      ),
     );
   }
 

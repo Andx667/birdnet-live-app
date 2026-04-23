@@ -38,7 +38,7 @@ See the [User Guide](user/index.md) for an overview, then open [Getting Started]
 
 BirdNET Live is available as a signed APK for sideloading. Download the latest release from the [GitHub Releases page](https://github.com/birdnet-team/birdnet-live-app/releases/latest), transfer the `.apk` file to your phone, and open it to install. You may need to allow installation from unknown sources in your device settings.
 
-> **Note:** The APK is ~227 MB because it includes the full BirdNET+ audio model (~145 MB) for offline inference.
+> **Note:** The APK is ~237 MB because it includes the full BirdNET+ audio model (~152 MB) for offline inference.
 
 ## For Developers
 

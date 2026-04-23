@@ -106,15 +106,6 @@ class TaxonomySpecies {
       ? 'assets/species_images/$birdnetId.webp'
       : 'assets/images/dummy_species.png';
 
-  /// Thumbnail image URL (150×100 WebP).
-  String get thumbUrl =>
-      'https://birdnet.cornell.edu/taxonomy/api/image/${Uri.encodeComponent(scientificName)}?size=thumb';
-
-  /// Medium image URL (480×320 WebP).
-  String get mediumUrl =>
-      imageUrl ??
-      'https://birdnet.cornell.edu/taxonomy/api/image/${Uri.encodeComponent(scientificName)}?size=medium';
-
   /// eBird species page URL (if eBird code is available).
   String? get ebirdUrl =>
       ebirdCode != null ? 'https://ebird.org/species/$ebirdCode' : null;
@@ -158,14 +149,20 @@ class TaxonomySpecies {
   factory TaxonomySpecies.fromCsvRow(
     Map<String, String> row,
   ) {
-    // Extract localized common names from common_name_* columns.
+    // Extract localized common names from common_name_* columns and
+    // Wikipedia URLs from wikipedia_url_* columns.
     final commonNames = <String, String>{};
+    final wikipediaUrls = <String, String>{};
     for (final entry in row.entries) {
       if (entry.key.startsWith('common_name_') &&
           entry.key != 'common_name_alt' &&
           entry.value.isNotEmpty) {
         final locale = entry.key.substring('common_name_'.length);
         commonNames[locale] = entry.value;
+      } else if (entry.key.startsWith('wikipedia_url_') &&
+          entry.value.isNotEmpty) {
+        final locale = entry.key.substring('wikipedia_url_'.length);
+        wikipediaUrls[locale] = entry.value;
       }
     }
 
@@ -184,6 +181,7 @@ class TaxonomySpecies {
       imageSource: _nonEmpty(row['image_source']),
       descriptionSource: _nonEmpty(row['description_source']),
       commonNames: commonNames.isNotEmpty ? commonNames : null,
+      wikipediaUrls: wikipediaUrls.isNotEmpty ? wikipediaUrls : null,
     );
   }
 

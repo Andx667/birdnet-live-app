@@ -30,8 +30,8 @@ class OnboardingScreen extends ConsumerWidget {
             child: ClipOval(
               child: Image.asset(
                 'assets/images/app-icon.png',
-                width: 80,
-                height: 80,
+                width: 64,
+                height: 64,
                 fit: BoxFit.cover,
               ),
             ),
@@ -88,12 +88,13 @@ class OnboardingScreen extends ConsumerWidget {
         ref.read(onboardingCompleteProvider.notifier).complete();
       },
       dotsDecorator: DotsDecorator(
-        size: const Size(10, 10),
-        activeSize: const Size(22, 10),
+        size: const Size(8, 8),
+        activeSize: const Size(16, 8),
+        spacing: const EdgeInsets.symmetric(horizontal: 3),
         activeColor: theme.colorScheme.primary,
         color: theme.colorScheme.outline,
         activeShape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(5),
+          borderRadius: BorderRadius.circular(4),
         ),
       ),
       controlsPadding: EdgeInsets.fromLTRB(
@@ -109,7 +110,7 @@ class OnboardingScreen extends ConsumerWidget {
     return Center(
       child: Icon(
         icon,
-        size: 80,
+        size: 64,
         color: theme.colorScheme.primary,
       ),
     );
@@ -117,15 +118,16 @@ class OnboardingScreen extends ConsumerWidget {
 
   PageDecoration _pageDecoration(ThemeData theme) {
     return PageDecoration(
-      titleTextStyle: theme.textTheme.headlineMedium!.copyWith(
+      titleTextStyle: theme.textTheme.headlineSmall!.copyWith(
         fontWeight: FontWeight.bold,
         color: theme.colorScheme.onSurface,
       ),
-      bodyTextStyle: theme.textTheme.bodyLarge!.copyWith(
+      bodyTextStyle: theme.textTheme.bodyMedium!.copyWith(
         color: theme.colorScheme.onSurface.withAlpha(200),
       ),
       bodyPadding: const EdgeInsets.symmetric(horizontal: 24),
-      imagePadding: const EdgeInsets.only(top: 32),
+      imagePadding: const EdgeInsets.only(top: 16),
+      titlePadding: const EdgeInsets.only(top: 12, bottom: 12),
     );
   }
 }

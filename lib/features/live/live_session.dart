@@ -297,9 +297,11 @@ class LiveSession {
     this.observerName,
     this.stopReason,
     this.stopReasonValue,
+    int? recordedDurationSeconds,
   })  : detections = detections ?? [],
         annotations = annotations ?? [],
-        gpsTrack = gpsTrack ?? [];
+        gpsTrack = gpsTrack ?? [],
+        _recordedDurationSeconds = recordedDurationSeconds;
 
   /// Unique session identifier (ISO 8601 timestamp-based).
   final String id;
@@ -380,6 +382,24 @@ class LiveSession {
   /// [SessionStopReason.maxDuration]). `null` when not applicable.
   num? stopReasonValue;
 
+  /// Persisted total of seconds during which the session was actively
+  /// recording, **excluding** any pause/resume gaps. `null` for legacy
+  /// sessions saved before this field existed; in that case [duration] is
+  /// used as an approximation. Accumulated by the controller via
+  /// [accumulateRecordedSeconds] each time a recording segment ends.
+  int? _recordedDurationSeconds;
+
+  /// Total recorded seconds, or `null` if not yet tracked.
+  int? get recordedDurationSeconds => _recordedDurationSeconds;
+
+  /// Add [seconds] to the accumulated recorded duration. Called by the
+  /// controller whenever a recording segment ends (manual stop, pause,
+  /// auto-stop, or right before a resume opens a new segment).
+  void accumulateRecordedSeconds(int seconds) {
+    if (seconds <= 0) return;
+    _recordedDurationSeconds = (_recordedDurationSeconds ?? 0) + seconds;
+  }
+
   /// Whether this session is still active (no end time).
   bool get isActive => endTime == null;
 
@@ -397,7 +417,17 @@ class LiveSession {
   }
 
   /// Duration of the session.
-  Duration get duration => (endTime ?? DateTime.now()).difference(startTime);
+  ///
+  /// Prefers the accumulated [recordedDurationSeconds] when available so
+  /// that resumed sessions report their *actual recorded* time rather than
+  /// wall-clock time spanning resume gaps. Falls back to wall-clock for
+  /// legacy sessions and for active sessions before the first segment is
+  /// accumulated.
+  Duration get duration {
+    final recorded = _recordedDurationSeconds;
+    if (recorded != null) return Duration(seconds: recorded);
+    return (endTime ?? DateTime.now()).difference(startTime);
+  }
 
   /// Number of unique species detected.
   int get uniqueSpeciesCount =>
@@ -473,6 +503,8 @@ class LiveSession {
             )
           : null,
       stopReasonValue: json['stopReasonValue'] as num?,
+      recordedDurationSeconds:
+          (json['recordedDurationSeconds'] as num?)?.toInt(),
     );
   }
 
@@ -501,6 +533,8 @@ class LiveSession {
         if (observerName != null) 'observerName': observerName,
         if (stopReason != null) 'stopReason': stopReason!.name,
         if (stopReasonValue != null) 'stopReasonValue': stopReasonValue,
+        if (_recordedDurationSeconds != null)
+          'recordedDurationSeconds': _recordedDurationSeconds,
       };
 
   @override

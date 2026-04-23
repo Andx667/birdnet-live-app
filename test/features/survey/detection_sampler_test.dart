@@ -184,6 +184,7 @@ void main() {
         topN: 5,
         distanceThresholdMeters: 500,
         timeThresholdSeconds: 120,
+        minKeepPerSpecies: 0,
       );
 
       final d1 = await _det('Parus major', 0.5,
@@ -224,6 +225,7 @@ void main() {
         topN: 5,
         distanceThresholdMeters: 500,
         timeThresholdSeconds: 120,
+        minKeepPerSpecies: 0,
       );
 
       final d1 = await _det('Parus major', 0.9,
@@ -270,6 +272,7 @@ void main() {
         topN: 5,
         distanceThresholdMeters: 500,
         timeThresholdSeconds: 120,
+        minKeepPerSpecies: 0,
       );
 
       // No GPS on either record; within the time window â†’ same spot.
@@ -281,6 +284,36 @@ void main() {
       expect(await sampler.onRecordClosed(d2), isTrue);
       expect(d1.audioClipPath, isNull);
       expect(d2.audioClipPath, isNotNull);
+    });
+
+    test('keeps minKeepPerSpecies clips even at the same spot', () async {
+      final sampler = DetectionSampler(
+        mode: SamplingMode.smart,
+        topN: 10,
+        distanceThresholdMeters: 250,
+        timeThresholdSeconds: 120,
+        minKeepPerSpecies: 3,
+      );
+
+      // Three same-spot detections of the same species. With the
+      // minKeepPerSpecies floor, all three should be retained even though
+      // they would otherwise lose a same-spot rivalry.
+      final d1 = await _det('Parus major', 0.5,
+          offset: Duration.zero, latitude: 52.0, longitude: 13.0);
+      final d2 = await _det('Parus major', 0.6,
+          offset: const Duration(seconds: 10), latitude: 52.0, longitude: 13.0);
+      final d3 = await _det('Parus major', 0.7,
+          offset: const Duration(seconds: 20), latitude: 52.0, longitude: 13.0);
+      // Fourth same-spot detection should now lose to the weakest neighbor
+      // because the floor has been met.
+      final d4 = await _det('Parus major', 0.4,
+          offset: const Duration(seconds: 30), latitude: 52.0, longitude: 13.0);
+
+      expect(await sampler.onRecordClosed(d1), isTrue);
+      expect(await sampler.onRecordClosed(d2), isTrue);
+      expect(await sampler.onRecordClosed(d3), isTrue);
+      expect(await sampler.onRecordClosed(d4), isFalse);
+      expect(sampler.keptClipCount, 3);
     });
   });
 }

@@ -1,0 +1,429 @@
+// =============================================================================
+// Clip Player Sheet — Modal player for individual detection audio clips
+// =============================================================================
+//
+// Shown when the user taps a detection marker (e.g. on the survey map) that
+// has a kept audio clip. Decodes the clip, renders a spectrogram preview,
+// and exposes simple play / pause / seek controls. Closing the sheet stops
+// playback and releases the player + decoded image.
+//
+// The sheet is intentionally lightweight: it owns its own [AudioPlayer] and
+// builds a one-shot [ui.Image] of the clip's spectrogram on init. This
+// keeps it independent from the larger session-review pipeline so it can be
+// invoked from any screen that has a [DetectionRecord] with an audio clip.
+// =============================================================================
+
+import 'dart:async';
+import 'dart:io';
+import 'dart:math' as math;
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+
+import 'package:fftea/fftea.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+import 'package:just_audio/just_audio.dart';
+
+import '../../../core/constants/app_constants.dart';
+import '../../explore/explore_providers.dart';
+import '../../live/live_session.dart';
+import '../../recording/audio_decoder.dart';
+import '../../recording/native_audio_decoder.dart';
+import '../../spectrogram/color_maps.dart';
+
+/// Show the modal player for a [detection]'s audio clip.
+///
+/// No-op if the detection has no clip path or the file doesn't exist.
+Future<void> showClipPlayerSheet(
+  BuildContext context, {
+  required DetectionRecord detection,
+}) {
+  final path = detection.audioClipPath;
+  if (path == null || !File(path).existsSync()) {
+    return Future.value();
+  }
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    backgroundColor: Theme.of(context).colorScheme.surface,
+    builder: (_) => _ClipPlayerSheet(detection: detection, clipPath: path),
+  );
+}
+
+class _ClipPlayerSheet extends ConsumerStatefulWidget {
+  const _ClipPlayerSheet({required this.detection, required this.clipPath});
+
+  final DetectionRecord detection;
+  final String clipPath;
+
+  @override
+  ConsumerState<_ClipPlayerSheet> createState() => _ClipPlayerSheetState();
+}
+
+class _ClipPlayerSheetState extends ConsumerState<_ClipPlayerSheet> {
+  final AudioPlayer _player = AudioPlayer();
+  StreamSubscription<Duration>? _posSub;
+  StreamSubscription<PlayerState>? _stateSub;
+
+  ui.Image? _spectrogramImage;
+  bool _decoding = true;
+  Duration _position = Duration.zero;
+  Duration _duration = Duration.zero;
+  bool _isPlaying = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initPlayer();
+    _decodeSpectrogram();
+  }
+
+  Future<void> _initPlayer() async {
+    try {
+      final dur = await _player.setFilePath(widget.clipPath);
+      if (!mounted) return;
+      setState(() => _duration = dur ?? Duration.zero);
+      _posSub = _player.positionStream.listen((p) {
+        if (mounted) setState(() => _position = p);
+      });
+      _stateSub = _player.playerStateStream.listen((s) {
+        if (!mounted) return;
+        setState(() => _isPlaying = s.playing);
+        if (s.processingState == ProcessingState.completed) {
+          _player.pause();
+          _player.seek(Duration.zero);
+        }
+      });
+      await _player.play();
+    } catch (_) {
+      // Playback unavailable — sheet still shows spectrogram + metadata.
+    }
+  }
+
+  Future<void> _decodeSpectrogram() async {
+    try {
+      DecodedAudio audio;
+      if (await AudioDecoder.canDecodeDart(widget.clipPath)) {
+        audio = await AudioDecoder.decodeFile(widget.clipPath);
+      } else {
+        audio = await NativeAudioDecoder.decodeFile(widget.clipPath);
+      }
+      if (!mounted) return;
+      audio = audio.resampleTo(AppConstants.sampleRate);
+      final image = await _buildSpectrogramImage(audio);
+      if (!mounted) {
+        image?.dispose();
+        return;
+      }
+      setState(() {
+        _spectrogramImage = image;
+        _decoding = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _decoding = false);
+    }
+  }
+
+  Future<ui.Image?> _buildSpectrogramImage(DecodedAudio audio) async {
+    const fftSize = 1024;
+    const hop = 256;
+    const maxFreqHz = 16000;
+    const dbFloor = -80.0;
+    const dbCeiling = 0.0;
+
+    if (audio.totalSamples < fftSize) return null;
+    final numCols = (audio.totalSamples - fftSize) ~/ hop + 1;
+    if (numCols <= 0) return null;
+
+    final nyquist = audio.sampleRate / 2;
+    final binCount = fftSize ~/ 2 + 1;
+    final displayBins =
+        (maxFreqHz / nyquist * binCount).round().clamp(1, binCount);
+
+    final lut = SpectrogramColorMap.lut('viridis');
+    final pixels = Uint8List(numCols * displayBins * 4);
+
+    final hann = Float64List(fftSize);
+    final hannFactor = 2.0 * math.pi / fftSize;
+    for (var i = 0; i < fftSize; i++) {
+      hann[i] = 0.5 * (1.0 - math.cos(hannFactor * i));
+    }
+    final fft = FFT(fftSize);
+
+    for (var c = 0; c < numCols; c++) {
+      if (c > 0 && c % 200 == 0) {
+        await Future.delayed(Duration.zero);
+        if (!mounted) return null;
+      }
+      final colSample = c * hop;
+      final chunk = audio.readFloat32(colSample, fftSize);
+      final input = Float64List(fftSize);
+      for (var i = 0; i < fftSize; i++) {
+        input[i] = chunk[i] * hann[i];
+      }
+      final spectrum = fft.realFft(input);
+      for (var bin = 0; bin < displayBins; bin++) {
+        final re = spectrum[bin].x;
+        final im = spectrum[bin].y;
+        final power = re * re + im * im;
+        final db = 10 * math.log(power + 1e-10) / math.ln10;
+        final norm = ((db - dbFloor) / (dbCeiling - dbFloor)).clamp(0.0, 1.0);
+        final y = displayBins - 1 - bin;
+        final pxOffset = (y * numCols + c) * 4;
+        final lutIdx = (norm * 255).round().clamp(0, 255);
+        final color = lut[lutIdx];
+        pixels[pxOffset] = (color >> 16) & 0xFF;
+        pixels[pxOffset + 1] = (color >> 8) & 0xFF;
+        pixels[pxOffset + 2] = color & 0xFF;
+        pixels[pxOffset + 3] = (color >> 24) & 0xFF;
+      }
+    }
+
+    final completer = Completer<ui.Image>();
+    ui.decodeImageFromPixels(
+      pixels,
+      numCols,
+      displayBins,
+      ui.PixelFormat.rgba8888,
+      completer.complete,
+    );
+    return completer.future;
+  }
+
+  @override
+  void dispose() {
+    _posSub?.cancel();
+    _stateSub?.cancel();
+    _player.dispose();
+    _spectrogramImage?.dispose();
+    super.dispose();
+  }
+
+  String _fmt(Duration d) {
+    final mm = d.inMinutes.toString().padLeft(2, '0');
+    final ss = (d.inSeconds % 60).toString().padLeft(2, '0');
+    return '$mm:$ss';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final det = widget.detection;
+    final taxonomyAsync = ref.watch(taxonomyServiceProvider);
+    final imagePath =
+        taxonomyAsync.valueOrNull?.assetImagePath(det.scientificName) ??
+            'assets/images/dummy_species.png';
+    final timeStr = DateFormat('yyyy-MM-dd HH:mm:ss').format(det.timestamp);
+    final scoreColor = det.confidence >= 0.8
+        ? Colors.green
+        : det.confidence >= 0.5
+            ? Colors.amber.shade700
+            : Colors.red;
+
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Header: image + species info.
+            Row(
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: scoreColor, width: 2),
+                  ),
+                  child: ClipOval(
+                    child: Image.asset(
+                      imagePath,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        color: scoreColor.withAlpha(60),
+                        child: Icon(Icons.music_note, color: scoreColor),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        det.commonName,
+                        style: theme.textTheme.titleMedium,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        det.scientificName,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontStyle: FontStyle.italic,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: scoreColor.withAlpha(40),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              det.confidencePercent,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: scoreColor,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              timeStr,
+                              style: theme.textTheme.labelSmall,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // Spectrogram preview.
+            Container(
+              height: 140,
+              decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: _decoding
+                  ? const Center(
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
+                  : _spectrogramImage == null
+                      ? Center(
+                          child: Icon(Icons.graphic_eq,
+                              color: Colors.white.withAlpha(80), size: 32),
+                        )
+                      : LayoutBuilder(
+                          builder: (_, c) => CustomPaint(
+                            size: Size(c.maxWidth, c.maxHeight),
+                            painter: _ClipSpectrogramPainter(
+                              image: _spectrogramImage!,
+                              progress: _duration.inMicroseconds == 0
+                                  ? 0
+                                  : _position.inMicroseconds /
+                                      _duration.inMicroseconds,
+                              accent: theme.colorScheme.primary,
+                            ),
+                          ),
+                        ),
+            ),
+            const SizedBox(height: 8),
+
+            // Scrubber + position.
+            Row(
+              children: [
+                Text(_fmt(_position), style: theme.textTheme.labelSmall),
+                Expanded(
+                  child: Slider(
+                    value: _duration.inMilliseconds == 0
+                        ? 0
+                        : _position.inMilliseconds
+                            .clamp(0, _duration.inMilliseconds)
+                            .toDouble(),
+                    max: _duration.inMilliseconds == 0
+                        ? 1.0
+                        : _duration.inMilliseconds.toDouble(),
+                    onChanged: _duration.inMilliseconds == 0
+                        ? null
+                        : (v) =>
+                            _player.seek(Duration(milliseconds: v.round())),
+                  ),
+                ),
+                Text(_fmt(_duration), style: theme.textTheme.labelSmall),
+              ],
+            ),
+
+            // Play / pause.
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton.filled(
+                  iconSize: 36,
+                  onPressed: () =>
+                      _isPlaying ? _player.pause() : _player.play(),
+                  icon: Icon(_isPlaying
+                      ? Icons.pause_rounded
+                      : Icons.play_arrow_rounded),
+                ),
+                const SizedBox(width: 12),
+                TextButton.icon(
+                  onPressed: () => Navigator.of(context).maybePop(),
+                  icon: const Icon(Icons.close),
+                  label: Text(AppLocalizations.of(context)!.tooltipClose),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ClipSpectrogramPainter extends CustomPainter {
+  _ClipSpectrogramPainter({
+    required this.image,
+    required this.progress,
+    required this.accent,
+  });
+
+  final ui.Image image;
+  final double progress;
+  final Color accent;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final src = Rect.fromLTWH(
+      0,
+      0,
+      image.width.toDouble(),
+      image.height.toDouble(),
+    );
+    final dst = Offset.zero & size;
+    canvas.drawImageRect(image, src, dst, Paint());
+    final x = (progress.clamp(0.0, 1.0)) * size.width;
+    final paint = Paint()
+      ..color = accent
+      ..strokeWidth = 2;
+    canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _ClipSpectrogramPainter old) =>
+      old.image != image || old.progress != progress || old.accent != accent;
+}

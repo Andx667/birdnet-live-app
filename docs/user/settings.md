@@ -95,7 +95,7 @@ Applies logarithmic scaling to the spectrogram for easier visual reading.
 
 ### Clip context
 
-When **Detections only** is active, the app shows **Before** and **After** controls that set how much audio is preserved around each detection.
+When **Detections only** is active, the app shows a single **Clip context** slider (0–5 s) that sets how much audio is preserved on **both sides** of each detection. Each clip is `analysis window + 2 × clip context` long, so with a 3 s analysis window and the default 1 s context the saved clip is 5 s. Setting the context to 2 s yields a 7 s clip (2 s pre-roll + 3 s analyzed audio + 2 s post-roll). Larger values give you more room for visual inspection or external review tools at the cost of disk space; 0 saves only the analyzed window itself.
 
 ### Format
 

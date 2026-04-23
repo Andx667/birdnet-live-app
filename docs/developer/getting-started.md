@@ -56,4 +56,4 @@ flutter build ios        # Build iOS (requires macOS)
 
 ## Model Assets
 
-The ONNX model (~259 MB) is bundled in `assets/models/`. On first launch, it is extracted from the APK to the app's documents directory for direct file access by the inference isolate.
+The ONNX model (~152 MB) is bundled in `assets/models/`. On first launch, it is extracted from the APK to the app's documents directory for direct file access by the inference isolate.

@@ -854,6 +854,7 @@ class _LiveSpectrogram extends ConsumerWidget {
     final maxColumns = (durationSec * sampleRate / hopSize).round();
 
     final logAmplitude = ref.watch(logAmplitudeProvider);
+    final quality = ref.watch(spectrogramQualityProvider);
 
     return SpectrogramWidget(
       ringBuffer: ringBuffer,
@@ -867,6 +868,7 @@ class _LiveSpectrogram extends ConsumerWidget {
       showTimeAxis: false,
       maxDisplayFrequency: maxFreq,
       logAmplitude: logAmplitude,
+      filterQuality: spectrogramFilterQualityFromString(quality),
     );
   }
 }
