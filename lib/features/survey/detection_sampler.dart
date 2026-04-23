@@ -18,9 +18,15 @@
 //     arrival.
 //   * **Smart** — same per-species cap of N, but with spatial distribution.
 //     If a new detection lands at the same "spot" as an already-kept clip
-//     (within distance + time thresholds), only the higher-confidence clip
-//     survives — even if there's still a free slot. This prevents one
-//     stationary singer from grabbing all N slots.
+//     (within distance + time thresholds: 250 m **or** 2 min), only the
+//     higher-confidence clip survives — even if there's still a free slot.
+//     This prevents one stationary singer from grabbing all N slots.
+//
+//     A floor of [minKeepPerSpecies] (default 3) clips per species is
+//     always honored: until that many clips are retained for a species,
+//     same-spot rivalry is bypassed and clips are admitted via the normal
+//     Top N path. This guarantees a few representative recordings even for
+//     birds that only call from one spot.
 //
 // Records always live in the session. Only `audioClipPath` is affected.
 // =============================================================================
@@ -53,8 +59,9 @@ class DetectionSampler {
   DetectionSampler({
     required this.mode,
     this.topN = 10,
-    this.distanceThresholdMeters = 500,
+    this.distanceThresholdMeters = 250,
     this.timeThresholdSeconds = 120,
+    this.minKeepPerSpecies = 3,
   });
 
   /// Active sampling mode.
@@ -68,9 +75,16 @@ class DetectionSampler {
   /// [timeThresholdSeconds] are considered the same spot.
   final double distanceThresholdMeters;
 
-  /// Same-spot time threshold in seconds (Smart mode only). See
-  /// [distanceThresholdMeters].
+  /// Same-spot time threshold in seconds (Smart mode only). Two detections
+  /// closer than [distanceThresholdMeters] **and** within this time window
+  /// are considered the same spot.
   final int timeThresholdSeconds;
+
+  /// Smart mode only: minimum number of clips to retain per species before
+  /// same-spot rivalry kicks in. Until a species has this many kept clips,
+  /// new detections fall through to the standard Top N admission path even
+  /// if a same-spot neighbor exists.
+  final int minKeepPerSpecies;
 
   /// Per-species lists of records whose clips are currently kept on disk,
   /// sorted ascending by confidence (weakest at index 0).
@@ -102,8 +116,10 @@ class DetectionSampler {
     final kept = _keptClips.putIfAbsent(species, () => []);
 
     // Smart mode: check for a same-spot rival first. If one exists, the
-    // contest is between just those two regardless of free slots.
-    if (mode == SamplingMode.smart) {
+    // contest is between just those two regardless of free slots — but
+    // only after the per-species minimum has been met, so the first few
+    // clips of a species always survive.
+    if (mode == SamplingMode.smart && kept.length >= minKeepPerSpecies) {
       final neighbor = _findSameSpot(record, kept);
       if (neighbor != null) {
         if (record.confidence > neighbor.confidence) {
