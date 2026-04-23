@@ -1159,10 +1159,17 @@ class _AddSpeciesOverlayState extends ConsumerState<_AddSpeciesOverlay> {
   late _InsertMode _mode;
   DetectionRecord? _replaceTarget;
 
+  /// True when entered from "Replace this detection" on a specific cluster.
+  /// In this case the mode and target are locked and the mode selector is
+  /// hidden — the user is only choosing the replacement species.
+  bool get _isLockedReplace =>
+      widget.initialMode == _InsertMode.replace &&
+      widget.initialReplaceTarget != null;
+
   @override
   void initState() {
     super.initState();
-    _mode = widget.initialMode ?? _InsertMode.global;
+    _mode = widget.initialMode ?? _InsertMode.atTimestamp;
     _replaceTarget = widget.initialReplaceTarget;
   }
 
@@ -1177,27 +1184,33 @@ class _AddSpeciesOverlayState extends ConsumerState<_AddSpeciesOverlay> {
     if (svc == null) return;
     final geoScores = ref.read(geoScoresProvider).valueOrNull;
     setState(() {
-      if (query.isEmpty) {
+      if (query.trim().isEmpty) {
         _results = [];
         return;
       }
-      // Fetch a larger pool, then sort by geo score + text relevance.
-      final raw = svc.search(query, limit: 200);
+      // Service ranks by text relevance (prefix > word-prefix > substring) and
+      // observation count. We then apply a soft geo bump: among results with
+      // equal text-relevance, prefer species likely to occur at this location.
+      final raw = svc.search(query, limit: 100);
       if (geoScores != null && geoScores.isNotEmpty) {
-        final lower = query.toLowerCase();
-        raw.sort((a, b) {
-          final scoreA = geoScores[a.scientificName] ?? 0.0;
-          final scoreB = geoScores[b.scientificName] ?? 0.0;
-          if (scoreA != scoreB) return scoreB.compareTo(scoreA);
-          final aStarts = a.commonName.toLowerCase().startsWith(lower) ||
-              a.scientificName.toLowerCase().startsWith(lower);
-          final bStarts = b.commonName.toLowerCase().startsWith(lower) ||
-              b.scientificName.toLowerCase().startsWith(lower);
-          if (aStarts != bStarts) return aStarts ? -1 : 1;
-          return a.commonName.compareTo(b.commonName);
-        });
+        // Stable sort: only re-order when one result has a meaningfully higher
+        // geo score than another. Cap influence so a perfect text match is
+        // never demoted by geography alone.
+        final stable = List<TaxonomySpecies>.from(raw);
+        for (var i = 1; i < stable.length; i++) {
+          final cur = stable[i];
+          final prev = stable[i - 1];
+          final scoreCur = geoScores[cur.scientificName] ?? 0.0;
+          final scorePrev = geoScores[prev.scientificName] ?? 0.0;
+          if (scoreCur > 0.5 && scorePrev <= 0.05) {
+            stable[i - 1] = cur;
+            stable[i] = prev;
+          }
+        }
+        _results = stable.take(40).toList();
+      } else {
+        _results = raw.take(40).toList();
       }
-      _results = raw.length > 30 ? raw.sublist(0, 30) : raw;
     });
   }
 
@@ -1221,7 +1234,9 @@ class _AddSpeciesOverlayState extends ConsumerState<_AddSpeciesOverlay> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(l10n.sessionAddSpecies),
+        title: Text(_isLockedReplace
+            ? l10n.sessionReplaceDetection
+            : l10n.sessionAddSpecies),
         leading: IconButton(
           icon: const Icon(Icons.close),
           tooltip: l10n.tooltipClose,
@@ -1230,12 +1245,46 @@ class _AddSpeciesOverlayState extends ConsumerState<_AddSpeciesOverlay> {
       ),
       body: Column(
         children: [
+          // ── Replace-target banner (locked replace mode only) ──
+          if (_isLockedReplace && _replaceTarget != null)
+            _ReplaceTargetBanner(
+              target: _replaceTarget!,
+              speciesLocale: speciesLocale,
+              taxonomy: taxonomyAsync.valueOrNull,
+            ),
+
+          // ── Insert mode selector (add mode only) ──────────
+          if (!_isLockedReplace)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+              child: SegmentedButton<_InsertMode>(
+                segments: [
+                  ButtonSegment(
+                    value: _InsertMode.atTimestamp,
+                    label: Text(l10n.sessionInsertAtTimestamp),
+                    icon: const Icon(Icons.schedule, size: 18),
+                  ),
+                  ButtonSegment(
+                    value: _InsertMode.global,
+                    label: Text(l10n.sessionInsertGlobally),
+                    icon: const Icon(Icons.public, size: 18),
+                  ),
+                ],
+                selected: {_mode},
+                onSelectionChanged: (s) {
+                  HapticFeedback.selectionClick();
+                  setState(() => _mode = s.first);
+                },
+              ),
+            ),
+
           // ── Search field ──────────────────────────────────
           Padding(
             padding: const EdgeInsets.all(12),
             child: TextField(
               controller: _searchController,
               autofocus: true,
+              textInputAction: TextInputAction.search,
               decoration: InputDecoration(
                 hintText: l10n.sessionSearchSpecies,
                 prefixIcon: const Icon(Icons.search),
@@ -1257,118 +1306,247 @@ class _AddSpeciesOverlayState extends ConsumerState<_AddSpeciesOverlay> {
             ),
           ),
 
-          // ── Insert mode selector ──────────────────────────
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: SegmentedButton<_InsertMode>(
-              segments: [
-                ButtonSegment(
-                  value: _InsertMode.global,
-                  label: Text(
-                    l10n.sessionInsertGlobally,
-                    style: const TextStyle(fontSize: 11),
-                  ),
-                  icon: const Icon(Icons.public, size: 16),
-                ),
-                ButtonSegment(
-                  value: _InsertMode.atTimestamp,
-                  label: Text(
-                    l10n.sessionInsertAtTimestamp,
-                    style: const TextStyle(fontSize: 11),
-                  ),
-                  icon: const Icon(Icons.schedule, size: 16),
-                ),
-                ButtonSegment(
-                  value: _InsertMode.replace,
-                  label: Text(
-                    l10n.sessionReplaceDetection,
-                    style: const TextStyle(fontSize: 11),
-                  ),
-                  icon: const Icon(Icons.swap_horiz, size: 16),
-                ),
-              ],
-              selected: {_mode},
-              onSelectionChanged: (s) {
-                HapticFeedback.selectionClick();
-                setState(() => _mode = s.first);
-              },
+          // ── Results / empty state ─────────────────────────
+          Expanded(
+            child: _searchController.text.trim().isEmpty
+                ? _SearchEmptyState(
+                    onPickUnknown: () => _selectSpecies(
+                      DetectionRecord.unknownSpeciesName,
+                      DetectionRecord.unknownCommonName,
+                    ),
+                  )
+                : _results.isEmpty
+                    ? _NoResultsState(query: _searchController.text.trim())
+                    : ListView.separated(
+                        itemCount: _results.length,
+                        separatorBuilder: (_, __) =>
+                            Divider(height: 1, color: theme.dividerColor),
+                        itemBuilder: (context, index) {
+                          final sp = _results[index];
+                          final locName = sp.commonNameForLocale(speciesLocale);
+                          return _SpeciesResultTile(
+                            species: sp,
+                            displayName: locName,
+                            onTap: () => _selectSpecies(
+                              sp.scientificName,
+                              sp.commonName,
+                            ),
+                          );
+                        },
+                      ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Banner shown at the top of the overlay in locked-replace mode, displaying
+/// the detection that will be replaced.
+class _ReplaceTargetBanner extends StatelessWidget {
+  const _ReplaceTargetBanner({
+    required this.target,
+    required this.speciesLocale,
+    required this.taxonomy,
+  });
+
+  final DetectionRecord target;
+  final String speciesLocale;
+  final TaxonomyService? taxonomy;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final species = taxonomy?.lookup(target.scientificName);
+    final locName =
+        species?.commonNameForLocale(speciesLocale) ?? target.commonName;
+    final imagePath =
+        species?.assetImagePath ?? 'assets/images/dummy_species.png';
+
+    return Container(
+      color: theme.colorScheme.surfaceContainerHighest,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.asset(
+              imagePath,
+              width: 56,
+              height: 56,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                width: 56,
+                height: 56,
+                color: theme.colorScheme.surfaceContainerHigh,
+              ),
             ),
           ),
-
-          // ── Replace target picker (shown only in replace mode) ──
-          if (_mode == _InsertMode.replace) ...[
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: DropdownButtonFormField<DetectionRecord>(
-                value: _replaceTarget,
-                decoration: InputDecoration(
-                  labelText: l10n.sessionReplaceDetection,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.sessionReplacingLabel,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
-                items: widget.existingDetections.map((d) {
-                  final locName = taxonomyAsync.valueOrNull
-                          ?.lookup(d.scientificName)
-                          ?.commonNameForLocale(speciesLocale) ??
-                      d.commonName;
-                  return DropdownMenuItem(
-                    value: d,
-                    child: Text(
-                      '$locName (${d.confidencePercent})',
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  );
-                }).toList(),
-                onChanged: (v) => setState(() => _replaceTarget = v),
+                const SizedBox(height: 2),
+                Text(
+                  locName,
+                  style: theme.textTheme.titleSmall
+                      ?.copyWith(fontWeight: FontWeight.w600),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  target.scientificName,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontStyle: FontStyle.italic,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          Icon(
+            Icons.arrow_downward,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Result tile for a species search hit. Shows the bundled thumbnail, the
+/// localized common name, and the scientific name in italics.
+class _SpeciesResultTile extends ConsumerWidget {
+  const _SpeciesResultTile({
+    required this.species,
+    required this.displayName,
+    required this.onTap,
+  });
+
+  final TaxonomySpecies species;
+  final String displayName;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    return ListTile(
+      leading: ClipRRect(
+        borderRadius: BorderRadius.circular(6),
+        child: Image.asset(
+          species.assetImagePath,
+          width: 48,
+          height: 48,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => Container(
+            width: 48,
+            height: 48,
+            color: theme.colorScheme.surfaceContainerHighest,
+            child: Icon(
+              Icons.image_not_supported_outlined,
+              size: 20,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ),
+      title: Text(displayName, overflow: TextOverflow.ellipsis),
+      subtitle: Text(
+        species.scientificName,
+        overflow: TextOverflow.ellipsis,
+        style: theme.textTheme.bodySmall?.copyWith(
+          fontStyle: FontStyle.italic,
+        ),
+      ),
+      onTap: onTap,
+    );
+  }
+}
+
+/// Empty state shown before the user has typed anything: gives a hint and
+/// surfaces the "Unknown / Other" quick action.
+class _SearchEmptyState extends StatelessWidget {
+  const _SearchEmptyState({required this.onPickUnknown});
+
+  final VoidCallback onPickUnknown;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    return ListView(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+          child: Text(
+            l10n.sessionSearchHint,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        const Divider(height: 1),
+        ListTile(
+          leading: Icon(
+            Icons.help_outline,
+            color: theme.colorScheme.tertiary,
+          ),
+          title: Text(l10n.sessionUnknownSpecies),
+          subtitle: Text(
+            DetectionRecord.unknownSpeciesName,
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+          onTap: onPickUnknown,
+        ),
+      ],
+    );
+  }
+}
+
+/// Empty state shown when the search returns no results.
+class _NoResultsState extends StatelessWidget {
+  const _NoResultsState({required this.query});
+
+  final String query;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.search_off,
+              size: 48,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              l10n.sessionNoResultsFor(query),
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
           ],
-
-          const Divider(height: 16),
-
-          // ── Unknown / Other quick action ───────────────────
-          ListTile(
-            leading: Icon(
-              Icons.help_outline,
-              color: theme.colorScheme.tertiary,
-            ),
-            title: Text(l10n.sessionUnknownSpecies),
-            subtitle: Text(
-              DetectionRecord.unknownSpeciesName,
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontStyle: FontStyle.italic,
-              ),
-            ),
-            onTap: () => _selectSpecies(
-              DetectionRecord.unknownSpeciesName,
-              DetectionRecord.unknownCommonName,
-            ),
-          ),
-          const Divider(height: 1),
-
-          // ── Search results ────────────────────────────────
-          Expanded(
-            child: ListView.builder(
-              itemCount: _results.length,
-              itemBuilder: (context, index) {
-                final sp = _results[index];
-                final locName = sp.commonNameForLocale(speciesLocale);
-                return ListTile(
-                  title: Text(locName),
-                  subtitle: Text(
-                    sp.scientificName,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                  onTap: () => _selectSpecies(sp.scientificName, sp.commonName),
-                );
-              },
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

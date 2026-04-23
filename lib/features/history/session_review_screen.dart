@@ -64,6 +64,7 @@ import '../../core/theme/score_colors.dart';
 import '../../shared/models/gps_point.dart';
 import '../../shared/models/taxonomy_species.dart';
 import '../../shared/providers/settings_providers.dart';
+import '../../shared/services/taxonomy_service.dart';
 import '../../shared/widgets/app_help_bottom_sheet.dart';
 import '../../shared/widgets/stat_chip.dart';
 import '../explore/explore_providers.dart';

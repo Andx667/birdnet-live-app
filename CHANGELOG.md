@@ -5,6 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.4] - 2026-04-23
+
+### Changed
+
+- **Onboarding flow rewritten end-to-end.** Replaced the `introduction_screen` package + separate Terms-Of-Use gate (which prompted for ToU twice) with a single custom PageView wizard. Pages now use a compact icon badge instead of an oversized centered icon, giving body text the screen real estate it deserves. The Permissions page is now interactive — tapping Grant on Microphone or Location triggers the actual OS prompt (via `record` and `geolocator`) and shows a green check on success. Terms & Privacy is the final page with an inline "I agree" checkbox; Get Started is disabled until checked, and on finish both `onboardingComplete` and `termsAccepted` are persisted in one shot. Skip jumps directly to the Terms page rather than bypassing acceptance.
+
+### Removed
+
+- `introduction_screen` dependency (no longer needed) and the standalone `TermsGateScreen` (its role is folded into the onboarding flow).
+
+## [0.6.3] - 2026-04-23
+
+### Changed
+
+- **Explore screen header decluttered** — the search bar and group-filter chip row are now hidden by default. Tap the AppBar lens icon to slide in the search field, or the filter icon to reveal the chip row. A small dot on the filter icon indicates when a non-default group filter is active. Toggling one collapses the other so only one control is visible at a time.
+
+## [0.6.2] - 2026-04-23
+
+### Added
+
+- **Explore screen species search** — search field at the top of the Explore screen runs over the full audio-model species list, not only the geo-filtered subset. Matches are split into "At your location" and "Other species" sections so distant species (e.g. Blue Jay or Gray Wolf in Europe) can still be opened to view their info card.
+- **Explore taxonomic group filter** — horizontal chip row to restrict the list to All / Birds / Mammals / Amphibians / Insects. Filter applies to both the geo-likely list and the search results.
+
+## [0.6.1] - 2026-04-23
+
+### Fixed
+
+- **Session review species search** — search now matches localized common names (German, French, Spanish, Czech, Italian, Portuguese), not only English. Results are ranked by text relevance: full-string prefix > word prefix > substring, with observation count as a tie-breaker. Geo-likely species are softly boosted but never demoted from a strong text match.
+- **Multi-token search** — typing multiple words (e.g. "barn owl") now correctly matches species containing all tokens in any order.
+
+### Changed
+
+- **Add/Replace species overlay redesign** — when invoked from "Replace this detection" on a specific cluster, the picker now shows a banner with the detection being replaced (thumbnail, common name, scientific name) and skips the redundant mode selector and dropdown — the user only chooses the new species.
+- **Add species (FAB)** — defaults to "Insert at playback position" (the more useful mode) and drops the unused "Replace" segment from this entry path.
+- **Result tiles** include a 48×48 species thumbnail.
+- **Empty / no-result states** — clear hint when the search field is empty (with "Unknown / Other" surfaced as a quick action) and a friendly "no results" message when nothing matches.
+
 ## [0.6.0] - 2026-04-23
 
 ### Added

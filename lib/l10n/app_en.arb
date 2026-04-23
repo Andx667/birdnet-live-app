@@ -446,6 +446,65 @@
   "@exploreInfoNote": {
     "description": "Short note explaining what the explore species list shows"
   },
+  "exploreSearchHint": "Search species…",
+  "@exploreSearchHint": {
+    "description": "Hint text for the explore screen search field"
+  },
+  "exploreSearchTooltip": "Search",
+  "@exploreSearchTooltip": {
+    "description": "Tooltip for the AppBar search toggle button"
+  },
+  "exploreFilterTooltip": "Filter by group",
+  "@exploreFilterTooltip": {
+    "description": "Tooltip for the AppBar taxonomic group filter toggle button"
+  },
+  "exploreFilterAll": "All",
+  "@exploreFilterAll": {
+    "description": "Taxonomic filter chip — all groups"
+  },
+  "exploreFilterBirds": "Birds",
+  "@exploreFilterBirds": {
+    "description": "Taxonomic filter chip — Aves"
+  },
+  "exploreFilterMammals": "Mammals",
+  "@exploreFilterMammals": {
+    "description": "Taxonomic filter chip — Mammalia"
+  },
+  "exploreFilterAmphibians": "Amphibians",
+  "@exploreFilterAmphibians": {
+    "description": "Taxonomic filter chip — Amphibia"
+  },
+  "exploreFilterInsects": "Insects",
+  "@exploreFilterInsects": {
+    "description": "Taxonomic filter chip — Insecta"
+  },
+  "exploreSectionAtLocation": "At your location ({count})",
+  "@exploreSectionAtLocation": {
+    "description": "Section header for search hits that occur at the user's location",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "exploreSectionElsewhere": "Other species ({count})",
+  "@exploreSectionElsewhere": {
+    "description": "Section header for search hits that do not occur at the user's location",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "exploreNoResultsFor": "No species match \"{query}\".",
+  "@exploreNoResultsFor": {
+    "description": "Empty state when explore search returns nothing",
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
   "settingsLocation": "Location",
   "@settingsLocation": {
     "description": "Location settings section title"
@@ -648,6 +707,23 @@
   "sessionUnknownSpecies": "Unknown / Other",
   "@sessionUnknownSpecies": {
     "description": "Label for the unknown or unidentified species category"
+  },
+  "sessionReplacingLabel": "Replacing",
+  "@sessionReplacingLabel": {
+    "description": "Label shown above the detection being replaced in the species picker"
+  },
+  "sessionSearchHint": "Type a common or scientific name to find a species.",
+  "@sessionSearchHint": {
+    "description": "Helper text shown when the species search field is empty"
+  },
+  "sessionNoResultsFor": "No species match \"{query}\".",
+  "@sessionNoResultsFor": {
+    "description": "Empty state when species search returns nothing",
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
   },
   "sessionAnnotations": "Annotations",
   "@sessionAnnotations": {
