@@ -604,8 +604,14 @@ class _LocationHeaderState extends ConsumerState<_LocationHeader> {
                         ),
                       );
                     }
+                    // Prefer the reverse-geocoded place name; fall back to
+                    // raw lat/lon so we don't waste a second row showing
+                    // both. While geocoding is in flight, show coordinates.
+                    final label = _locationName ??
+                        '${loc.latitude.toStringAsFixed(4)}, '
+                            '${loc.longitude.toStringAsFixed(4)}';
                     return Text(
-                      _locationName ?? l10n.exploreLocating,
+                      label,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurface.withAlpha(150),
                       ),
@@ -635,24 +641,6 @@ class _LocationHeaderState extends ConsumerState<_LocationHeader> {
                 tooltip: l10n.exploreHelpTitle,
               ),
             ],
-          ),
-          // Coordinates row
-          locationAsync.when(
-            data: (loc) {
-              if (loc == null) return const SizedBox.shrink();
-              return Padding(
-                padding: const EdgeInsets.only(left: 24, top: 2),
-                child: Text(
-                  '${loc.latitude.toStringAsFixed(4)}, ${loc.longitude.toStringAsFixed(4)}',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withAlpha(100),
-                    fontSize: 11,
-                  ),
-                ),
-              );
-            },
-            loading: () => const SizedBox.shrink(),
-            error: (_, __) => const SizedBox.shrink(),
           ),
         ],
       ),
