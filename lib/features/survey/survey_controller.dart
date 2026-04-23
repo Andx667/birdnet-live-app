@@ -80,6 +80,7 @@ class SurveyController {
   LiveSession? _session;
   Timer? _inferenceTimer;
   Timer? _persistTimer;
+  Timer? _notificationTimer;
   SurveyGpsTracker? _gpsTracker;
   DetectionSampler? _sampler;
   SurveyState _state = SurveyState.idle;
@@ -107,7 +108,19 @@ class SurveyController {
   final Map<String, DetectionRecord> _activeCardSpecies = {};
 
   static const int _maxInMemoryDetections = 10000;
+  /// How often we persist the session to disk and run the battery check.
+  /// Cheap notification text refresh runs on its own faster cadence (see
+  /// [_notificationIntervalSeconds]) so the lock-screen timer matches the
+  /// recorded time without thrashing storage.
   static const int _persistIntervalSeconds = 30;
+  /// How often the foreground notification body is refreshed.
+  static const int _notificationIntervalSeconds = 1;
+
+  /// Wall-clock time when the current recording segment started. Reset on
+  /// [startSurvey] / [resumeSurvey] and cleared when the survey stops.
+  /// Used together with [LiveSession.recordedDurationSeconds] so that
+  /// pause/resume gaps don't inflate the reported recording duration.
+  DateTime? _segmentStart;
 
   // ── Getters ─────────────────────────────────────────────────────────────
 
@@ -126,10 +139,19 @@ class SurveyController {
 
   bool get isInferring => _inferring;
 
-  /// Elapsed duration since survey start.
-  Duration get elapsed => _session != null
-      ? DateTime.now().difference(_session!.startTime)
-      : Duration.zero;
+  /// Elapsed *recording* duration (excludes pause/resume gaps).
+  ///
+  /// Computed as the persisted [LiveSession.recordedDurationSeconds]
+  /// (accumulated from previous segments) plus the time since the current
+  /// segment started. Falls back to wall-clock when no segment is open.
+  Duration get elapsed {
+    if (_session == null) return Duration.zero;
+    final accumulated = Duration(
+      seconds: _session!.recordedDurationSeconds ?? 0,
+    );
+    if (_segmentStart == null) return accumulated;
+    return accumulated + DateTime.now().difference(_segmentStart!);
+  }
 
   // ── Callbacks ───────────────────────────────────────────────────────────
 
@@ -315,6 +337,9 @@ class SurveyController {
       _maxEndTime = DateTime.now().add(Duration(hours: maxDurationHours));
       _autoStopBattery = autoStopBattery;
 
+      // Open the first recording segment so [elapsed] starts ticking.
+      _segmentStart = DateTime.now();
+
       // Start inference timer.
       final intervalMs = (1000.0 / inferenceRate).round();
       _inferenceTimer = Timer.periodic(
@@ -330,9 +355,15 @@ class SurveyController {
         const Duration(seconds: _persistIntervalSeconds),
         (_) {
           _persistSession();
-          _updateNotification();
           _checkBatteryAutoStop();
         },
+      );
+
+      // Refresh the foreground notification on its own faster cadence so
+      // the lock-screen timer matches the recorded time.
+      _notificationTimer = Timer.periodic(
+        const Duration(seconds: _notificationIntervalSeconds),
+        (_) => _updateNotification(),
       );
 
       // Start foreground service notification.
@@ -448,6 +479,10 @@ class SurveyController {
       _maxEndTime = DateTime.now().add(Duration(hours: maxDurationHours));
       _autoStopBattery = autoStopBattery;
 
+      // Open a new recording segment. Any previously accumulated time on
+      // the session is preserved via [LiveSession.recordedDurationSeconds].
+      _segmentStart = DateTime.now();
+
       final intervalMs = (1000.0 / inferenceRate).round();
       _inferenceTimer = Timer.periodic(
         Duration(milliseconds: intervalMs),
@@ -461,9 +496,13 @@ class SurveyController {
         const Duration(seconds: _persistIntervalSeconds),
         (_) {
           _persistSession();
-          _updateNotification();
           _checkBatteryAutoStop();
         },
+      );
+
+      _notificationTimer = Timer.periodic(
+        const Duration(seconds: _notificationIntervalSeconds),
+        (_) => _updateNotification(),
       );
 
       await _notificationService.start(
@@ -491,6 +530,8 @@ class SurveyController {
     _inferenceTimer = null;
     _persistTimer?.cancel();
     _persistTimer = null;
+    _notificationTimer?.cancel();
+    _notificationTimer = null;
 
     await _notificationService.stop();
     await _gpsTracker?.stopTracking();
@@ -499,6 +540,7 @@ class SurveyController {
     _gpsTracker = null;
     _sampler = null;
     _maxEndTime = null;
+    _segmentStart = null;
     _inferring = false;
     _session = null;
     _sessionDetections.clear();
@@ -518,6 +560,12 @@ class SurveyController {
     _inferenceTimer = null;
     _persistTimer?.cancel();
     _persistTimer = null;
+    _notificationTimer?.cancel();
+    _notificationTimer = null;
+
+    // Close the active recording segment so that the time spent recording
+    // since the last persist tick is counted in the final duration.
+    _closeRecordingSegment();
 
     // Stop foreground service notification.
     await _notificationService.stop();
@@ -621,6 +669,7 @@ class SurveyController {
   Future<void> dispose() async {
     _inferenceTimer?.cancel();
     _persistTimer?.cancel();
+    _notificationTimer?.cancel();
     await _gpsTracker?.stopTracking();
     await _isolate.stop();
     recordingService.dispose();
@@ -810,9 +859,27 @@ class SurveyController {
 
   // ── Persistence ─────────────────────────────────────────────────────────
 
+  /// Accumulate the time elapsed since [_segmentStart] into the session's
+  /// recorded duration and clear [_segmentStart]. Safe to call multiple
+  /// times — a no-op when no segment is open.
+  void _closeRecordingSegment() {
+    final start = _segmentStart;
+    final session = _session;
+    if (start == null || session == null) return;
+    final secs = DateTime.now().difference(start).inSeconds;
+    if (secs > 0) session.accumulateRecordedSeconds(secs);
+    _segmentStart = null;
+  }
+
   Future<void> _persistSession() async {
     if (_session == null) return;
     try {
+      // Roll the segment forward so the persisted recordedDurationSeconds
+      // reflects time recorded since the last persist tick. We immediately
+      // open a new segment so [elapsed] keeps ticking smoothly.
+      _closeRecordingSegment();
+      _segmentStart = DateTime.now();
+
       final appDir = await getApplicationDocumentsDirectory();
       final sessionsDir = Directory('${appDir.path}/sessions');
       if (!sessionsDir.existsSync()) {

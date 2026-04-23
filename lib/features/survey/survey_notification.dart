@@ -7,8 +7,9 @@
 // (required on Android 14+).
 //
 // The persistent notification shows live stats (elapsed time, detection
-// count, distance walked, battery level) and is updated every 30 seconds
-// from the main isolate via [update].
+// count, distance walked, battery level) and is updated about once per
+// second from the main isolate via [update] so the lock-screen timer
+// matches actual recording time.
 //
 // ### Notification layout
 //
