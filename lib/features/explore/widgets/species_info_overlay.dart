@@ -385,14 +385,12 @@ class _LinkChip extends StatelessWidget {
     final theme = Theme.of(context);
 
     return ActionChip(
-      avatar: ClipOval(
-        child: Image.asset(
-          iconAsset,
-          width: 18,
-          height: 18,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => const Icon(Icons.public, size: 18),
-        ),
+      avatar: Image.asset(
+        iconAsset,
+        width: 18,
+        height: 18,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => const Icon(Icons.public, size: 18),
       ),
       label: Row(
         mainAxisSize: MainAxisSize.min,
