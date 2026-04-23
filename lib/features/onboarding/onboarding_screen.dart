@@ -151,8 +151,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     duration: const Duration(milliseconds: 200),
                     opacity: _page < _termsPageIndex ? 1 : 0,
                     child: TextButton(
-                      onPressed:
-                          _page < _termsPageIndex ? _skipToTerms : null,
+                      onPressed: _page < _termsPageIndex ? _skipToTerms : null,
                       child: Text(l10n.skip),
                     ),
                   ),
@@ -277,8 +276,7 @@ class _ControlsBar extends StatelessWidget {
           SizedBox(
             height: 50,
             child: FilledButton(
-              onPressed:
-                  isFinalPage ? (canFinish ? onFinish : null) : onNext,
+              onPressed: isFinalPage ? (canFinish ? onFinish : null) : onNext,
               child: Text(
                 isFinalPage ? l10n.getStarted : l10n.next,
                 style: const TextStyle(fontWeight: FontWeight.w600),
