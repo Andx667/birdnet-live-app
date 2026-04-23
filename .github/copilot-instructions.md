@@ -97,13 +97,13 @@ flutter test             # Run unit tests
 flutter gen-l10n         # Regenerate localization (auto on build)
 dart dev/sync_version.dart    # Propagate pubspec version to README badge
 flutter run              # Run on connected device
-flutter build apk --release   # Release APK (~185 MB)
+flutter build apk --release   # Release APK (~237 MB)
 flutter build appbundle       # Android App Bundle (preferred for Play Store)
 ```
 
 ### Release Build Notes
 
-- **Release APK is ~185 MB** (vs ~420 MB debug). The audio ONNX model (145 MB, stored uncompressed for memory-mapping) accounts for ~78%.
+- **Release APK is ~237 MB** (App Bundle ~204 MB). The audio ONNX model (~152 MB, stored uncompressed for memory-mapping) plus bundled species images (~44 MB) and description data (~3 MB) account for most of the size.
 - **ABI filter**: Only `arm64-v8a` is included (`android/app/build.gradle`). No 32-bit ARM or x86 native libs are shipped.
 - **R8 shrink + minify** is enabled for release builds. ProGuard rules in `android/app/proguard-rules.pro` keep ONNX Runtime JNI bindings.
 - **Test fixtures** (`assets/test_fixtures/`) are **not bundled** in the APK. For integration tests, push them to the device first:

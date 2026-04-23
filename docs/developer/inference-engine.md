@@ -34,7 +34,7 @@ Runs `InferenceService` in a background Dart isolate:
 - `infer(audioSamples)` — send request via `SendPort`, await response
 - `stop()` — kill isolate and clean up
 
-The model file path (not bytes) is sent to the isolate to avoid serializing ~259 MB.
+The model file path (not bytes) is sent to the isolate to avoid serializing ~152 MB.
 
 ## Geo-Model
 

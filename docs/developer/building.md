@@ -38,5 +38,5 @@ flutter build windows --release
 
 ## Notes
 
-- The ONNX model (~259 MB) is bundled as a Flutter asset. APK/IPA sizes will be large.
+- The ONNX model (~152 MB) is bundled as a Flutter asset. APK/IPA sizes will be large.
 - ONNX Runtime native libraries are platform-specific and handled by the `onnxruntime` package.
