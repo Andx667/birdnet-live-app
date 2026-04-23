@@ -156,7 +156,13 @@ class InferenceService {
     final k = topK ?? cfg.inference.defaultTopK;
 
     final windowSamples = sampleRate * ws;
-    final now = DateTime.now();
+    // Stamp the detection at the START of the analyzed audio window
+    // (not at the end of inference). The provided [audioSamples] cover
+    // approximately the last [ws] seconds before now, so the earliest
+    // sample corresponds to (now - ws). Using this start-of-window
+    // timestamp keeps the session-review offsets and the audio playhead
+    // aligned with where the call actually is in the recording.
+    final now = DateTime.now().subtract(Duration(seconds: ws));
 
     // Run model.
     final output = await _model.predict(
