@@ -604,6 +604,7 @@ class _SpeciesTile extends ConsumerWidget {
     required this.onDeleteCluster,
     required this.onReplaceCluster,
     this.activePositionSec,
+    this.activeCluster,
     this.onPause,
     this.clipOffsetSec = 0.0,
     this.windowSec = 3,
@@ -621,6 +622,11 @@ class _SpeciesTile extends ConsumerWidget {
   /// `null` when no audio is available / not playing. Used to highlight
   /// the cluster currently being heard.
   final double? activePositionSec;
+
+  /// Cluster currently being played via a per-detection clip player
+  /// (used in survey review where there is no full recording). Matched
+  /// by identity to highlight the active row.
+  final _DetectionCluster? activeCluster;
 
   /// Offset (in seconds) of the loaded audio clip relative to the
   /// session start. Detection-only mode loads short clips; this lets
@@ -900,6 +906,7 @@ class _SpeciesTile extends ConsumerWidget {
   /// Returns `false` when there is no active position — the cluster row
   /// stays in its idle styling.
   bool _isClusterActive(_DetectionCluster cluster) {
+    if (identical(activeCluster, cluster)) return true;
     final pos = activePositionSec;
     if (pos == null) return false;
     for (final r in cluster.records) {

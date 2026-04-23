@@ -106,10 +106,16 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
   final AudioPlayer _clipPlayer = AudioPlayer();
   StreamSubscription<Duration>? _positionSubscription;
   StreamSubscription<PlayerState>? _playerStateSubscription;
+  StreamSubscription<PlayerState>? _clipPlayerStateSubscription;
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
   bool _isPlaying = false;
   bool _audioAvailable = false;
+
+  /// Cluster currently being played via [_clipPlayer] (survey mode
+  /// without a full recording). Used to highlight the active row and
+  /// route taps on it to a pause action.
+  _DetectionCluster? _activeClipCluster;
 
   /// When set, playback automatically pauses once [_position] reaches
   /// this value. Set by [_seekToCluster] so a single-cluster playback
@@ -522,6 +528,7 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
   void dispose() {
     _positionSubscription?.cancel();
     _playerStateSubscription?.cancel();
+    _clipPlayerStateSubscription?.cancel();
     if (!identical(_spectrogramImage, _fullSpectrogramImage)) {
       _spectrogramImage?.dispose();
     }
@@ -1010,6 +1017,17 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
     if (clip == null) return;
     await _clipPlayer.stop();
     await _clipPlayer.setFilePath(clip.audioClipPath!);
+    setState(() => _activeClipCluster = cluster);
+    _clipPlayerStateSubscription ??=
+        _clipPlayer.playerStateStream.listen((state) {
+      if (!mounted) return;
+      if (!state.playing ||
+          state.processingState == ProcessingState.completed) {
+        if (_activeClipCluster != null) {
+          setState(() => _activeClipCluster = null);
+        }
+      }
+    });
     _clipPlayer.play();
   }
 
@@ -1027,6 +1045,10 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
   void _pausePlayer() {
     _autoStopPosition = null;
     if (_isPlaying) _player.pause();
+    if (_clipPlayer.playing) _clipPlayer.pause();
+    if (_activeClipCluster != null) {
+      setState(() => _activeClipCluster = null);
+    }
   }
 
   // ── Add Content Menu ──────────────────────────────────────────────
@@ -1557,13 +1579,16 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
       itemBuilder: (context, index) {
         final group = _filteredSpeciesGroups[index];
         final isExpanded = _expandedSpecies.contains(group.scientificName);
-        final isActive = _isSpeciesActive(group);
+        final isActive = _isSpeciesActive(group) ||
+            (_activeClipCluster != null &&
+                group.clusters.contains(_activeClipCluster));
         return _SpeciesTile(
           group: group,
           sessionStart: widget.session.startTime,
           isExpanded: isExpanded,
           isActive: isActive,
           activePositionSec: _isPlaying ? _position.inMicroseconds / 1e6 : null,
+          activeCluster: _activeClipCluster,
           clipOffsetSec: _clipOffsetSec,
           windowSec: widget.session.settings.windowDuration,
           isSurvey: widget.session.type == SessionType.survey,

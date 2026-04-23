@@ -76,6 +76,7 @@ abstract final class PrefKeys {
   // Recording settings
   static const String recordingFormat = 'recording_format';
   static const String recordingMode = 'recording_mode';
+
   /// Seconds of audio captured before AND after each detection window.
   /// Total clip length = analysis window (e.g. 3 s) + 2 × clipContext.
   static const String clipContext = 'clip_context';
@@ -104,6 +105,7 @@ abstract final class PrefKeys {
   static const String surveyMaxDuration = 'survey_max_duration';
   static const String surveyAutoStopBattery = 'survey_auto_stop_battery';
   static const String surveyRecordingMode = 'survey_recording_mode';
+
   /// Seconds of audio captured before AND after each detection window
   /// in survey mode. Total clip = analysis window + 2 × surveyClipContext.
   static const String surveyClipContext = 'survey_clip_context';

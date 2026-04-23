@@ -697,9 +697,8 @@ class _ParametersStep extends ConsumerWidget {
               max: 5,
               divisions: 5,
               label: '±${clipContext}s',
-              onChanged: (v) => ref
-                  .read(surveyClipContextProvider.notifier)
-                  .set(v.round()),
+              onChanged: (v) =>
+                  ref.read(surveyClipContextProvider.notifier).set(v.round()),
             ),
           ),
         ],
