@@ -173,22 +173,8 @@ void main() {
   // ─────────────────────────────────────────────────────────────────────────
 
   group('TaxonomyService URL builders', () {
-    test('thumbUrl encodes scientific name', () {
-      final url = TaxonomyService.thumbUrl('Parus major');
-      expect(url, contains('Parus%20major'));
-      expect(url, contains('size=thumb'));
-      expect(url, startsWith('https://birdnet.cornell.edu/taxonomy/api/'));
-    });
-
-    test('mediumUrl encodes scientific name', () {
-      final url = TaxonomyService.mediumUrl('Parus major');
-      expect(url, contains('Parus%20major'));
-      expect(url, contains('size=medium'));
-    });
-
-    test('URL encodes special characters', () {
-      final url = TaxonomyService.thumbUrl("Corvus corone/cornix");
-      expect(url, contains(Uri.encodeComponent("Corvus corone/cornix")));
-    });
-  });
+    // Removed: TaxonomyService no longer ships taxonomy-API URL helpers.
+    // The app is fully offline for species data; only OSM tile/geocoding
+    // network calls exist (gated by user consent).
+  }, skip: true);
 }
