@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.6] - 2026-04-24
+
+### Added
+
+- **Session library cards now show on-disk audio size** as a fourth stat chip. The value is the total of the continuous recording (live, point count, file analysis) plus all per-detection clips (survey), so you can spot heavy sessions at a glance before exporting or deleting. Sessions with no audio on disk silently omit the chip.
+
+### Fixed
+
+- **Species names are now localized and respect the "Show scientific names" setting in every place a detection is rendered.** The fullscreen survey-map clip-player sheet showed the English common name and always the sci name; the survey live-screen summary species list, the session library's grouped-by-species view subtitles, and the add/replace-species overlay banner + result tiles had the same gaps. All of them now go through the taxonomy lookup with the active species locale and hide the sci name when the setting is off.
+
 ## [0.6.5] - 2026-04-24
 
 ### Fixed

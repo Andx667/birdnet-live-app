@@ -1350,7 +1350,7 @@ class _AddSpeciesOverlayState extends ConsumerState<_AddSpeciesOverlay> {
 
 /// Banner shown at the top of the overlay in locked-replace mode, displaying
 /// the detection that will be replaced.
-class _ReplaceTargetBanner extends StatelessWidget {
+class _ReplaceTargetBanner extends ConsumerWidget {
   const _ReplaceTargetBanner({
     required this.target,
     required this.speciesLocale,
@@ -1362,9 +1362,10 @@ class _ReplaceTargetBanner extends StatelessWidget {
   final TaxonomyService? taxonomy;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
+    final showSciNames = ref.watch(showSciNamesProvider);
     final species = taxonomy?.lookup(target.scientificName);
     final locName =
         species?.commonNameForLocale(speciesLocale) ?? target.commonName;
@@ -1408,14 +1409,15 @@ class _ReplaceTargetBanner extends StatelessWidget {
                       ?.copyWith(fontWeight: FontWeight.w600),
                   overflow: TextOverflow.ellipsis,
                 ),
-                Text(
-                  target.scientificName,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontStyle: FontStyle.italic,
-                    color: theme.colorScheme.onSurfaceVariant,
+                if (showSciNames)
+                  Text(
+                    target.scientificName,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontStyle: FontStyle.italic,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  overflow: TextOverflow.ellipsis,
-                ),
               ],
             ),
           ),
@@ -1445,6 +1447,7 @@ class _SpeciesResultTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final showSciNames = ref.watch(showSciNamesProvider);
     return ListTile(
       leading: ClipRRect(
         borderRadius: BorderRadius.circular(6),
@@ -1466,13 +1469,15 @@ class _SpeciesResultTile extends ConsumerWidget {
         ),
       ),
       title: Text(displayName, overflow: TextOverflow.ellipsis),
-      subtitle: Text(
-        species.scientificName,
-        overflow: TextOverflow.ellipsis,
-        style: theme.textTheme.bodySmall?.copyWith(
-          fontStyle: FontStyle.italic,
-        ),
-      ),
+      subtitle: showSciNames
+          ? Text(
+              species.scientificName,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontStyle: FontStyle.italic,
+              ),
+            )
+          : null,
       onTap: onTap,
     );
   }

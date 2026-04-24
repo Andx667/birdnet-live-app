@@ -603,15 +603,18 @@ class _SurveySpectrogram extends ConsumerWidget {
 // Survey Summary Tab
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _SurveySummaryTab extends StatelessWidget {
+class _SurveySummaryTab extends ConsumerWidget {
   const _SurveySummaryTab({required this.session});
 
   final LiveSession? session;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
+    final speciesLocale = ref.watch(effectiveSpeciesLocaleProvider);
+    final taxonomy = ref.watch(taxonomyServiceProvider).valueOrNull;
+    final showSciNames = ref.watch(showSciNamesProvider);
 
     if (session == null) {
       return Center(
@@ -712,11 +715,29 @@ class _SurveySummaryTab extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(
-                    sp.commonName,
-                    style: theme.textTheme.bodySmall,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        taxonomy
+                                ?.lookup(sp.scientificName)
+                                ?.commonNameForLocale(speciesLocale) ??
+                            sp.commonName,
+                        style: theme.textTheme.bodySmall,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (showSciNames)
+                        Text(
+                          sp.scientificName,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            fontStyle: FontStyle.italic,
+                            color: theme.colorScheme.onSurface.withAlpha(140),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                    ],
                   ),
                 ),
                 Text(

@@ -27,6 +27,7 @@ import 'package:intl/intl.dart';
 import 'package:just_audio/just_audio.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../shared/providers/settings_providers.dart';
 import '../../explore/explore_providers.dart';
 import '../../live/live_session.dart';
 import '../../recording/audio_decoder.dart';
@@ -213,9 +214,18 @@ class _ClipPlayerSheetState extends ConsumerState<_ClipPlayerSheet> {
     final theme = Theme.of(context);
     final det = widget.detection;
     final taxonomyAsync = ref.watch(taxonomyServiceProvider);
+    final speciesLocale = ref.watch(effectiveSpeciesLocaleProvider);
+    final showSciNames = ref.watch(showSciNamesProvider);
     final imagePath =
         taxonomyAsync.valueOrNull?.assetImagePath(det.scientificName) ??
             'assets/images/dummy_species.png';
+    // Resolve the localized common name from the taxonomy when available;
+    // fall back to whatever was stored on the record (English at detection
+    // time) so legacy or unknown species still render something.
+    final displayName = taxonomyAsync.valueOrNull
+            ?.lookup(det.scientificName)
+            ?.commonNameForLocale(speciesLocale) ??
+        det.commonName;
     final timeStr = DateFormat('yyyy-MM-dd HH:mm:ss').format(det.timestamp);
     final scoreColor = det.confidence >= 0.8
         ? Colors.green
@@ -258,19 +268,20 @@ class _ClipPlayerSheetState extends ConsumerState<_ClipPlayerSheet> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        det.commonName,
+                        displayName,
                         style: theme.textTheme.titleMedium,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      Text(
-                        det.scientificName,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontStyle: FontStyle.italic,
+                      if (showSciNames)
+                        Text(
+                          det.scientificName,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontStyle: FontStyle.italic,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
                       const SizedBox(height: 2),
                       Row(
                         children: [
