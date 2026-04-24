@@ -40,6 +40,7 @@
 // =============================================================================
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
@@ -57,7 +58,9 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../core/theme/score_colors.dart';
@@ -728,10 +731,62 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
       taxonomy: taxonomy,
       speciesLocale: speciesLocale,
       clipContextSecondsOverride: clipContextOverride,
+      metadata: await _buildExportMetadata(speciesLocale: speciesLocale),
     );
 
     if (exportPath == null) return;
     await Share.shareXFiles([XFile(exportPath)]);
+  }
+
+  /// Assembles the provenance metadata block embedded in JSON exports and
+  /// dropped as `<prefix>.metadata.json` inside ZIP bundles.
+  ///
+  /// Captures the app version + build, both ONNX model blocks from
+  /// `model_config.json`, and a snapshot of every SharedPreferences key/value
+  /// at export time. Failures (e.g. missing platform plugin in tests, model
+  /// asset moved) are non-fatal — we return a best-effort map and let the
+  /// export continue.
+  Future<Map<String, dynamic>> _buildExportMetadata({
+    required String speciesLocale,
+  }) async {
+    String? appVersion;
+    String? appBuildNumber;
+    String? appPackageName;
+    try {
+      final info = await PackageInfo.fromPlatform();
+      appVersion = info.version;
+      appBuildNumber = info.buildNumber;
+      appPackageName = info.packageName;
+    } catch (_) {/* non-fatal */}
+
+    Map<String, dynamic>? audioModel;
+    Map<String, dynamic>? geoModel;
+    try {
+      final raw = await rootBundle
+          .loadString(AppConstants.modelConfigAssetPath);
+      final decoded = json.decode(raw) as Map<String, dynamic>;
+      final am = decoded['audioModel'];
+      if (am is Map) audioModel = Map<String, dynamic>.from(am);
+      final gm = decoded['geoModel'];
+      if (gm is Map) geoModel = Map<String, dynamic>.from(gm);
+    } catch (_) {/* non-fatal */}
+
+    Map<String, dynamic>? prefsMap;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final keys = prefs.getKeys().toList()..sort();
+      prefsMap = {for (final k in keys) k: prefs.get(k)};
+    } catch (_) {/* non-fatal */}
+
+    return buildExportMetadata(
+      appVersion: appVersion,
+      appBuildNumber: appBuildNumber,
+      appPackageName: appPackageName,
+      audioModel: audioModel,
+      geoModel: geoModel,
+      prefs: prefsMap,
+      speciesLocale: speciesLocale,
+    );
   }
 
   void _done() {

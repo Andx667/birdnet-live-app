@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.9] - 2026-04-24
+
+### Added
+
+- **Every session export now ships with full provenance metadata.** ZIP bundles always include a `<prefix>.metadata.json` side-file alongside the audio and selection table, and JSON exports gain a top-level `meta` block. The metadata captures the app version and build number, the audio and geo model names/versions from `model_config.json`, the species locale used to localize labels, the export timestamp (UTC), and a verbatim snapshot of every SharedPreferences setting at the moment of export. This makes exports self-describing — an analyst opening a survey ZIP months later (or receiving one from another recordist) can answer exactly which app version, which model, and which user settings produced the detections without having to ask. Critical for scientific reproducibility, especially when sharing survey data between researchers.
+
 ## [0.6.8] - 2026-04-24
 
 ### Fixed

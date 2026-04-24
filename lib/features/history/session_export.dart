@@ -301,9 +301,50 @@ String buildCsvExport(
   return buf.toString();
 }
 
+/// Builds the provenance metadata block embedded in JSON exports and
+/// written to `<prefix>.metadata.json` inside ZIP bundles.
+///
+/// The block records *what produced this export* so an analyst opening it
+/// months later can answer: which app version, which model, which user
+/// settings. All fields are optional — callers pass whatever they have.
+///
+/// `prefs` should be a flat map of every relevant SharedPreferences key/value
+/// (the caller supplies it; the export module has no Riverpod / SharedPrefs
+/// dependency on purpose). `audioModel` typically contains `name`, `version`,
+/// `description`, `speciesCount`, `sampleRate` from `model_config.json`.
+Map<String, dynamic> buildExportMetadata({
+  String? appVersion,
+  String? appBuildNumber,
+  String? appPackageName,
+  Map<String, dynamic>? audioModel,
+  Map<String, dynamic>? geoModel,
+  Map<String, dynamic>? prefs,
+  String? speciesLocale,
+}) {
+  return {
+    'exportedAt': DateTime.now().toUtc().toIso8601String(),
+    'app': {
+      'name': 'BirdNET Live',
+      if (appVersion != null) 'version': appVersion,
+      if (appBuildNumber != null) 'buildNumber': appBuildNumber,
+      if (appPackageName != null) 'packageName': appPackageName,
+    },
+    if (audioModel != null) 'audioModel': audioModel,
+    if (geoModel != null) 'geoModel': geoModel,
+    if (speciesLocale != null) 'speciesLocale': speciesLocale,
+    if (prefs != null && prefs.isNotEmpty) 'settings': prefs,
+  };
+}
+
 /// Generates a JSON representation of the session and its detections.
-String buildJsonExport(LiveSession session) {
+///
+/// When [metadata] is provided it is embedded under a top-level `meta` key.
+String buildJsonExport(
+  LiveSession session, {
+  Map<String, dynamic>? metadata,
+}) {
   final map = {
+    if (metadata != null) 'meta': metadata,
     'session': session.displayName,
     if (session.customName != null && session.customName!.isNotEmpty)
       'customName': session.customName,
@@ -366,6 +407,7 @@ Future<String?> buildSessionExport(
   TaxonomyService? taxonomy,
   String speciesLocale = 'en',
   int? clipContextSecondsOverride,
+  Map<String, dynamic>? metadata,
 }) async {
   final prefix = _exportPrefix(session);
   final audioPath = session.recordingPath;
@@ -432,7 +474,7 @@ Future<String?> buildSessionExport(
       extension = '.csv';
       break;
     case 'json':
-      fileContent = buildJsonExport(session);
+      fileContent = buildJsonExport(session, metadata: metadata);
       extension = '.json';
       break;
     case 'gpx':
@@ -476,6 +518,32 @@ Future<String?> buildSessionExport(
     archive.addFile(
       ArchiveFile('$prefix$extension', bytes.length, bytes),
     );
+
+    // Always drop a metadata side-file when the caller provided one, so
+    // the provenance information travels with the bundle regardless of
+    // which document format the user picked (Raven / CSV / GPX).
+    if (metadata != null) {
+      final metaJson =
+          const JsonEncoder.withIndent('  ').convert(metadata);
+      final metaBytes = Uint8List.fromList(utf8.encode(metaJson));
+      archive.addFile(
+        ArchiveFile(
+            '$prefix.metadata.json', metaBytes.length, metaBytes),
+      );
+    }
+
+    // Always drop a metadata side-file when the caller provided one, so
+    // the provenance information travels with the bundle regardless of
+    // which document format the user picked (Raven / CSV / GPX).
+    if (metadata != null) {
+      final metaJson =
+          const JsonEncoder.withIndent('  ').convert(metadata);
+      final metaBytes = Uint8List.fromList(utf8.encode(metaJson));
+      archive.addFile(
+        ArchiveFile(
+            '$prefix.metadata.json', metaBytes.length, metaBytes),
+      );
+    }
 
     if (session.annotations.isNotEmpty) {
       final annotationsTxt = _buildAnnotationsText(session);
