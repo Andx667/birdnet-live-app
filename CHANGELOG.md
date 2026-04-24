@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.1] - 2026-04-25
+
+### Changed
+
+- **Species-alerts wizard step is now a real, finished UX.** The setup screen for the new push alerts has been rebuilt: a *Minimum confidence* slider sits below the mode picker and is automatically floored to your session confidence threshold (alerts can never be more sensitive than the detections themselves). The advanced *Frequency control* section now uses one-tap chip selectors for startup grace (Off / 30 s / 1 m / 2 m / 5 m), minimum interval (Off / 5 / 15 / 30 / 60 s) and per-minute cap (1 / 3 / 5 / 10 / Unlimited) instead of free-form integer text fields. The rare-species slider gained a live readout — *"Alerts on species with under 5 % likelihood at this location."* — so you understand what the slider position will actually do before you start the survey. A help button in the step header opens an in-context bottom sheet explaining the alert modes and the throttling rules.
+- **Watchlist creation and management directly in the wizard.** Previously the Watchlist alert mode was a dead end if you hadn't already created a list — and there was no way *anywhere* in the app to create one. The wizard now lists all saved watchlists as selectable tiles with a species count, lets you delete lists with a confirmation dialog, and exposes a *New watchlist* button that opens an inline editor for naming a list and pasting a block of scientific names (one per line) straight from your clipboard. Picking Watchlist mode without selecting a list now blocks the Next button with a clear inline error.
+
+### Added
+
+- **Notification-permission prompt on mode change.** Picking any non-Off alert mode in the wizard now triggers the Android notification-permission request the first time it's needed, so you don't have to remember to grant it from system settings before alerts can fire.
+
 ## [0.7.0] - 2026-04-25
 
 ### Added

@@ -129,6 +129,39 @@ class SpeciesAlertNotifier {
   /// Whether the plugin has been successfully initialized.
   bool get isInitialized => _initialized;
 
+  /// Request the Android 13+ POST_NOTIFICATIONS runtime permission.
+  ///
+  /// Returns `true` when the user has granted (or had previously granted)
+  /// notification permission for the app, `false` when denied or when the
+  /// platform does not require a runtime prompt. Safe to call before
+  /// [init] — initializes the plugin lazily.
+  Future<bool> requestPermission({
+    SpeciesAlertStrings? strings,
+  }) async {
+    if (!Platform.isAndroid) return true;
+    if (!_initialized && strings != null) {
+      await init(strings: strings, sound: _sound, vibrate: _vibrate);
+    } else if (!_initialized) {
+      // Initialize plugin alone (channel can be created later in init()).
+      const initSettingsAndroid = AndroidInitializationSettings(
+        '@mipmap/ic_launcher',
+      );
+      await _plugin.initialize(
+        const InitializationSettings(android: initSettingsAndroid),
+      );
+    }
+    final android = _plugin.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    if (android == null) return false;
+    try {
+      final granted = await android.requestNotificationsPermission();
+      return granted ?? false;
+    } catch (e) {
+      debugPrint('[SpeciesAlertNotifier] requestPermission failed: $e');
+      return false;
+    }
+  }
+
   /// Fire a one-shot alert for a single species detection.
   Future<void> notifyOne(
     AlertCandidate alert, {
@@ -150,8 +183,8 @@ class SpeciesAlertNotifier {
   }) async {
     if (!_initialized) return;
     final names = summary.alerts.map((a) => a.commonName).join(', ');
-    final title = strings.summaryTitle
-        .replaceAll('{count}', summary.count.toString());
+    final title =
+        strings.summaryTitle.replaceAll('{count}', summary.count.toString());
     final body = strings.summaryBody
         .replaceAll('{count}', summary.count.toString())
         .replaceAll('{names}', names);

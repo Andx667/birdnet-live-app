@@ -153,15 +153,14 @@ class AlertThrottler {
     }
 
     // Layer 2: min interval.
-    final interval = _lastDeliveredAt == null
-        ? null
-        : t.difference(_lastDeliveredAt!);
+    final interval =
+        _lastDeliveredAt == null ? null : t.difference(_lastDeliveredAt!);
     final intervalOk = interval == null || interval >= minInterval;
 
     // Layer 3: rate cap.
     _evictOldDeliveries(t);
-    final rateOk = maxPerMinute <= 0 ||
-        _deliveredTimestamps.length < maxPerMinute;
+    final rateOk =
+        maxPerMinute <= 0 || _deliveredTimestamps.length < maxPerMinute;
 
     if (intervalOk && rateOk) {
       _deliveredTimestamps.add(t);
@@ -219,8 +218,8 @@ class AlertThrottler {
     final intervalOk = _lastDeliveredAt == null ||
         t.difference(_lastDeliveredAt!) >= minInterval;
     _evictOldDeliveries(t);
-    final rateOk = maxPerMinute <= 0 ||
-        _deliveredTimestamps.length < maxPerMinute;
+    final rateOk =
+        maxPerMinute <= 0 || _deliveredTimestamps.length < maxPerMinute;
     return intervalOk && rateOk;
   }
 }

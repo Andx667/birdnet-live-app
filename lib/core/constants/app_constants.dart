@@ -131,8 +131,7 @@ abstract final class PrefKeys {
       'survey_alert_min_interval_seconds';
 
   /// Maximum delivered alerts per minute. `0` means unlimited.
-  static const String surveyAlertMaxPerMinute =
-      'survey_alert_max_per_minute';
+  static const String surveyAlertMaxPerMinute = 'survey_alert_max_per_minute';
   static const String surveyAlertCoalesce = 'survey_alert_coalesce';
   static const String surveyAlertInAppToast = 'survey_alert_in_app_toast';
 

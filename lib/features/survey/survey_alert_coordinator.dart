@@ -27,8 +27,8 @@ import 'survey_alert_engine.dart';
 
 /// Surfaced to the UI when an alert is delivered (so the live screen can
 /// also show an in-app toast). `null` for queued / suppressed alerts.
-typedef AlertDeliveredCallback = void Function(AlertCandidate? one,
-    SummaryAlert? summary);
+typedef AlertDeliveredCallback = void Function(
+    AlertCandidate? one, SummaryAlert? summary);
 
 class SurveyAlertCoordinator {
   SurveyAlertCoordinator({
@@ -46,6 +46,7 @@ class SurveyAlertCoordinator {
     this.coalesce = true,
     this.inAppToast = true,
     this.onDelivered,
+    this.nameLocalizer,
     DateTime Function()? clock,
     Duration tickInterval = const Duration(seconds: 5),
   }) : _clock = clock ?? DateTime.now {
@@ -83,6 +84,11 @@ class SurveyAlertCoordinator {
   final bool coalesce;
   final bool inAppToast;
   final AlertDeliveredCallback? onDelivered;
+
+  /// Optional mapper from `(scientificName, fallbackCommonName)` to the
+  /// user's preferred localized common name. When null, the original
+  /// English common name from the detection is used.
+  final String Function(String sciName, String fallback)? nameLocalizer;
 
   late final SurveyAlertEngine _engine;
   late final AlertThrottler _throttler;
@@ -147,24 +153,37 @@ class SurveyAlertCoordinator {
   }
 
   Future<void> _deliverOne(AlertCandidate alert) async {
+    final localized = _localize(alert);
     try {
-      await notifier.notifyOne(alert, strings: notifierStrings);
+      await notifier.notifyOne(localized, strings: notifierStrings);
     } catch (e) {
       debugPrint('[SurveyAlertCoordinator] notifyOne failed: $e');
     }
     if (inAppToast) {
-      onDelivered?.call(alert, null);
+      onDelivered?.call(localized, null);
     }
   }
 
   Future<void> _deliverSummary(SummaryAlert summary) async {
+    final localized = nameLocalizer == null
+        ? summary
+        : SummaryAlert(
+            alerts: summary.alerts.map(_localize).toList(growable: false),
+          );
     try {
-      await notifier.notifySummary(summary, strings: notifierStrings);
+      await notifier.notifySummary(localized, strings: notifierStrings);
     } catch (e) {
       debugPrint('[SurveyAlertCoordinator] notifySummary failed: $e');
     }
     if (inAppToast) {
-      onDelivered?.call(null, summary);
+      onDelivered?.call(null, localized);
     }
+  }
+
+  AlertCandidate _localize(AlertCandidate a) {
+    if (nameLocalizer == null) return a;
+    final name = nameLocalizer!(a.scientificName, a.commonName);
+    if (name == a.commonName) return a;
+    return a.copyWith(commonName: name);
   }
 }

@@ -161,8 +161,8 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
       rareBody: l10n.surveyAlertBodyRare('{pct}'),
       watchlistBody: l10n.surveyAlertBodyWatchlist,
       summaryTitle: l10n.surveyAlertSummaryTitle(0).replaceAll('0', '{count}'),
-      summaryBody: l10n.surveyAlertSummaryBody(0, '{names}')
-          .replaceAll('0', '{count}'),
+      summaryBody:
+          l10n.surveyAlertSummaryBody(0, '{names}').replaceAll('0', '{count}'),
     );
     await notifier.init(strings: strings, sound: sound, vibrate: vibrate);
 
@@ -195,8 +195,24 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
       coalesce: ref.read(surveyAlertCoalesceProvider),
       inAppToast: ref.read(surveyAlertInAppToastProvider),
       onDelivered: _onAlertDelivered,
+      nameLocalizer: _buildNameLocalizer(),
     );
     await controller.setAlertCoordinator(coord);
+  }
+
+  /// Build a closure that maps a scientific name to the user's preferred
+  /// localized common name (honoring the species locale and the
+  /// "show scientific names" toggle). Falls back to the supplied English
+  /// common name when taxonomy isn't loaded or the species is unknown.
+  String Function(String, String) _buildNameLocalizer() {
+    final taxonomy = ref.read(taxonomyServiceProvider).valueOrNull;
+    final speciesLocale = ref.read(effectiveSpeciesLocaleProvider);
+    final showSci = ref.read(showSciNamesProvider);
+    return (sciName, fallback) {
+      if (showSci) return sciName;
+      return taxonomy?.lookup(sciName)?.commonNameForLocale(speciesLocale) ??
+          fallback;
+    };
   }
 
   void _onAlertDelivered(AlertCandidate? one, SummaryAlert? summary) {

@@ -72,6 +72,17 @@ class AlertCandidate {
   /// Geo-model score at the survey's location/week, when known. Always
   /// populated for [AlertReason.rare]; may be null for other reasons.
   final double? geoScore;
+
+  AlertCandidate copyWith({String? commonName}) {
+    return AlertCandidate(
+      scientificName: scientificName,
+      commonName: commonName ?? this.commonName,
+      confidence: confidence,
+      timestamp: timestamp,
+      reason: reason,
+      geoScore: geoScore,
+    );
+  }
 }
 
 /// Pure decision logic for species alerts.

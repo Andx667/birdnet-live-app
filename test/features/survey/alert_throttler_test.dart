@@ -97,8 +97,7 @@ void main() {
   });
 
   group('rate cap with coalescing', () {
-    test('first 3 of 10 burst are delivered, rest coalesced into summary',
-        () {
+    test('first 3 of 10 burst are delivered, rest coalesced into summary', () {
       final clock = _FakeClock(start);
       final t = makeThrottler(
         clock: clock,
@@ -178,8 +177,7 @@ void main() {
   });
 
   group('min interval', () {
-    test('coalesces alerts faster than the interval, flushes after wait',
-        () {
+    test('coalesces alerts faster than the interval, flushes after wait', () {
       final clock = _FakeClock(start);
       final t = makeThrottler(
         clock: clock,

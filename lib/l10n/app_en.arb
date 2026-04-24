@@ -1655,6 +1655,58 @@
   "@surveyAlertVibrateLabel": {},
   "surveyAlertMinConfidenceLabel": "Minimum confidence",
   "@surveyAlertMinConfidenceLabel": {},
+  "surveyAlertMinConfidenceHelp": "Detections below this confidence are never alerted on. Floor is your session confidence threshold so alerts can never be more sensitive than detections themselves.",
+  "@surveyAlertMinConfidenceHelp": {},
+  "surveyAlertWatchlistRequired": "Select or create a watchlist to continue.",
+  "@surveyAlertWatchlistRequired": {},
+  "surveyAlertCreateListButton": "New watchlist",
+  "@surveyAlertCreateListButton": {},
+  "surveyAlertCreateListTitle": "New watchlist",
+  "@surveyAlertCreateListTitle": {},
+  "surveyAlertCreateListNameLabel": "List name",
+  "@surveyAlertCreateListNameLabel": {},
+  "surveyAlertCreateListSpeciesLabel": "Scientific names (one per line)",
+  "@surveyAlertCreateListSpeciesLabel": {},
+  "surveyAlertCreateListSpeciesHint": "Parus major\nTurdus merula\nFringilla coelebs",
+  "@surveyAlertCreateListSpeciesHint": {},
+  "surveyAlertCreateListPaste": "Paste from clipboard",
+  "@surveyAlertCreateListPaste": {},
+  "surveyAlertCreateListSave": "Save",
+  "@surveyAlertCreateListSave": {},
+  "surveyAlertCreateListCancel": "Cancel",
+  "@surveyAlertCreateListCancel": {},
+  "surveyAlertCreateListEmpty": "Add at least one scientific name.",
+  "@surveyAlertCreateListEmpty": {},
+  "surveyAlertCreateListNameTaken": "A list with this name already exists.",
+  "@surveyAlertCreateListNameTaken": {},
+  "surveyAlertWatchlistDeleteConfirm": "Delete watchlist '{name}'?",
+  "@surveyAlertWatchlistDeleteConfirm": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "surveyAlertSpeciesCount": "{count, plural, =1{1 species} other{{count} species}}",
+  "@surveyAlertSpeciesCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "surveyAlertUnlimited": "Unlimited",
+  "@surveyAlertUnlimited": {},
+  "surveyAlertHelpModesTitle": "What triggers an alert?",
+  "@surveyAlertHelpModesTitle": {},
+  "surveyAlertHelpModesBody": "Pick a single rule. 'First in session' is the most chatty — every species new to this survey buzzes you. 'First ever' only fires for species the app has never recorded for you. 'Rare for this location' uses the on-device geographic model to flag unlikely visitors. 'Watchlist' restricts alerts to a saved species list.",
+  "@surveyAlertHelpModesBody": {},
+  "surveyAlertHelpThrottlingTitle": "Why aren't I being spammed?",
+  "@surveyAlertHelpThrottlingTitle": {},
+  "surveyAlertHelpThrottlingBody": "At survey start, many common species can trigger first-in-session alerts at once. The startup grace window suppresses those for the first minute. The minimum interval prevents back-to-back buzzes. Over the per-minute cap, extra alerts queue into a single summary instead of being dropped. Rare and Watchlist alerts always bypass the grace window.",
+  "@surveyAlertHelpThrottlingBody": {},
+  "surveyAlertRareLiveLabel": "Alerts on species with under {pct}% likelihood at this location.",
+  "@surveyAlertRareLiveLabel": {
+    "placeholders": {
+      "pct": { "type": "String" }
+    }
+  },
   "surveyAlertAdvancedTitle": "Frequency control",
   "@surveyAlertAdvancedTitle": {},
   "surveyAlertGraceLabel": "Startup grace (s)",

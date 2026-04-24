@@ -140,8 +140,7 @@ Future<void> seedGlobalSpeciesHistory({
 /// The instance is loaded synchronously from SharedPreferences. The seed
 /// pass is kicked off lazily the first time the provider is read so
 /// startup is not blocked on session scans.
-final globalSpeciesHistoryProvider =
-    Provider<GlobalSpeciesHistory>((ref) {
+final globalSpeciesHistoryProvider = Provider<GlobalSpeciesHistory>((ref) {
   final prefs = ref.watch(sharedPreferencesProvider);
   final history = GlobalSpeciesHistory(prefs)..load();
 

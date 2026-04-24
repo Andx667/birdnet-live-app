@@ -106,10 +106,8 @@ class SessionSettings {
       alertWatchlistName: json['alertWatchlistName'] as String? ?? '',
       alertMinConfidence:
           (json['alertMinConfidence'] as num?)?.toDouble() ?? 0.5,
-      alertStartupGraceSeconds:
-          json['alertStartupGraceSeconds'] as int? ?? 60,
-      alertMinIntervalSeconds:
-          json['alertMinIntervalSeconds'] as int? ?? 15,
+      alertStartupGraceSeconds: json['alertStartupGraceSeconds'] as int? ?? 60,
+      alertMinIntervalSeconds: json['alertMinIntervalSeconds'] as int? ?? 15,
       alertMaxPerMinute: json['alertMaxPerMinute'] as int? ?? 3,
       alertCoalesce: json['alertCoalesce'] as bool? ?? true,
     );

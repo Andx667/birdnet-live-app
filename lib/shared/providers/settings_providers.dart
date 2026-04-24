@@ -372,8 +372,7 @@ final surveyAlertModeProvider =
 final surveyAlertRareThresholdProvider =
     StateNotifierProvider<DoubleSettingNotifier, double>((ref) {
   final prefs = ref.watch(sharedPreferencesProvider);
-  return DoubleSettingNotifier(
-      prefs, PrefKeys.surveyAlertRareThreshold, 0.05);
+  return DoubleSettingNotifier(prefs, PrefKeys.surveyAlertRareThreshold, 0.05);
 });
 
 /// Name of the saved [CustomSpeciesList] used as the watchlist. Empty
@@ -381,8 +380,7 @@ final surveyAlertRareThresholdProvider =
 final surveyAlertWatchlistNameProvider =
     StateNotifierProvider<StringSettingNotifier, String>((ref) {
   final prefs = ref.watch(sharedPreferencesProvider);
-  return StringSettingNotifier(
-      prefs, PrefKeys.surveyAlertWatchlistName, '');
+  return StringSettingNotifier(prefs, PrefKeys.surveyAlertWatchlistName, '');
 });
 
 /// Whether alert notifications play a sound.
@@ -403,8 +401,7 @@ final surveyAlertVibrateProvider =
 final surveyAlertMinConfidenceProvider =
     StateNotifierProvider<DoubleSettingNotifier, double>((ref) {
   final prefs = ref.watch(sharedPreferencesProvider);
-  return DoubleSettingNotifier(
-      prefs, PrefKeys.surveyAlertMinConfidence, 0.5);
+  return DoubleSettingNotifier(prefs, PrefKeys.surveyAlertMinConfidence, 0.5);
 });
 
 /// Seconds at the start of a survey during which non-bypass alerts are
@@ -412,24 +409,21 @@ final surveyAlertMinConfidenceProvider =
 final surveyAlertStartupGraceSecondsProvider =
     StateNotifierProvider<IntSettingNotifier, int>((ref) {
   final prefs = ref.watch(sharedPreferencesProvider);
-  return IntSettingNotifier(
-      prefs, PrefKeys.surveyAlertStartupGraceSeconds, 60);
+  return IntSettingNotifier(prefs, PrefKeys.surveyAlertStartupGraceSeconds, 60);
 });
 
 /// Hard cooldown between any two delivered alerts (default 15 s).
 final surveyAlertMinIntervalSecondsProvider =
     StateNotifierProvider<IntSettingNotifier, int>((ref) {
   final prefs = ref.watch(sharedPreferencesProvider);
-  return IntSettingNotifier(
-      prefs, PrefKeys.surveyAlertMinIntervalSeconds, 15);
+  return IntSettingNotifier(prefs, PrefKeys.surveyAlertMinIntervalSeconds, 15);
 });
 
 /// Maximum delivered alerts per minute. `0` means unlimited.
 final surveyAlertMaxPerMinuteProvider =
     StateNotifierProvider<IntSettingNotifier, int>((ref) {
   final prefs = ref.watch(sharedPreferencesProvider);
-  return IntSettingNotifier(
-      prefs, PrefKeys.surveyAlertMaxPerMinute, 3);
+  return IntSettingNotifier(prefs, PrefKeys.surveyAlertMaxPerMinute, 3);
 });
 
 /// Whether over-cap alerts are queued for a summary notification (true)
@@ -445,8 +439,7 @@ final surveyAlertCoalesceProvider =
 final surveyAlertInAppToastProvider =
     StateNotifierProvider<BoolSettingNotifier, bool>((ref) {
   final prefs = ref.watch(sharedPreferencesProvider);
-  return BoolSettingNotifier(
-      prefs, PrefKeys.surveyAlertInAppToast, true);
+  return BoolSettingNotifier(prefs, PrefKeys.surveyAlertInAppToast, true);
 });
 
 // ===========================================================================
