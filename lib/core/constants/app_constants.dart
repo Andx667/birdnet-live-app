@@ -115,4 +115,31 @@ abstract final class PrefKeys {
   static const String surveyMicDeviceId = 'survey_mic_device_id';
   static const String surveyLastObserver = 'survey_last_observer';
   static const String surveyLastTransectId = 'survey_last_transect_id';
+
+  // Survey species alerts (v0.7.0+)
+  /// Alert mode: 0 = off, 1 = first-in-session, 2 = first-ever,
+  /// 3 = rare (geo-model), 4 = watchlist.
+  static const String surveyAlertMode = 'survey_alert_mode';
+  static const String surveyAlertRareThreshold = 'survey_alert_rare_threshold';
+  static const String surveyAlertWatchlistName = 'survey_alert_watchlist_name';
+  static const String surveyAlertSound = 'survey_alert_sound';
+  static const String surveyAlertVibrate = 'survey_alert_vibrate';
+  static const String surveyAlertMinConfidence = 'survey_alert_min_confidence';
+  static const String surveyAlertStartupGraceSeconds =
+      'survey_alert_startup_grace_seconds';
+  static const String surveyAlertMinIntervalSeconds =
+      'survey_alert_min_interval_seconds';
+
+  /// Maximum delivered alerts per minute. `0` means unlimited.
+  static const String surveyAlertMaxPerMinute = 'survey_alert_max_per_minute';
+  static const String surveyAlertCoalesce = 'survey_alert_coalesce';
+  static const String surveyAlertInAppToast = 'survey_alert_in_app_toast';
+
+  // Global species history (v0.7.0+)
+  /// JSON-encoded list of every scientific name ever detected.
+  static const String globalSpeciesHistory = 'global_species_history';
+
+  /// `true` once the one-time backfill from existing sessions has run.
+  static const String globalSpeciesHistorySeeded =
+      'global_species_history_seeded';
 }

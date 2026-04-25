@@ -26,6 +26,15 @@ class SessionSettings {
     required this.confidenceThreshold,
     required this.inferenceRate,
     required this.speciesFilterMode,
+    this.clipContextSeconds = 0,
+    this.alertMode = 0,
+    this.alertRareThreshold = 0.05,
+    this.alertWatchlistName = '',
+    this.alertMinConfidence = 0.5,
+    this.alertStartupGraceSeconds = 60,
+    this.alertMinIntervalSeconds = 15,
+    this.alertMaxPerMinute = 3,
+    this.alertCoalesce = true,
   });
 
   /// Window duration in seconds.
@@ -40,6 +49,49 @@ class SessionSettings {
   /// Species filter mode ('off', 'geoExclude', 'geoMerge', 'customList').
   final String speciesFilterMode;
 
+  /// Seconds of audio captured before AND after each detection window when
+  /// per-detection clips are recorded (survey mode and similar). The clip
+  /// duration is therefore `windowDuration + 2 * clipContextSeconds`, with
+  /// the actual detection sitting at offsets
+  /// `[clipContextSeconds, clipContextSeconds + windowDuration]` within
+  /// the clip file.
+  ///
+  /// Stored on the session so exports can compute in-clip detection times
+  /// for selection tables, even if the user later changes the global
+  /// clip-context setting. Defaults to 0 for sessions that record one
+  /// continuous file (live, point count, file analysis).
+  final int clipContextSeconds;
+
+  // ── Survey species alerts (v0.7.0+) ─────────────────────────────────
+  // All snapshot fields default to safe values so legacy sessions
+  // deserialized from disk produce a fully-populated `SessionSettings`
+  // and the export bundle's metadata.json is always self-describing.
+
+  /// Alert mode index. See `AlertMode` (0=off, 1=session, 2=ever, 3=rare,
+  /// 4=watchlist).
+  final int alertMode;
+
+  /// Geo-model probability cutoff for the "rare" mode.
+  final double alertRareThreshold;
+
+  /// Selected watchlist name (empty if none).
+  final String alertWatchlistName;
+
+  /// Confidence floor below which alerts never fire.
+  final double alertMinConfidence;
+
+  /// Startup grace window in seconds.
+  final int alertStartupGraceSeconds;
+
+  /// Hard cooldown between any two delivered alerts.
+  final int alertMinIntervalSeconds;
+
+  /// Max delivered alerts per minute (`0` = unlimited).
+  final int alertMaxPerMinute;
+
+  /// Whether over-cap alerts are queued for a summary notification.
+  final bool alertCoalesce;
+
   /// Deserialize from JSON.
   factory SessionSettings.fromJson(Map<String, dynamic> json) {
     return SessionSettings(
@@ -47,6 +99,17 @@ class SessionSettings {
       confidenceThreshold: json['confidenceThreshold'] as int? ?? 25,
       inferenceRate: (json['inferenceRate'] as num?)?.toDouble() ?? 1.0,
       speciesFilterMode: json['speciesFilterMode'] as String? ?? 'off',
+      clipContextSeconds: json['clipContextSeconds'] as int? ?? 0,
+      alertMode: json['alertMode'] as int? ?? 0,
+      alertRareThreshold:
+          (json['alertRareThreshold'] as num?)?.toDouble() ?? 0.05,
+      alertWatchlistName: json['alertWatchlistName'] as String? ?? '',
+      alertMinConfidence:
+          (json['alertMinConfidence'] as num?)?.toDouble() ?? 0.5,
+      alertStartupGraceSeconds: json['alertStartupGraceSeconds'] as int? ?? 60,
+      alertMinIntervalSeconds: json['alertMinIntervalSeconds'] as int? ?? 15,
+      alertMaxPerMinute: json['alertMaxPerMinute'] as int? ?? 3,
+      alertCoalesce: json['alertCoalesce'] as bool? ?? true,
     );
   }
 
@@ -56,6 +119,15 @@ class SessionSettings {
         'confidenceThreshold': confidenceThreshold,
         'inferenceRate': inferenceRate,
         'speciesFilterMode': speciesFilterMode,
+        'clipContextSeconds': clipContextSeconds,
+        'alertMode': alertMode,
+        'alertRareThreshold': alertRareThreshold,
+        'alertWatchlistName': alertWatchlistName,
+        'alertMinConfidence': alertMinConfidence,
+        'alertStartupGraceSeconds': alertStartupGraceSeconds,
+        'alertMinIntervalSeconds': alertMinIntervalSeconds,
+        'alertMaxPerMinute': alertMaxPerMinute,
+        'alertCoalesce': alertCoalesce,
       };
 }
 
@@ -440,7 +512,7 @@ class LiveSession {
   /// Add a detection to the session.
   void addDetection(DetectionRecord record) {
     if (detections.length < _maxDetections) {
-      detections.add(record);
+      detections.add(_clampToSession(record));
     }
   }
 
@@ -448,8 +520,31 @@ class LiveSession {
   void addDetections(List<DetectionRecord> records) {
     final remaining = _maxDetections - detections.length;
     if (remaining > 0) {
-      detections.addAll(records.take(remaining));
+      detections.addAll(records.take(remaining).map(_clampToSession));
     }
+  }
+
+  /// Clamp a record's timestamp(s) to be `>= startTime` so detections
+  /// emitted slightly before the recorder fully spun up cannot produce
+  /// negative session-relative offsets (e.g. "00:-1") downstream.
+  DetectionRecord _clampToSession(DetectionRecord r) {
+    final needsTs = r.timestamp.isBefore(startTime);
+    final needsEnd =
+        r.endTimestamp != null && r.endTimestamp!.isBefore(startTime);
+    if (!needsTs && !needsEnd) return r;
+    final clampedTs = needsTs ? startTime : r.timestamp;
+    final clampedEnd = needsEnd ? startTime : r.endTimestamp;
+    return DetectionRecord(
+      scientificName: r.scientificName,
+      commonName: r.commonName,
+      confidence: r.confidence,
+      timestamp: clampedTs,
+      endTimestamp: clampedEnd,
+      audioClipPath: r.audioClipPath,
+      source: r.source,
+      latitude: r.latitude,
+      longitude: r.longitude,
+    );
   }
 
   /// End the session.

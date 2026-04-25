@@ -24,6 +24,7 @@ import '../../shared/providers/settings_providers.dart';
 import '../audio/audio_providers.dart';
 import '../recording/recording_service.dart';
 import '../live/live_session.dart';
+import 'species_alert_notifier.dart';
 import 'survey_controller.dart';
 
 // ---------------------------------------------------------------------------
@@ -75,3 +76,18 @@ final surveyDetectionsProvider =
 
 /// The active survey [LiveSession].
 final surveySessionProvider = StateProvider<LiveSession?>((ref) => null);
+
+// ---------------------------------------------------------------------------
+// Species alerts
+// ---------------------------------------------------------------------------
+
+/// App-wide [SpeciesAlertNotifier] singleton. The notifier itself is
+/// process-local (`flutter_local_notifications` is a singleton plugin),
+/// but exposing it through Riverpod lets tests substitute fakes.
+///
+/// `init()` is called by the survey live screen with the user's current
+/// sound/vibration preferences so toggling them in the wizard takes
+/// effect on the next survey start.
+final speciesAlertNotifierProvider = Provider<SpeciesAlertNotifier>((ref) {
+  return SpeciesAlertNotifier();
+});

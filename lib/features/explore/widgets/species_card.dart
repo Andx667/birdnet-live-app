@@ -67,11 +67,11 @@ class SpeciesCard extends ConsumerWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // ── Thumbnail (3:2) ──
+              // ── Thumbnail (4:3, matching the 320×240 bundled photos) ──
               SizedBox(
                 width: 96,
                 child: AspectRatio(
-                  aspectRatio: 3 / 2,
+                  aspectRatio: 4 / 3,
                   child: _SpeciesImage(scientificName: scientificName),
                 ),
               ),

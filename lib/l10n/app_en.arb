@@ -337,17 +337,21 @@
   "@aboutGeoModelName": {
     "description": "Geo-model name shown in about screen"
   },
-  "aboutGeoModelDescription": "Predicts which species are likely at a given location and time of year.",
-  "@aboutGeoModelDescription": {
-    "description": "Geo-model description"
-  },
-  "aboutCredits": "Credits",
+  "aboutCredits": "Developed by",
   "@aboutCredits": {
-    "description": "Credits section title"
+    "description": "Section title for the team that built BirdNET"
   },
   "aboutCreditsDescription": "BirdNET is developed by the Cornell K. Lisa Yang Center for Conservation Bioacoustics and Chemnitz University of Technology.",
   "@aboutCreditsDescription": {
     "description": "Credits description"
+  },
+  "aboutFunding": "Funding",
+  "@aboutFunding": {
+    "description": "Section title for the funding card on the About screen"
+  },
+  "aboutFundingDescription": "The development of BirdNET Live is supported by the Deutsche Bundesstiftung Umwelt through the project RangerSound (project 39263/01).",
+  "@aboutFundingDescription": {
+    "description": "Funding statement on the About screen. Keep 'Deutsche Bundesstiftung Umwelt' and the project number as-is in every locale."
   },
   "aboutWebsite": "BirdNET Website",
   "@aboutWebsite": {
@@ -1603,6 +1607,173 @@
   "@surveyReadyTitle": {
     "description": "Title for the ready step"
   },
+  "surveyAlertsTitle": "Species Alerts",
+  "@surveyAlertsTitle": {
+    "description": "Title for the species alerts step in the survey wizard"
+  },
+  "surveyAlertsSubtitle": "Get a heads-up notification the moment a species is detected.",
+  "@surveyAlertsSubtitle": {
+    "description": "Subtitle / explainer for the species alerts wizard step"
+  },
+  "surveyAlertModeOff": "Off",
+  "@surveyAlertModeOff": {},
+  "surveyAlertModeFirstInSession": "First in session",
+  "@surveyAlertModeFirstInSession": {
+    "description": "Alert mode: notify the first time a species is heard during this survey"
+  },
+  "surveyAlertModeFirstEver": "First ever",
+  "@surveyAlertModeFirstEver": {
+    "description": "Alert mode: notify only the very first time the app has ever heard this species"
+  },
+  "surveyAlertModeRare": "Rare for this location",
+  "@surveyAlertModeRare": {
+    "description": "Alert mode: notify when a species is unlikely at the current location per the geo model"
+  },
+  "surveyAlertModeWatchlist": "Watchlist",
+  "@surveyAlertModeWatchlist": {
+    "description": "Alert mode: notify only species on a saved custom list"
+  },
+  "surveyAlertModeOffDescription": "No species alerts during this survey.",
+  "@surveyAlertModeOffDescription": {},
+  "surveyAlertModeFirstInSessionDescription": "Alert the first time each species is heard in this survey.",
+  "@surveyAlertModeFirstInSessionDescription": {},
+  "surveyAlertModeFirstEverDescription": "Alert only when the app encounters a species for the very first time.",
+  "@surveyAlertModeFirstEverDescription": {},
+  "surveyAlertModeRareDescription": "Alert when a species is below the geo-model probability threshold for your current location.",
+  "@surveyAlertModeRareDescription": {},
+  "surveyAlertModeWatchlistDescription": "Alert only for species on the selected saved list.",
+  "@surveyAlertModeWatchlistDescription": {},
+  "surveyAlertRareThresholdLabel": "Rarity threshold",
+  "@surveyAlertRareThresholdLabel": {},
+  "surveyAlertRareThresholdHelp": "Detected species with a geo-model probability below this value count as rare.",
+  "@surveyAlertRareThresholdHelp": {},
+  "surveyAlertWatchlistLabel": "Watchlist",
+  "@surveyAlertWatchlistLabel": {},
+  "surveyAlertWatchlistNone": "No watchlist selected",
+  "@surveyAlertWatchlistNone": {},
+  "surveyAlertWatchlistEmpty": "No saved species lists. Create one in Settings → Species → Custom Lists.",
+  "@surveyAlertWatchlistEmpty": {},
+  "surveyAlertSoundLabel": "Sound",
+  "@surveyAlertSoundLabel": {},
+  "surveyAlertVibrateLabel": "Vibration",
+  "@surveyAlertVibrateLabel": {},
+  "surveyAlertMinConfidenceLabel": "Minimum confidence",
+  "@surveyAlertMinConfidenceLabel": {},
+  "surveyAlertMinConfidenceHelp": "Detections below this confidence are never alerted on. Floor is your session confidence threshold so alerts can never be more sensitive than detections themselves.",
+  "@surveyAlertMinConfidenceHelp": {},
+  "surveyAlertWatchlistRequired": "Select or create a watchlist to continue.",
+  "@surveyAlertWatchlistRequired": {},
+  "surveyAlertCreateListButton": "New watchlist",
+  "@surveyAlertCreateListButton": {},
+  "surveyAlertCreateListTitle": "New watchlist",
+  "@surveyAlertCreateListTitle": {},
+  "surveyAlertCreateListNameLabel": "List name",
+  "@surveyAlertCreateListNameLabel": {},
+  "surveyAlertCreateListSpeciesLabel": "Scientific names (one per line)",
+  "@surveyAlertCreateListSpeciesLabel": {},
+  "surveyAlertCreateListSpeciesHint": "Parus major\nTurdus merula\nFringilla coelebs",
+  "@surveyAlertCreateListSpeciesHint": {},
+  "surveyAlertCreateListImportFile": "Import from file",
+  "@surveyAlertCreateListImportFile": {},
+  "surveyAlertCreateListImportError": "Could not read file. Make sure it's a plain-text list with one scientific name per line.",
+  "@surveyAlertCreateListImportError": {},
+  "surveyAlertCreateListSearchHint": "Search species…",
+  "@surveyAlertCreateListSearchHint": {},
+  "surveyAlertCreateListSelectedHeader": "Selected ({count})",
+  "@surveyAlertCreateListSelectedHeader": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "surveyAlertCreateListNoSelection": "No species selected yet. Search above or import a file.",
+  "@surveyAlertCreateListNoSelection": {},
+  "surveyAlertCreateListPaste": "Paste from clipboard",
+  "@surveyAlertCreateListPaste": {},
+  "surveyAlertCreateListSave": "Save",
+  "@surveyAlertCreateListSave": {},
+  "surveyAlertCreateListCancel": "Cancel",
+  "@surveyAlertCreateListCancel": {},
+  "surveyAlertCreateListEmpty": "Add at least one scientific name.",
+  "@surveyAlertCreateListEmpty": {},
+  "surveyAlertCreateListNameTaken": "A list with this name already exists.",
+  "@surveyAlertCreateListNameTaken": {},
+  "surveyAlertWatchlistDeleteConfirm": "Delete watchlist '{name}'?",
+  "@surveyAlertWatchlistDeleteConfirm": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "surveyAlertSpeciesCount": "{count, plural, =1{1 species} other{{count} species}}",
+  "@surveyAlertSpeciesCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "surveyAlertUnlimited": "Unlimited",
+  "@surveyAlertUnlimited": {},
+  "surveyAlertHelpModesTitle": "What triggers an alert?",
+  "@surveyAlertHelpModesTitle": {},
+  "surveyAlertHelpModesBody": "Pick a single rule. 'First in session' is the most chatty — every species new to this survey buzzes you. 'First ever' only fires for species the app has never recorded for you. 'Rare for this location' uses the on-device geographic model to flag unlikely visitors. 'Watchlist' restricts alerts to a saved species list.",
+  "@surveyAlertHelpModesBody": {},
+  "surveyAlertHelpThrottlingTitle": "Why aren't I being spammed?",
+  "@surveyAlertHelpThrottlingTitle": {},
+  "surveyAlertHelpThrottlingBody": "At survey start, many common species can trigger first-in-session alerts at once. The startup grace window suppresses those for the first minute. The minimum interval prevents back-to-back buzzes. Over the per-minute cap, extra alerts queue into a single summary instead of being dropped. Rare and Watchlist alerts always bypass the grace window.",
+  "@surveyAlertHelpThrottlingBody": {},
+  "surveyAlertRareLiveLabel": "Alerts on species with under {pct}% likelihood at this location.",
+  "@surveyAlertRareLiveLabel": {
+    "placeholders": {
+      "pct": { "type": "String" }
+    }
+  },
+  "surveyAlertAdvancedTitle": "Frequency control",
+  "@surveyAlertAdvancedTitle": {},
+  "surveyAlertGraceLabel": "Startup grace (s)",
+  "@surveyAlertGraceLabel": {},
+  "surveyAlertGraceHelp": "Suppress First-in-session alerts during this many seconds at the start of the survey. Rare and Watchlist alerts always fire.",
+  "@surveyAlertGraceHelp": {},
+  "surveyAlertMinIntervalLabel": "Minimum interval (s)",
+  "@surveyAlertMinIntervalLabel": {},
+  "surveyAlertMinIntervalHelp": "Hard cooldown between any two alerts.",
+  "@surveyAlertMinIntervalHelp": {},
+  "surveyAlertMaxPerMinuteLabel": "Max per minute",
+  "@surveyAlertMaxPerMinuteLabel": {},
+  "surveyAlertMaxPerMinuteHelp": "Set to 0 for unlimited.",
+  "@surveyAlertMaxPerMinuteHelp": {},
+  "surveyAlertCoalesceLabel": "Coalesce extra alerts",
+  "@surveyAlertCoalesceLabel": {},
+  "surveyAlertCoalesceHelp": "When over the per-minute cap, queue extra alerts into a summary instead of dropping them.",
+  "@surveyAlertCoalesceHelp": {},
+  "surveyAlertChannelName": "Species alerts",
+  "@surveyAlertChannelName": {
+    "description": "Android notification channel name"
+  },
+  "surveyAlertChannelDescription": "Heads-up alerts when interesting species are detected during a survey.",
+  "@surveyAlertChannelDescription": {},
+  "surveyAlertBodyFirstInSession": "First detection in this survey",
+  "@surveyAlertBodyFirstInSession": {},
+  "surveyAlertBodyFirstEver": "First detection ever in BirdNET Live",
+  "@surveyAlertBodyFirstEver": {},
+  "surveyAlertBodyRare": "Rare here ({pct}% prior)",
+  "@surveyAlertBodyRare": {
+    "placeholders": {
+      "pct": { "type": "String" }
+    }
+  },
+  "surveyAlertBodyWatchlist": "On your watchlist",
+  "@surveyAlertBodyWatchlist": {},
+  "surveyAlertSummaryTitle": "{count} more new species",
+  "@surveyAlertSummaryTitle": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "surveyAlertSummaryBody": "{count} more: {names}",
+  "@surveyAlertSummaryBody": {
+    "placeholders": {
+      "count": { "type": "int" },
+      "names": { "type": "String" }
+    }
+  },
   "surveyManualGpsReadyWarning": "Manual GPS mode — open the app periodically to capture location fixes.",
   "@surveyManualGpsReadyWarning": {
     "description": "Warning on ready screen about manual GPS"
@@ -1653,6 +1824,24 @@
       }
     }
   },
+  "surveySecondsAgo": "{count}s ago",
+  "@surveySecondsAgo": {
+    "description": "Short time label for seconds ago (used in foreground notification recent-detections list)",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "surveyHoursAgo": "{count}h ago",
+  "@surveyHoursAgo": {
+    "description": "Short time label for hours ago (used in foreground notification recent-detections list)",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "surveyContinue": "Continue Survey",
   "@surveyContinue": {
     "description": "Tooltip for resume/continue button on unfinished survey sessions"
@@ -1688,6 +1877,61 @@
   "surveyTrackMap": "Survey Track",
   "@surveyTrackMap": {
     "description": "Title for the fullscreen survey track map screen"
+  },
+  "surveyMapFilterTitle": "Show on map",
+  "@surveyMapFilterTitle": {
+    "description": "Title of the survey map filter sheet"
+  },
+  "surveyMapFilterTooltip": "Filter map markers",
+  "@surveyMapFilterTooltip": {
+    "description": "Tooltip for the survey map filter button"
+  },
+  "surveyMapFilterAll": "All detections",
+  "@surveyMapFilterAll": {
+    "description": "Filter option: show every detection"
+  },
+  "surveyMapFilterWithAudio": "With audio clip",
+  "@surveyMapFilterWithAudio": {
+    "description": "Filter option: only detections that still have a saved audio clip"
+  },
+  "surveyMapFilterMinConfidence": "Minimum confidence",
+  "@surveyMapFilterMinConfidence": {
+    "description": "Label for the confidence-floor slider in the survey map filter sheet"
+  },
+  "surveyMapFilterSpeciesSearchHint": "Search species",
+  "@surveyMapFilterSpeciesSearchHint": {
+    "description": "Placeholder for the species search field inside the survey map filter sheet"
+  },
+  "surveyMapFilterManual": "Manual additions",
+  "@surveyMapFilterManual": {
+    "description": "Filter option: only manually added detections"
+  },
+  "surveyMapFilterSpecies": "Limit to species",
+  "@surveyMapFilterSpecies": {
+    "description": "Header for the species picker inside the map filter sheet"
+  },
+  "surveyMapFilterAllSpecies": "All species",
+  "@surveyMapFilterAllSpecies": {
+    "description": "Species picker entry meaning no species restriction"
+  },
+  "surveyMapFilterEmpty": "No detections match the current filter.",
+  "@surveyMapFilterEmpty": {
+    "description": "Message shown on the map when the active filter excludes every detection"
+  },
+  "clearFilters": "Reset",
+  "@clearFilters": {
+    "description": "Reset/clear button label inside filter sheets"
+  },
+  "apply": "Apply",
+  "@apply": {
+    "description": "Generic apply/confirm button label"
+  },
+  "surveyMapMatchCount": "{count, plural, =1{1 detection} other{{count} detections}}",
+  "@surveyMapMatchCount": {
+    "description": "Match count shown in the map app bar subtitle",
+    "placeholders": {
+      "count": {"type": "int"}
+    }
   },
   "surveyFieldTips": "Field Tips",
   "@surveyFieldTips": {
@@ -2133,6 +2377,16 @@
   "surveyNotificationTitle": "Survey Recording",
   "@surveyNotificationTitle": {
     "description": "Foreground notification title shown while a survey is active"
+  },
+  "surveyNotificationStats": "⏱ {elapsed}   🐦 {detections} det · {species} spp   📍 {distanceKm} km",
+  "@surveyNotificationStats": {
+    "description": "Stats footer in the survey foreground notification: elapsed time, total detections, unique species, distance walked. Emoji are decorative.",
+    "placeholders": {
+      "elapsed": { "type": "String" },
+      "detections": { "type": "int" },
+      "species": { "type": "int" },
+      "distanceKm": { "type": "String" }
+    }
   },
   "notificationStop": "Stop",
   "@notificationStop": {

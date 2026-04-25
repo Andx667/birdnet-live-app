@@ -747,20 +747,26 @@ class _SpeciesTile extends ConsumerWidget {
                     ),
                   const SizedBox(width: 8),
 
-                  // Species thumbnail.
-                  SizedBox(
-                    width: 48,
-                    height: 32,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(6),
-                      child: Image.asset(
-                        taxonomyAsync.valueOrNull
-                                ?.assetImagePath(group.scientificName) ??
-                            'assets/images/dummy_species.png',
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Image.asset(
-                          'assets/images/dummy_species.png',
+                  // Species thumbnail. Tappable shortcut to the species
+                  // info overlay; uses the bundled image's 4:3 ratio so
+                  // BoxFit.cover never has to crop the photo.
+                  InkWell(
+                    onTap: onSpeciesInfo,
+                    borderRadius: BorderRadius.circular(6),
+                    child: SizedBox(
+                      width: 48,
+                      height: 36,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: Image.asset(
+                          taxonomyAsync.valueOrNull
+                                  ?.assetImagePath(group.scientificName) ??
+                              'assets/images/dummy_species.png',
                           fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Image.asset(
+                            'assets/images/dummy_species.png',
+                            fit: BoxFit.cover,
+                          ),
                         ),
                       ),
                     ),
@@ -894,6 +900,11 @@ class _SpeciesTile extends ConsumerWidget {
   }
 
   String _fmtOffset(Duration d) {
+    // Clamp negative offsets to zero so a detection emitted slightly
+    // before the session start (e.g. the first inference window arriving
+    // while the recorder is still spinning up) renders as 00:00 instead
+    // of "00:-1".
+    if (d.isNegative) d = Duration.zero;
     final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
     final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
     if (d.inHours > 0) return '${d.inHours}:$m:$s';
@@ -1094,6 +1105,8 @@ class _ClusterRow extends StatelessWidget {
   }
 
   String _fmtOffset(Duration d) {
+    // See note above: clamp negative offsets to zero.
+    if (d.isNegative) d = Duration.zero;
     final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
     final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
     if (d.inHours > 0) return '${d.inHours}:$m:$s';
@@ -1343,7 +1356,7 @@ class _AddSpeciesOverlayState extends ConsumerState<_AddSpeciesOverlay> {
 
 /// Banner shown at the top of the overlay in locked-replace mode, displaying
 /// the detection that will be replaced.
-class _ReplaceTargetBanner extends StatelessWidget {
+class _ReplaceTargetBanner extends ConsumerWidget {
   const _ReplaceTargetBanner({
     required this.target,
     required this.speciesLocale,
@@ -1355,9 +1368,10 @@ class _ReplaceTargetBanner extends StatelessWidget {
   final TaxonomyService? taxonomy;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
+    final showSciNames = ref.watch(showSciNamesProvider);
     final species = taxonomy?.lookup(target.scientificName);
     final locName =
         species?.commonNameForLocale(speciesLocale) ?? target.commonName;
@@ -1401,14 +1415,15 @@ class _ReplaceTargetBanner extends StatelessWidget {
                       ?.copyWith(fontWeight: FontWeight.w600),
                   overflow: TextOverflow.ellipsis,
                 ),
-                Text(
-                  target.scientificName,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontStyle: FontStyle.italic,
-                    color: theme.colorScheme.onSurfaceVariant,
+                if (showSciNames)
+                  Text(
+                    target.scientificName,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontStyle: FontStyle.italic,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  overflow: TextOverflow.ellipsis,
-                ),
               ],
             ),
           ),
@@ -1438,6 +1453,7 @@ class _SpeciesResultTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final showSciNames = ref.watch(showSciNamesProvider);
     return ListTile(
       leading: ClipRRect(
         borderRadius: BorderRadius.circular(6),
@@ -1459,13 +1475,15 @@ class _SpeciesResultTile extends ConsumerWidget {
         ),
       ),
       title: Text(displayName, overflow: TextOverflow.ellipsis),
-      subtitle: Text(
-        species.scientificName,
-        overflow: TextOverflow.ellipsis,
-        style: theme.textTheme.bodySmall?.copyWith(
-          fontStyle: FontStyle.italic,
-        ),
-      ),
+      subtitle: showSciNames
+          ? Text(
+              species.scientificName,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontStyle: FontStyle.italic,
+              ),
+            )
+          : null,
       onTap: onTap,
     );
   }

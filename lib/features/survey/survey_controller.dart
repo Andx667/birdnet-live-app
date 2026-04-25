@@ -35,6 +35,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:path_provider/path_provider.dart';
 
 import 'survey_notification.dart';
+import 'survey_alert_coordinator.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../core/services/memory_monitor.dart';
@@ -107,6 +108,19 @@ class SurveyController {
   /// Species currently shown as active detection cards.
   final Map<String, DetectionRecord> _activeCardSpecies = {};
 
+  /// Optional per-survey alert pipeline. `null` when alerts are disabled
+  /// for the current survey (mode == off, or no notifier was configured).
+  SurveyAlertCoordinator? _alertCoordinator;
+
+  /// Maps a scientific name to the user's preferred localized common name.
+  /// Used by the foreground notification when listing recent detections.
+  /// `null` falls back to [DetectionRecord.commonName] (English).
+  String Function(String sciName, String fallback)? _nameLocalizer;
+
+  /// Localized strings for the foreground notification's recent-detections
+  /// list. `null` keeps the previous (stats-only) layout.
+  _NotificationStrings? _notificationStrings;
+
   static const int _maxInMemoryDetections = 10000;
 
   /// How often we persist the session to disk and run the battery check.
@@ -162,6 +176,63 @@ class SurveyController {
 
   /// Called when auto-stop triggers (max duration or battery).
   void Function(String reason)? onAutoStop;
+
+  /// Attach (or detach) the per-survey alert coordinator. Call before
+  /// [startSurvey] / [resumeSurvey] so initial detections go through the
+  /// pipeline. Pass `null` to disable alerts entirely. Replacing an
+  /// existing coordinator first calls `shutdown()` on it.
+  Future<void> setAlertCoordinator(SurveyAlertCoordinator? coord) async {
+    final old = _alertCoordinator;
+    _alertCoordinator = coord;
+    if (old != null && !identical(old, coord)) {
+      await old.shutdown(flushFinal: false);
+    }
+  }
+
+  /// Currently-attached alert coordinator (read-only).
+  SurveyAlertCoordinator? get alertCoordinator => _alertCoordinator;
+
+  /// Localized title used for the foreground-service notification. Falls
+  /// back to the device-locale title loaded in [SurveyNotificationService]
+  /// until [setNotificationStrings] supplies an app-locale title.
+  String get _notificationTitle =>
+      _notificationStrings?.title ??
+      SurveyNotificationService.notificationTitle;
+
+  /// Set the species-name localizer used by the foreground notification.
+  /// Pass `null` to revert to English fallbacks.
+  void setNameLocalizer(
+    String Function(String sciName, String fallback)? localizer,
+  ) {
+    _nameLocalizer = localizer;
+  }
+
+  /// Set localized strings for the foreground-notification recent-detections
+  /// list and the stats footer. Call once during survey setup with values
+  /// pulled from [AppLocalizations]. Without this the controller falls
+  /// back to terse English ("just now", "X det · Y spp · Z km").
+  void setNotificationStrings({
+    String? title,
+    required String justNow,
+    required String Function(int seconds) secondsAgo,
+    required String Function(int minutes) minutesAgo,
+    required String Function(int hours) hoursAgo,
+    required String Function(
+      String elapsed,
+      int detections,
+      int species,
+      String distanceKm,
+    ) stats,
+  }) {
+    _notificationStrings = _NotificationStrings(
+      title: title,
+      justNow: justNow,
+      secondsAgo: secondsAgo,
+      minutesAgo: minutesAgo,
+      hoursAgo: hoursAgo,
+      stats: stats,
+    );
+  }
 
   // ── Model loading ───────────────────────────────────────────────────────
 
@@ -240,6 +311,7 @@ class SurveyController {
     required int maxDurationHours,
     required SamplingMode samplingMode,
     int topNPerSpecies = 10,
+    int clipContextSeconds = 0,
     String? transectId,
     String? observerName,
     String? customName,
@@ -247,6 +319,7 @@ class SurveyController {
     double? startLongitude,
     bool backgroundGps = true,
     int autoStopBattery = 0,
+    SessionSettings? settingsSnapshot,
   }) async {
     if (_state == SurveyState.active) return;
     _state = SurveyState.starting;
@@ -265,12 +338,14 @@ class SurveyController {
         id: sessionId,
         startTime: DateTime.now(),
         type: SessionType.survey,
-        settings: SessionSettings(
-          windowDuration: windowDuration,
-          confidenceThreshold: confidenceThreshold,
-          inferenceRate: inferenceRate,
-          speciesFilterMode: speciesFilterMode,
-        ),
+        settings: settingsSnapshot ??
+            SessionSettings(
+              windowDuration: windowDuration,
+              confidenceThreshold: confidenceThreshold,
+              inferenceRate: inferenceRate,
+              speciesFilterMode: speciesFilterMode,
+              clipContextSeconds: clipContextSeconds,
+            ),
         transectId: transectId,
         observerName: observerName,
         customName: customName,
@@ -368,7 +443,7 @@ class SurveyController {
 
       // Start foreground service notification.
       await _notificationService.start(
-        title: SurveyNotificationService.notificationTitle,
+        title: _notificationTitle,
         text: _buildNotificationText(),
       );
 
@@ -504,7 +579,7 @@ class SurveyController {
       );
 
       await _notificationService.start(
-        title: SurveyNotificationService.notificationTitle,
+        title: _notificationTitle,
         text: _buildNotificationText(),
       );
 
@@ -534,6 +609,12 @@ class SurveyController {
     await _notificationService.stop();
     await _gpsTracker?.stopTracking();
     await recordingService.stopRecording();
+
+    final coord = _alertCoordinator;
+    _alertCoordinator = null;
+    if (coord != null) {
+      await coord.shutdown(flushFinal: false);
+    }
 
     _gpsTracker = null;
     _sampler = null;
@@ -631,6 +712,13 @@ class SurveyController {
     _session!.end();
     final completedSession = _session!;
 
+    // Shut down alerts: flush queued summaries, cancel timer.
+    final alertCoord = _alertCoordinator;
+    _alertCoordinator = null;
+    if (alertCoord != null) {
+      await alertCoord.shutdown();
+    }
+
     try {
       // Final persist.
       await _persistSession();
@@ -668,6 +756,11 @@ class SurveyController {
     _inferenceTimer?.cancel();
     _persistTimer?.cancel();
     _notificationTimer?.cancel();
+    final coord = _alertCoordinator;
+    _alertCoordinator = null;
+    if (coord != null) {
+      await coord.shutdown(flushFinal: false);
+    }
     await _gpsTracker?.stopTracking();
     await _isolate.stop();
     recordingService.dispose();
@@ -815,6 +908,9 @@ class SurveyController {
             _session!.addDetection(record);
             _sessionDetections.insert(0, record);
             _activeCardSpecies[name] = record;
+            // Feed the alert pipeline AFTER the record is durably tracked
+            // so a notification firing implies the detection was kept.
+            _alertCoordinator?.onDetection(record);
           } else if (_activeCardSpecies.containsKey(name)) {
             // Update confidence if higher — also move to end so it
             // appears at the top of the recent detections list.
@@ -923,24 +1019,71 @@ class SurveyController {
 
   // ── Notification + battery ─────────────────────────────────────────────
 
-  /// Build the notification body text with current stats.
+  /// Build the notification body text with the three most recent
+  /// detections on top, an empty separator line, then a compact stats
+  /// footer (elapsed time, detections, species, distance). Android
+  /// expands the multi-line body via [Notification.BigTextStyle].
   String _buildNotificationText() {
     final e = elapsed;
     final hh = e.inHours.toString().padLeft(2, '0');
     final mm = (e.inMinutes % 60).toString().padLeft(2, '0');
     final ss = (e.inSeconds % 60).toString().padLeft(2, '0');
+    final elapsedStr = '$hh:$mm:$ss';
     final det = _session?.detections.length ?? 0;
     final spp = _session?.uniqueSpeciesCount ?? 0;
     final dist = _gpsTracker?.distanceMeters ?? 0;
     final km = (dist / 1000).toStringAsFixed(1);
-    return '\u23F1 $hh:$mm:$ss   \uD83D\uDC26 $det det · $spp spp   '
-        '\uD83D\uDCCD $km km';
+    final s = _notificationStrings;
+    // Localized stats footer (falls back to English when no strings have
+    // been wired). The localizer takes care of plural / unit ordering.
+    final stats = s?.stats(elapsedStr, det, spp, km) ??
+        '\u23F1 $elapsedStr   \uD83D\uDC26 $det det · $spp spp   '
+            '\uD83D\uDCCD $km km';
+
+    // _sessionDetections is newest-first. Take up to 3 most recent
+    // *unique* species (so a chatty bird doesn't fill the whole list)
+    // and render them with confidence percentage and a relative time.
+    if (_sessionDetections.isEmpty) return stats;
+    final now = DateTime.now();
+    final seen = <String>{};
+    final recent = <DetectionRecord>[];
+    for (final r in _sessionDetections) {
+      if (seen.add(r.scientificName)) {
+        recent.add(r);
+        if (recent.length == 3) break;
+      }
+    }
+    final lines = <String>[];
+    for (final r in recent) {
+      final name =
+          _nameLocalizer?.call(r.scientificName, r.commonName) ?? r.commonName;
+      final pct = (r.confidence * 100).round();
+      final ago = _formatRelativeTime(now.difference(r.timestamp));
+      lines.add('$name · $pct% · $ago');
+    }
+    lines.add(''); // blank separator line between detections and stats
+    lines.add(stats);
+    return lines.join('\n');
+  }
+
+  /// Format a duration as a short, localized "N ago" string suitable for
+  /// the notification. Falls back to terse English when no localized
+  /// strings have been provided.
+  String _formatRelativeTime(Duration d) {
+    final s = _notificationStrings;
+    final secs = d.inSeconds;
+    if (secs < 5) return s?.justNow ?? 'just now';
+    if (secs < 60) return s?.secondsAgo(secs) ?? '${secs}s ago';
+    final mins = d.inMinutes;
+    if (mins < 60) return s?.minutesAgo(mins) ?? '${mins}m ago';
+    final hrs = d.inHours;
+    return s?.hoursAgo(hrs) ?? '${hrs}h ago';
   }
 
   /// Push updated stats to the foreground notification.
   Future<void> _updateNotification() async {
     await _notificationService.update(
-      title: SurveyNotificationService.notificationTitle,
+      title: _notificationTitle,
       text: _buildNotificationText(),
     );
   }
@@ -985,4 +1128,29 @@ class SurveyController {
   void _notifyListeners() {
     onStateChanged?.call();
   }
+}
+
+/// Localized strings used to render the recent-detections list inside the
+/// survey foreground notification.
+class _NotificationStrings {
+  const _NotificationStrings({
+    required this.title,
+    required this.justNow,
+    required this.secondsAgo,
+    required this.minutesAgo,
+    required this.hoursAgo,
+    required this.stats,
+  });
+
+  final String? title;
+  final String justNow;
+  final String Function(int seconds) secondsAgo;
+  final String Function(int minutes) minutesAgo;
+  final String Function(int hours) hoursAgo;
+  final String Function(
+    String elapsed,
+    int detections,
+    int species,
+    String distanceKm,
+  ) stats;
 }

@@ -5,6 +5,132 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.8] - 2026-04-26
+
+### Changed
+
+- **About screen: audio model and geo-model now share a single card.** Each model still gets its own labelled section (display name only), with the species count printed once at the bottom — it's the same 5,250-species intersection for both. The narrative description under the geo-model is gone; the section header already conveys what it is.
+
+## [0.7.7] - 2026-04-26
+
+### Added
+
+- **Tap a species thumbnail in Session Review to open its info overlay.** The 48 dp thumbnail next to each species row in Session Review is now its own tap target — long-pressing the row still works, but the photo itself is the more discoverable shortcut to the full species sheet (description, photo credit, links).
+
+### Fixed
+
+- **Species photos no longer cropped vertically in the info overlay.** The overlay was rendering bundled photos in a 3:2 frame with `BoxFit.cover`, which sliced off the top and bottom of every 320×240 thumbnail. The frame is now 4:3 and uses `BoxFit.contain`, so the full photo — the same crop the BirdNET team curated — is always visible.
+- **Inline species thumbnails now match the bundled photo aspect ratio.** Session Review (48×36) and the live detection list (60×45) used 3:2 boxes that quietly cropped a slice off every photo. Both are now 4:3, matching the 320×240 source files, so each photo is shown in full without distortion. The Explore species cards switched to the same 4:3 frame for consistency.
+
+## [0.7.6] - 2026-04-26
+
+### Fixed
+
+- **Survey track map filter now localizes species names.** The species picker in the fullscreen map's filter sheet was showing the raw English common name baked into each detection record and always italicized the scientific name underneath, ignoring both the *Species names* language setting and the *Show scientific names* toggle. Names now go through the taxonomy lookup like everywhere else in the app, so they appear in your chosen species locale, and scientific names only show when you've turned them on in Settings.
+- **High-confidence filter is now an actual slider.** The previous "High confidence (≥80 %)" preset did nothing for sessions whose detection threshold was already at or above 80 %. The filter sheet now has a *Minimum confidence* slider (50 % – 99 %) that you can drag to whatever floor makes sense for the session, with a live percentage readout.
+
+### Changed
+
+- **Cleaner species picker in the map filter sheet.** The long radio-list of species has been replaced with a search field plus a tap-to-select list using check-circle icons. Typing into the search field filters the list against both the localized common name and the scientific name, and an *All species* row at the top makes clearing the species filter a single tap.
+
+## [0.7.5] - 2026-04-26
+
+### Added
+
+- **Filter button on the fullscreen survey track map.** The map's app bar now has a :material-filter-list-outlined: button that opens a filter sheet for restricting which detection markers are drawn. Filter modes are *All detections*, *With audio clip* (only markers whose clip is still on disk), *High confidence* (≥80 %), and *Manual additions* (only the ones you added in Session Review). A *Limit to species* picker lets you collapse the map to a single species — useful for asking "where exactly along the route did I hear the wood thrush?". The two filters combine, an active filter shows a dot on the icon and a match-count subtitle in the app bar, and an *Empty filter* card appears at the bottom of the map when nothing matches.
+- **Funding card on the About screen.** Acknowledges support for BirdNET Live development by the Deutsche Bundesstiftung Umwelt through the project RangerSound (project 39263/01).
+
+### Changed
+
+- **Onboarding screens use vertical space more carefully.** The icon-only top half is gone — every page now starts its body copy near the top of the safe area instead of at the vertical centre, so the Terms-Of-Use page no longer overflows on smaller phones. Hero icons are smaller (44 dp instead of 56 dp), spacings are tighter, and the bottom controls bar is more compact.
+- **The "Credits" card on the About screen is now titled "Developed by"** in every locale, since the card just names the BirdNET development team and never actually thanked anyone.
+
+## [0.7.4] - 2026-04-25
+
+### Changed
+
+- **Survey notification is now fully translated.** The recent-detections list, stats footer (elapsed time / detections / species / distance), and notification title now all honor the user's selected app locale instead of mixing English fragments. Species names are also resolved lazily on each notification refresh, so they start translating as soon as the taxonomy service finishes loading even if it loads after survey start.
+- **Recent-detections list deduplicates by species.** A chatty bird no longer fills all three slots — the list now shows the three most-recent *unique* species instead.
+- **Recent detections appear above the stats footer**, separated by a blank line, so the most actionable information (what was just heard) sits at the top of the expanded notification.
+
+### Added
+
+- `surveyNotificationStats` ARB key with `{elapsed}` / `{detections}` / `{species}` / `{distanceKm}` placeholders so each locale can adjust unit ordering, abbreviations, and pluralization for the stats footer.
+
+## [0.7.3] - 2026-04-25
+
+### Changed
+
+- **The persistent survey notification now lists the three most recent detections**, each on its own line with the localized common name, confidence percentage, and a short relative timestamp (`just now`, `42s ago`, `5m ago`, `2h ago`). On Android the lines are visible as soon as the notification is expanded thanks to the underlying BigTextStyle, so you can glance at the lock screen mid-survey and see what's been heard most recently without unlocking the phone. Species names honor the user's species locale and the *Show scientific names* toggle, identical to the in-app cards.
+
+### Added
+
+- New ARB keys `surveySecondsAgo` and `surveyHoursAgo` (paired with the existing `surveyJustNow` / `surveyMinutesAgo`) so the relative timestamps in the notification render naturally in every supported language (en/de/cs/es/fr/it/pt).
+
+## [0.7.2] - 2026-04-25
+
+### Changed
+
+- **Watchlist editor is now a real species picker.** Replaced the cramped paste-the-scientific-names dialog with a full-screen editor: a search field on top scans the entire taxonomy (matches scientific name, English common name, and every localized common name) and shows tappable checkbox results, while an *Import from file* button reads any `.txt`/`.csv` plain-text list of scientific names from device storage. The selected-species pane stays visible when you clear the search so it's obvious what's already in the list, and selections survive locale switches because friendly labels are cached at pick time.
+- **Survey alert notifications now use a monochrome blue-jay icon** instead of a white square. Switched both `SpeciesAlertNotifier.init` and `requestPermission` to the existing `ic_notification` drawable that the foreground-service notification already uses, so the heads-up alert visually matches the persistent recording notification.
+- **Cleaner alert text.** Notifications no longer repeat the species name twice (title and body both said it). The body is now just the reason — *"First detection of this survey"*, *"On your watchlist"*, *"Detected at this location with under 4% likelihood"*, etc. — keeping the species name in the bold notification title where Android renders it largest.
+- **Localized notifications work end-to-end.** When the app delivers a species alert it now uses the user's selected species locale (and respects the *Show scientific names* toggle), so a German user sees *Kohlmeise* in the notification instead of *Great Tit*. The localizer plumbs through `SurveyAlertCoordinator` so it stays correct across coalesced summary alerts too.
+- **German wording fix.** *Erkennung* in the alert bodies is now *Detektion*, matching the term used everywhere else in the German UI.
+
+## [0.7.1] - 2026-04-25
+
+### Changed
+
+- **Species-alerts wizard step is now a real, finished UX.** The setup screen for the new push alerts has been rebuilt: a *Minimum confidence* slider sits below the mode picker and is automatically floored to your session confidence threshold (alerts can never be more sensitive than the detections themselves). The advanced *Frequency control* section now uses one-tap chip selectors for startup grace (Off / 30 s / 1 m / 2 m / 5 m), minimum interval (Off / 5 / 15 / 30 / 60 s) and per-minute cap (1 / 3 / 5 / 10 / Unlimited) instead of free-form integer text fields. The rare-species slider gained a live readout — *"Alerts on species with under 5 % likelihood at this location."* — so you understand what the slider position will actually do before you start the survey. A help button in the step header opens an in-context bottom sheet explaining the alert modes and the throttling rules.
+- **Watchlist creation and management directly in the wizard.** Previously the Watchlist alert mode was a dead end if you hadn't already created a list — and there was no way *anywhere* in the app to create one. The wizard now lists all saved watchlists as selectable tiles with a species count, lets you delete lists with a confirmation dialog, and exposes a *New watchlist* button that opens an inline editor for naming a list and pasting a block of scientific names (one per line) straight from your clipboard. Picking Watchlist mode without selecting a list now blocks the Next button with a clear inline error.
+
+### Added
+
+- **Notification-permission prompt on mode change.** Picking any non-Off alert mode in the wizard now triggers the Android notification-permission request the first time it's needed, so you don't have to remember to grant it from system settings before alerts can fire.
+
+## [0.7.0] - 2026-04-25
+
+### Added
+
+- **Push-style species alerts during surveys.** A new step in the survey setup wizard lets you choose when to receive a heads-up notification mid-survey: *Off* (default), *First in session* (one alert the first time each species is heard), *First ever* (alert only when the app encounters a species for the very first time across all your sessions — a "lifer" alert), *Rare for this location* (alert when the geo-model probability for the current location is below a configurable threshold, so a Black-throated Sparrow showing up in Bavaria gets your attention), or *Watchlist* (alert only on species you've added to a saved custom list). Alerts respect a configurable confidence floor and fire on a separate Android notification channel so you can mute them independently of the silent ongoing survey-recording notification.
+- **Smart frequency control for alerts.** Real surveys often see a flurry of new species in the first few minutes — without throttling, the device would buzz constantly. The pipeline now applies three layered limits: a startup grace window (default 60 s) that suppresses *first-in-session* alerts at the start of a survey while still letting rare/watchlist alerts fire immediately, a hard minimum interval between any two alerts (default 15 s), and a sliding per-minute cap (default 3) with optional coalescing — over-cap alerts queue into a single summary notification ("3 more new species: ...") instead of being dropped. All limits are user-configurable from an *Advanced* section in the wizard.
+- **Lifetime species history**, persisted in app preferences, powers the *First ever* mode. On first launch after upgrading, the app backfills the history from your existing session records so the very first survey under 0.7.0 doesn't fire a "lifer" for every common species you've already recorded.
+
+## [0.6.9] - 2026-04-24
+
+### Added
+
+- **Every session export now ships with full provenance metadata.** ZIP bundles always include a `<prefix>.metadata.json` side-file alongside the audio and selection table, and JSON exports gain a top-level `meta` block. The metadata captures the app version and build number, the audio and geo model names/versions from `model_config.json`, the species locale used to localize labels, the export timestamp (UTC), and a verbatim snapshot of every SharedPreferences setting at the moment of export. This makes exports self-describing — an analyst opening a survey ZIP months later (or receiving one from another recordist) can answer exactly which app version, which model, and which user settings produced the detections without having to ask. Critical for scientific reproducibility, especially when sharing survey data between researchers.
+
+## [0.6.8] - 2026-04-24
+
+### Fixed
+
+- **Survey selection-table exports for sessions started before 0.6.7 now report correct in-clip detection times.** Those sessions were saved without a `clipContextSeconds` value (the field didn't exist yet), so the exporter assumed 0 seconds of pre-roll and printed `Begin Time = 0.000 / End Time = 3.000` for every clip — placing the Raven selection box at the very start of each clip even when the actual call sat 1–2 seconds in. The exporter now falls back to the device's current Survey “Clip Context” setting whenever a session has clip files but no recorded context value, so legacy bundles produce the same selections as freshly recorded ones.
+
+## [0.6.7] - 2026-04-24
+
+### Changed
+
+- **Session exports now use localized common names everywhere they're rendered as text.** Clip filenames inside the ZIP bundle (e.g. `…_clip_001_Amsel.flac` for a German user instead of `…_clip_001_Eurasian_Blackbird.flac`), the `Common Name` column in Raven selection tables, and the `Common Name` column in CSV exports all use the user's species locale. Scientific Name columns are always emitted regardless of the "Show scientific names" UI toggle so exports remain scientifically authoritative.
+- **Survey selection tables now report in-clip detection times.** Previously, `Begin Time (s)` / `End Time (s)` were session-relative offsets even for rows referencing per-detection clip files — which made Raven Pro draw the selection box at the wrong place inside the clip (or off the end entirely). Now those columns describe the detection's offset *within the clip file* (i.e. they bracket the model's window after the pre-roll context). A new `Survey Time (s)` column carries the original session-relative offset so analysts can still cross-reference detections against the survey timeline. The CSV export gains the same `Survey Time (s)` column when clip files are present. For sessions exporting a single continuous recording, behavior is unchanged.
+
+## [0.6.6] - 2026-04-24
+
+### Added
+
+- **Session library cards now show on-disk audio size** as a fourth stat chip. The value is the total of the continuous recording (live, point count, file analysis) plus all per-detection clips (survey), so you can spot heavy sessions at a glance before exporting or deleting. Sessions with no audio on disk silently omit the chip.
+
+### Fixed
+
+- **Species names are now localized and respect the "Show scientific names" setting in every place a detection is rendered.** The fullscreen survey-map clip-player sheet showed the English common name and always the sci name; the survey live-screen summary species list, the session library's grouped-by-species view subtitles, and the add/replace-species overlay banner + result tiles had the same gaps. All of them now go through the taxonomy lookup with the active species locale and hide the sci name when the setting is off.
+
+## [0.6.5] - 2026-04-24
+
+### Fixed
+
+- **Detections recorded before the audio recorder fully spun up no longer have broken "00:-1" timestamps.** Session-relative offsets are now clamped to `[00:00, audio duration]` both at storage time (in `LiveSession.addDetection(s)`) and at render/seek time, so these detections display sensibly and play back from a valid position instead of silently failing.
+
 ## [0.6.4] - 2026-04-23
 
 ### Changed

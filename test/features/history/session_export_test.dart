@@ -15,6 +15,7 @@ LiveSession _makeSession({
   List<DetectionRecord>? detections,
   String? recordingPath,
   int windowDuration = 3,
+  int clipContextSeconds = 0,
   SessionType type = SessionType.live,
 }) {
   final start = DateTime.utc(2025, 6, 15, 8, 0, 0);
@@ -30,6 +31,7 @@ LiveSession _makeSession({
       confidenceThreshold: 25,
       inferenceRate: 1.0,
       speciesFilterMode: 'off',
+      clipContextSeconds: clipContextSeconds,
     ),
   );
 }
@@ -127,11 +129,12 @@ void main() {
     });
 
     test(
-        'clip mode: rows reference individual clips with session-relative times',
+        'clip mode: Begin/End Time are in-clip offsets and a Survey Time column is added',
         () {
       final start = DateTime.utc(2025, 6, 15, 8, 0, 0);
       final session = _makeSession(
         windowDuration: 3,
+        clipContextSeconds: 1,
         detections: [
           _det('Turdus merula', 'Eurasian Blackbird', 0.95,
               const Duration(seconds: 10), start),
@@ -149,14 +152,22 @@ void main() {
       );
       final lines = table.split('\n').where((l) => l.isNotEmpty).toList();
 
+      // Header gains 'Survey Time (s)' when any row references a clip.
+      expect(lines.first, contains('Survey Time (s)'));
+
       final cols1 = lines[1].split('\t');
       expect(cols1[3], '${_prefix}_clip_001_Eurasian_Blackbird.flac');
-      expect(cols1[4], '10.000'); // session-relative
-      expect(cols1[5], '13.000');
+      // Detection sits at [clipContext, clipContext + window] inside the clip.
+      expect(cols1[4], '1.000');
+      expect(cols1[5], '4.000');
+      // Survey Time column carries the session-relative offset.
+      expect(cols1[11], '10.000');
 
       final cols2 = lines[2].split('\t');
       expect(cols2[3], '${_prefix}_clip_002_European_Robin.flac');
-      expect(cols2[4], '25.000'); // session-relative
+      expect(cols2[4], '1.000');
+      expect(cols2[5], '4.000');
+      expect(cols2[11], '25.000');
     });
 
     test('no file refs: Begin File column is empty', () {

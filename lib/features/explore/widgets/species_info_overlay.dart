@@ -149,14 +149,17 @@ class _SpeciesInfoSheetState extends ConsumerState<_SpeciesInfoSheet> {
               ),
 
               // ── Image ────────────────────────────────────────
+              // Bundled species photos are 320×240 (4:3); using a 4:3
+              // aspect ratio with BoxFit.contain shows the full photo
+              // without vertical cropping or sideways distortion.
               AspectRatio(
-                aspectRatio: 3 / 2,
+                aspectRatio: 4 / 3,
                 child: Image.asset(
                   _detail?.assetImagePath ?? 'assets/images/dummy_species.png',
-                  fit: BoxFit.cover,
+                  fit: BoxFit.contain,
                   errorBuilder: (_, __, ___) => Image.asset(
                     'assets/images/dummy_species.png',
-                    fit: BoxFit.cover,
+                    fit: BoxFit.contain,
                   ),
                 ),
               ),

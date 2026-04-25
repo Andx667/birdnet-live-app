@@ -40,6 +40,7 @@
 // =============================================================================
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
@@ -57,7 +58,9 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../core/theme/score_colors.dart';
@@ -707,15 +710,83 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
 
     final exportFormat = ref.read(exportFormatProvider);
     final includeAudio = ref.read(includeAudioProvider);
+    final taxonomy = ref.read(taxonomyServiceProvider).valueOrNull;
+    final speciesLocale = ref.read(effectiveSpeciesLocaleProvider);
+    // Legacy sessions persisted before SessionSettings.clipContextSeconds
+    // existed default to 0, which would falsely place every detection at
+    // the very start of every clip in Raven/CSV exports. When the session
+    // has clip files but no recorded context value, fall back to the
+    // device's current survey clip-context preference.
+    final sessionClipContext = widget.session.settings.clipContextSeconds;
+    final hasClips = widget.session.detections
+        .any((d) => d.audioClipPath != null && d.audioClipPath!.isNotEmpty);
+    final clipContextOverride = (hasClips && sessionClipContext == 0)
+        ? ref.read(surveyClipContextProvider)
+        : null;
 
     final exportPath = await buildSessionExport(
       widget.session,
       format: exportFormat,
       includeAudio: includeAudio,
+      taxonomy: taxonomy,
+      speciesLocale: speciesLocale,
+      clipContextSecondsOverride: clipContextOverride,
+      metadata: await _buildExportMetadata(speciesLocale: speciesLocale),
     );
 
     if (exportPath == null) return;
     await Share.shareXFiles([XFile(exportPath)]);
+  }
+
+  /// Assembles the provenance metadata block embedded in JSON exports and
+  /// dropped as `<prefix>.metadata.json` inside ZIP bundles.
+  ///
+  /// Captures the app version + build, both ONNX model blocks from
+  /// `model_config.json`, and a snapshot of every SharedPreferences key/value
+  /// at export time. Failures (e.g. missing platform plugin in tests, model
+  /// asset moved) are non-fatal — we return a best-effort map and let the
+  /// export continue.
+  Future<Map<String, dynamic>> _buildExportMetadata({
+    required String speciesLocale,
+  }) async {
+    String? appVersion;
+    String? appBuildNumber;
+    String? appPackageName;
+    try {
+      final info = await PackageInfo.fromPlatform();
+      appVersion = info.version;
+      appBuildNumber = info.buildNumber;
+      appPackageName = info.packageName;
+    } catch (_) {/* non-fatal */}
+
+    Map<String, dynamic>? audioModel;
+    Map<String, dynamic>? geoModel;
+    try {
+      final raw =
+          await rootBundle.loadString(AppConstants.modelConfigAssetPath);
+      final decoded = json.decode(raw) as Map<String, dynamic>;
+      final am = decoded['audioModel'];
+      if (am is Map) audioModel = Map<String, dynamic>.from(am);
+      final gm = decoded['geoModel'];
+      if (gm is Map) geoModel = Map<String, dynamic>.from(gm);
+    } catch (_) {/* non-fatal */}
+
+    Map<String, dynamic>? prefsMap;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final keys = prefs.getKeys().toList()..sort();
+      prefsMap = {for (final k in keys) k: prefs.get(k)};
+    } catch (_) {/* non-fatal */}
+
+    return buildExportMetadata(
+      appVersion: appVersion,
+      appBuildNumber: appBuildNumber,
+      appPackageName: appPackageName,
+      audioModel: audioModel,
+      geoModel: geoModel,
+      prefs: prefsMap,
+      speciesLocale: speciesLocale,
+    );
   }
 
   void _done() {
@@ -991,8 +1062,13 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
       final clipOffset = Duration(microseconds: (_clipOffsetSec * 1e6).round());
       final offset =
           cluster.firstTimestamp.difference(widget.session.startTime);
-      final seekPos = offset - clipOffset;
-      if (seekPos.isNegative || seekPos > _duration) return;
+      var seekPos = offset - clipOffset;
+      // Clamp into the playable range [0, duration] so detections that
+      // landed slightly before the recorder fully spun up (negative
+      // offset) or after the trim end still play back from a sensible
+      // position instead of silently failing.
+      if (seekPos.isNegative) seekPos = Duration.zero;
+      if (seekPos > _duration) seekPos = _duration;
 
       // Compute the cluster's end position in clip coordinates so we
       // can auto-pause once playback walks past the detection. Use the
@@ -1742,9 +1818,26 @@ String _sessionReviewTitle(AppLocalizations l10n, LiveSession session) {
 // Fullscreen Survey Track Map
 // ─────────────────────────────────────────────────────────────────────────────
 
+/// Filter modes available on the fullscreen survey track map. The
+/// confidence threshold is a separate slider that can stack with any of
+/// these modes (e.g. "with audio" + ≥75% confidence).
+enum _MapFilterMode {
+  all,
+  withAudio,
+  manual,
+}
+
+/// Default confidence floor for the slider. 0.5 keeps every detection a
+/// typical survey would keep, so the slider visibly reduces markers as
+/// the user drags it up.
+const double _defaultConfidenceFloor = 0.5;
+
 /// Fullscreen map showing the complete survey track with species markers.
-/// Tapping a species marker plays the detection's audio clip.
-class _FullscreenSurveyMapScreen extends StatefulWidget {
+/// Tapping a species marker plays the detection's audio clip. The app bar
+/// hosts a filter button that opens a bottom sheet for restricting which
+/// detections are shown (audio only, manual additions, minimum
+/// confidence, single species).
+class _FullscreenSurveyMapScreen extends ConsumerStatefulWidget {
   const _FullscreenSurveyMapScreen({
     required this.gpsTrack,
     required this.detections,
@@ -1754,13 +1847,57 @@ class _FullscreenSurveyMapScreen extends StatefulWidget {
   final List<DetectionRecord> detections;
 
   @override
-  State<_FullscreenSurveyMapScreen> createState() =>
+  ConsumerState<_FullscreenSurveyMapScreen> createState() =>
       _FullscreenSurveyMapScreenState();
 }
 
 class _FullscreenSurveyMapScreenState
-    extends State<_FullscreenSurveyMapScreen> {
+    extends ConsumerState<_FullscreenSurveyMapScreen> {
   DetectionRecord? _highlight;
+  _MapFilterMode _mode = _MapFilterMode.all;
+  double _minConfidence = _defaultConfidenceFloor;
+  String? _speciesFilter; // scientific name, or null for "all species"
+
+  bool get _isFilterActive =>
+      _mode != _MapFilterMode.all ||
+      _speciesFilter != null ||
+      _minConfidence > _defaultConfidenceFloor;
+
+  /// Localized common name for [sciName], honoring the *Show scientific
+  /// names* toggle. Falls back to the record's stored common name when
+  /// the taxonomy hasn't loaded yet.
+  String _localizedName(String sciName, String fallback) {
+    final showSci = ref.watch(showSciNamesProvider);
+    if (showSci) return sciName;
+    final taxonomy = ref.watch(taxonomyServiceProvider).valueOrNull;
+    final speciesLocale = ref.watch(effectiveSpeciesLocaleProvider);
+    return taxonomy?.lookup(sciName)?.commonNameForLocale(speciesLocale) ??
+        fallback;
+  }
+
+  List<DetectionRecord> get _filtered {
+    return widget.detections.where((d) {
+      switch (_mode) {
+        case _MapFilterMode.all:
+          break;
+        case _MapFilterMode.withAudio:
+          final p = d.audioClipPath;
+          if (p == null || !File(p).existsSync()) return false;
+          break;
+        case _MapFilterMode.manual:
+          if (d.source != DetectionSource.manual &&
+              d.source != DetectionSource.manualGlobal) {
+            return false;
+          }
+          break;
+      }
+      if (d.confidence < _minConfidence) return false;
+      if (_speciesFilter != null && d.scientificName != _speciesFilter) {
+        return false;
+      }
+      return true;
+    }).toList();
+  }
 
   Future<void> _onMarkerTap(DetectionRecord detection) async {
     // Only play markers whose own clip is still on disk. The map widget
@@ -1775,19 +1912,427 @@ class _FullscreenSurveyMapScreenState
     if (mounted) setState(() => _highlight = null);
   }
 
+  Future<void> _openFilterSheet() async {
+    final l10n = AppLocalizations.of(context)!;
+
+    // Build a localized, deduplicated species list once. Each entry
+    // captures the scientific name (the filter key), the localized
+    // display name, and a max-confidence value used to grey out species
+    // that the current confidence floor would already exclude.
+    final byScientific = <String, _SpeciesPickerEntry>{};
+    for (final d in widget.detections) {
+      final existing = byScientific[d.scientificName];
+      final localized = _localizedName(d.scientificName, d.commonName);
+      if (existing == null) {
+        byScientific[d.scientificName] = _SpeciesPickerEntry(
+          scientificName: d.scientificName,
+          displayName: localized,
+          maxConfidence: d.confidence,
+        );
+      } else if (d.confidence > existing.maxConfidence) {
+        byScientific[d.scientificName] = existing.copyWith(
+          maxConfidence: d.confidence,
+        );
+      }
+    }
+    final speciesEntries = byScientific.values.toList()
+      ..sort((a, b) =>
+          a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase()));
+
+    final result = await showModalBottomSheet<_MapFilterChoice>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (sheetContext) {
+        return _MapFilterSheet(
+          initialMode: _mode,
+          initialMinConfidence: _minConfidence,
+          initialSpecies: _speciesFilter,
+          speciesEntries: speciesEntries,
+          l10n: l10n,
+        );
+      },
+    );
+
+    if (result != null && mounted) {
+      setState(() {
+        _mode = result.mode;
+        _minConfidence = result.minConfidence;
+        _speciesFilter = result.species;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final filtered = _filtered;
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.surveyTrackMap)),
-      body: SurveyMapWidget(
-        gpsTrack: widget.gpsTrack,
-        detections: widget.detections,
-        autoFollow: false,
-        fitAllPoints: true,
-        highlightedDetection: _highlight,
-        onMarkerTap: _onMarkerTap,
+      appBar: AppBar(
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(l10n.surveyTrackMap),
+            if (_isFilterActive)
+              Text(
+                l10n.surveyMapMatchCount(filtered.length),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurface.withAlpha(170),
+                ),
+              ),
+          ],
+        ),
+        actions: [
+          IconButton(
+            icon: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(_isFilterActive
+                    ? Icons.filter_list
+                    : Icons.filter_list_outlined),
+                if (_isFilterActive)
+                  Positioned(
+                    right: -2,
+                    top: -2,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            tooltip: l10n.surveyMapFilterTooltip,
+            onPressed: _openFilterSheet,
+          ),
+        ],
+      ),
+      body: Stack(
+        children: [
+          SurveyMapWidget(
+            gpsTrack: widget.gpsTrack,
+            detections: filtered,
+            autoFollow: false,
+            fitAllPoints: true,
+            highlightedDetection: _highlight,
+            onMarkerTap: _onMarkerTap,
+          ),
+          if (filtered.isEmpty)
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 24,
+              child: Card(
+                color: theme.colorScheme.surfaceContainerHighest,
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(l10n.surveyMapFilterEmpty),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
+}
+
+/// Captured state for one species in the filter sheet's picker.
+class _SpeciesPickerEntry {
+  const _SpeciesPickerEntry({
+    required this.scientificName,
+    required this.displayName,
+    required this.maxConfidence,
+  });
+
+  final String scientificName;
+  final String displayName;
+  final double maxConfidence;
+
+  _SpeciesPickerEntry copyWith({double? maxConfidence}) => _SpeciesPickerEntry(
+        scientificName: scientificName,
+        displayName: displayName,
+        maxConfidence: maxConfidence ?? this.maxConfidence,
+      );
+}
+
+/// Stateful filter sheet — extracted as its own widget so the search
+/// field, mode chips, confidence slider, and species list each rebuild
+/// in isolation when the user interacts with them.
+class _MapFilterSheet extends StatefulWidget {
+  const _MapFilterSheet({
+    required this.initialMode,
+    required this.initialMinConfidence,
+    required this.initialSpecies,
+    required this.speciesEntries,
+    required this.l10n,
+  });
+
+  final _MapFilterMode initialMode;
+  final double initialMinConfidence;
+  final String? initialSpecies;
+  final List<_SpeciesPickerEntry> speciesEntries;
+  final AppLocalizations l10n;
+
+  @override
+  State<_MapFilterSheet> createState() => _MapFilterSheetState();
+}
+
+class _MapFilterSheetState extends State<_MapFilterSheet> {
+  late _MapFilterMode _mode = widget.initialMode;
+  late double _minConfidence = widget.initialMinConfidence;
+  late String? _species = widget.initialSpecies;
+  String _query = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = widget.l10n;
+
+    final lowerQuery = _query.trim().toLowerCase();
+    final filteredSpecies = lowerQuery.isEmpty
+        ? widget.speciesEntries
+        : widget.speciesEntries
+            .where((e) =>
+                e.displayName.toLowerCase().contains(lowerQuery) ||
+                e.scientificName.toLowerCase().contains(lowerQuery))
+            .toList();
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.7,
+      minChildSize: 0.4,
+      maxChildSize: 0.95,
+      expand: false,
+      builder: (_, scrollController) {
+        return Column(
+          children: [
+            // Drag handle.
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.outlineVariant,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  l10n.surveyMapFilterTitle,
+                  style: theme.textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
+            Expanded(
+              child: ListView(
+                controller: scrollController,
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                children: [
+                  // Mode chips.
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      ChoiceChip(
+                        label: Text(l10n.surveyMapFilterAll),
+                        selected: _mode == _MapFilterMode.all,
+                        onSelected: (_) =>
+                            setState(() => _mode = _MapFilterMode.all),
+                      ),
+                      ChoiceChip(
+                        label: Text(l10n.surveyMapFilterWithAudio),
+                        selected: _mode == _MapFilterMode.withAudio,
+                        onSelected: (_) =>
+                            setState(() => _mode = _MapFilterMode.withAudio),
+                      ),
+                      ChoiceChip(
+                        label: Text(l10n.surveyMapFilterManual),
+                        selected: _mode == _MapFilterMode.manual,
+                        onSelected: (_) =>
+                            setState(() => _mode = _MapFilterMode.manual),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // Confidence slider.
+                  Row(
+                    children: [
+                      Text(
+                        l10n.surveyMapFilterMinConfidence,
+                        style: theme.textTheme.titleSmall
+                            ?.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                      const Spacer(),
+                      Text(
+                        '${(_minConfidence * 100).round()}%',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Slider(
+                    value: _minConfidence,
+                    min: 0.5,
+                    max: 0.99,
+                    divisions: 49,
+                    label: '${(_minConfidence * 100).round()}%',
+                    onChanged: (v) => setState(() => _minConfidence = v),
+                  ),
+                  const SizedBox(height: 8),
+                  // Species picker header + search.
+                  Text(
+                    l10n.surveyMapFilterSpecies,
+                    style: theme.textTheme.titleSmall
+                        ?.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    decoration: InputDecoration(
+                      isDense: true,
+                      prefixIcon: const Icon(Icons.search, size: 20),
+                      hintText: l10n.surveyMapFilterSpeciesSearchHint,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 12),
+                    ),
+                    onChanged: (v) => setState(() => _query = v),
+                  ),
+                  const SizedBox(height: 8),
+                  // "All species" pill — always visible at the top of
+                  // the picker so clearing the species filter is one tap.
+                  _SpeciesPickerTile(
+                    label: l10n.surveyMapFilterAllSpecies,
+                    selected: _species == null,
+                    onTap: () => setState(() => _species = null),
+                  ),
+                  for (final e in filteredSpecies)
+                    _SpeciesPickerTile(
+                      label: e.displayName,
+                      selected: _species == e.scientificName,
+                      onTap: () => setState(
+                        () => _species = e.scientificName,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            // Bottom action bar.
+            SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                child: Row(
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(
+                        const _MapFilterChoice(
+                          mode: _MapFilterMode.all,
+                          minConfidence: _defaultConfidenceFloor,
+                          species: null,
+                        ),
+                      ),
+                      child: Text(l10n.clearFilters),
+                    ),
+                    const Spacer(),
+                    FilledButton(
+                      onPressed: () => Navigator.of(context).pop(
+                        _MapFilterChoice(
+                          mode: _mode,
+                          minConfidence: _minConfidence,
+                          species: _species,
+                        ),
+                      ),
+                      child: Text(l10n.apply),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// Lightweight tappable row used by the species picker. Avoids the
+/// heavy radio-list look (which felt cluttered with hundreds of
+/// detections) and gives a clear selected-state pill.
+class _SpeciesPickerTile extends StatelessWidget {
+  const _SpeciesPickerTile({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        child: Row(
+          children: [
+            Icon(
+              selected
+                  ? Icons.check_circle_rounded
+                  : Icons.radio_button_unchecked,
+              size: 20,
+              color: selected
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.outline,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MapFilterChoice {
+  const _MapFilterChoice({
+    required this.mode,
+    required this.minConfidence,
+    required this.species,
+  });
+  final _MapFilterMode mode;
+  final double minConfidence;
+  final String? species;
 }

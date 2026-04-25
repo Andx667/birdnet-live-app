@@ -42,8 +42,14 @@ import '../recording/recording_service.dart';
 import '../settings/settings_screen.dart';
 import '../spectrogram/spectrogram_widget.dart';
 import 'detection_sampler.dart';
+import 'alert_throttler.dart';
+import 'species_alert_notifier.dart';
+import 'survey_alert_coordinator.dart';
+import 'survey_alert_engine.dart';
 import 'survey_controller.dart';
 import 'survey_providers.dart';
+import '../history/global_species_history.dart';
+import '../inference/custom_species_list.dart';
 import 'widgets/survey_map_widget.dart';
 import 'widgets/survey_stats_bar.dart';
 
@@ -128,11 +134,125 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
     _finalizeAndReview();
   }
 
+  /// Construct and attach the [SurveyAlertCoordinator] honoring all
+  /// `surveyAlert*` user prefs. Skips entirely when alerts are off.
+  Future<void> _maybeBuildAlertCoordinator({
+    required SurveyController controller,
+  }) async {
+    final modeIdx = ref.read(surveyAlertModeProvider);
+    final mode = AlertMode.fromPrefValue(modeIdx);
+    if (mode == AlertMode.off) {
+      await controller.setAlertCoordinator(null);
+      return;
+    }
+    final l10n = AppLocalizations.of(context)!;
+
+    final notifier = ref.read(speciesAlertNotifierProvider);
+    final sound = ref.read(surveyAlertSoundProvider);
+    final vibrate = ref.read(surveyAlertVibrateProvider);
+    final strings = SpeciesAlertStrings(
+      channelName: l10n.surveyAlertChannelName,
+      channelDescription: l10n.surveyAlertChannelDescription,
+      firstInSessionBody: l10n.surveyAlertBodyFirstInSession,
+      firstEverBody: l10n.surveyAlertBodyFirstEver,
+      // l10n.surveyAlertBodyRare requires a String pct placeholder; the
+      // notifier substitutes `{pct}` at delivery time so we pass the raw
+      // template through.
+      rareBody: l10n.surveyAlertBodyRare('{pct}'),
+      watchlistBody: l10n.surveyAlertBodyWatchlist,
+      summaryTitle: l10n.surveyAlertSummaryTitle(0).replaceAll('0', '{count}'),
+      summaryBody:
+          l10n.surveyAlertSummaryBody(0, '{names}').replaceAll('0', '{count}'),
+    );
+    await notifier.init(strings: strings, sound: sound, vibrate: vibrate);
+
+    final history = ref.read(globalSpeciesHistoryProvider);
+    history.load();
+    final geoScores = await ref.read(geoScoresProvider.future);
+
+    Set<String>? watchlist;
+    final wlName = ref.read(surveyAlertWatchlistNameProvider);
+    if (mode == AlertMode.watchlist && wlName.isNotEmpty) {
+      try {
+        watchlist = await CustomSpeciesList.load(wlName);
+      } catch (_) {
+        watchlist = const <String>{};
+      }
+    }
+
+    final coord = SurveyAlertCoordinator(
+      mode: mode,
+      notifier: notifier,
+      notifierStrings: strings,
+      globalHistory: history,
+      geoScores: geoScores,
+      watchlist: watchlist,
+      minConfidence: ref.read(surveyAlertMinConfidenceProvider),
+      rareThreshold: ref.read(surveyAlertRareThresholdProvider),
+      startupGraceSeconds: ref.read(surveyAlertStartupGraceSecondsProvider),
+      minIntervalSeconds: ref.read(surveyAlertMinIntervalSecondsProvider),
+      maxPerMinute: ref.read(surveyAlertMaxPerMinuteProvider),
+      coalesce: ref.read(surveyAlertCoalesceProvider),
+      inAppToast: ref.read(surveyAlertInAppToastProvider),
+      onDelivered: _onAlertDelivered,
+      nameLocalizer: _buildNameLocalizer(),
+    );
+    await controller.setAlertCoordinator(coord);
+  }
+
+  /// Build a closure that maps a scientific name to the user's preferred
+  /// localized common name (honoring the species locale and the
+  /// "show scientific names" toggle). Reads the taxonomy lazily on each
+  /// call so names start translating as soon as the taxonomy service
+  /// finishes loading (which can happen *after* survey start).
+  String Function(String, String) _buildNameLocalizer() {
+    return (sciName, fallback) {
+      final showSci = ref.read(showSciNamesProvider);
+      if (showSci) return sciName;
+      final taxonomy = ref.read(taxonomyServiceProvider).valueOrNull;
+      final speciesLocale = ref.read(effectiveSpeciesLocaleProvider);
+      return taxonomy?.lookup(sciName)?.commonNameForLocale(speciesLocale) ??
+          fallback;
+    };
+  }
+
+  void _onAlertDelivered(AlertCandidate? one, SummaryAlert? summary) {
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    if (messenger == null) return;
+    final String text;
+    if (one != null) {
+      text = one.commonName;
+    } else if (summary != null) {
+      text = summary.alerts.map((a) => a.commonName).join(', ');
+    } else {
+      return;
+    }
+    messenger.showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.notifications_active_rounded,
+                color: Colors.white, size: 18),
+            const SizedBox(width: 8),
+            Expanded(child: Text(text)),
+          ],
+        ),
+        duration: const Duration(seconds: 3),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   Future<void> _startSurvey() async {
     if (_started) return;
     final controller = ref.read(surveyControllerProvider);
     final captureNotifier = ref.read(captureStateProvider.notifier);
     final deviceId = ref.read(selectedDeviceProvider);
+    // Capture localizations now — the rest of this method awaits multiple
+    // futures and we want to wire foreground-notification strings without
+    // crossing BuildContext async gaps.
+    final l10n = AppLocalizations.of(context)!;
 
     // Start audio capture.
     await captureNotifier.start(deviceId: deviceId);
@@ -152,9 +272,28 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
     final samplingMode = samplingModeFromString(samplingStr);
     final topN = ref.read(surveyTopNPerSpeciesProvider);
     final autoStopBattery = ref.read(surveyAutoStopBatteryProvider);
+    final clipContext = ref.read(surveyClipContextProvider);
 
     final geoScores = await ref.read(geoScoresProvider.future);
     final geoSpeciesNames = await ref.read(geoModelSpeciesNamesProvider.future);
+
+    // Build the species-alert pipeline before starting the controller so
+    // the very first detection can fire a notification. If the user
+    // chose `off` we skip everything — no plugin init, no history load.
+    await _maybeBuildAlertCoordinator(controller: controller);
+
+    // Wire localization helpers used by the foreground notification's
+    // recent-detections list (species names + relative timestamps).
+    controller.setNameLocalizer(_buildNameLocalizer());
+    controller.setNotificationStrings(
+      title: l10n.surveyNotificationTitle,
+      justNow: l10n.surveyJustNow,
+      secondsAgo: (s) => l10n.surveySecondsAgo(s),
+      minutesAgo: (m) => l10n.surveyMinutesAgo(m),
+      hoursAgo: (h) => l10n.surveyHoursAgo(h),
+      stats: (elapsed, det, spp, km) =>
+          l10n.surveyNotificationStats(elapsed, det, spp, km),
+    );
 
     if (widget.resumeSession != null) {
       await controller.resumeSurvey(
@@ -190,6 +329,7 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
         maxDurationHours: maxDuration,
         samplingMode: samplingMode,
         topNPerSpecies: topN,
+        clipContextSeconds: clipContext,
         transectId: widget.transectId,
         observerName: widget.observerName,
         customName: widget.customName,
@@ -347,6 +487,7 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
     final statusBar = _SurveyStatusBar(
       elapsed: controller.elapsed,
       isActive: isActive,
+      alertMode: AlertMode.fromPrefValue(ref.watch(surveyAlertModeProvider)),
       onStop: _confirmStop,
     );
     final tabBar = TabBar(
@@ -460,11 +601,13 @@ class _SurveyStatusBar extends StatelessWidget {
   const _SurveyStatusBar({
     required this.elapsed,
     required this.isActive,
+    required this.alertMode,
     required this.onStop,
   });
 
   final Duration elapsed;
   final bool isActive;
+  final AlertMode alertMode;
   final VoidCallback onStop;
 
   @override
@@ -527,6 +670,20 @@ class _SurveyStatusBar extends StatelessWidget {
             onPressed: () => _showSurveyHelp(context),
             tooltip: l10n.surveyLiveHelpTitle,
           ),
+
+          // Alert mode indicator.
+          if (alertMode != AlertMode.off)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Tooltip(
+                message: l10n.surveyAlertsTitle,
+                child: Icon(
+                  Icons.notifications_active_rounded,
+                  size: 18,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+            ),
 
           // Settings gear (matches point count).
           IconButton(
@@ -603,15 +760,18 @@ class _SurveySpectrogram extends ConsumerWidget {
 // Survey Summary Tab
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _SurveySummaryTab extends StatelessWidget {
+class _SurveySummaryTab extends ConsumerWidget {
   const _SurveySummaryTab({required this.session});
 
   final LiveSession? session;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
+    final speciesLocale = ref.watch(effectiveSpeciesLocaleProvider);
+    final taxonomy = ref.watch(taxonomyServiceProvider).valueOrNull;
+    final showSciNames = ref.watch(showSciNamesProvider);
 
     if (session == null) {
       return Center(
@@ -712,11 +872,29 @@ class _SurveySummaryTab extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(
-                    sp.commonName,
-                    style: theme.textTheme.bodySmall,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        taxonomy
+                                ?.lookup(sp.scientificName)
+                                ?.commonNameForLocale(speciesLocale) ??
+                            sp.commonName,
+                        style: theme.textTheme.bodySmall,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (showSciNames)
+                        Text(
+                          sp.scientificName,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            fontStyle: FontStyle.italic,
+                            color: theme.colorScheme.onSurface.withAlpha(140),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                    ],
                   ),
                 ),
                 Text(

@@ -357,6 +357,92 @@ final surveyLastTransectIdProvider =
 });
 
 // ===========================================================================
+// Survey species alerts (v0.7.0+)
+// ===========================================================================
+
+/// Active alert mode: 0=off, 1=first-in-session, 2=first-ever, 3=rare,
+/// 4=watchlist. See `AlertMode` in `survey_alert_engine.dart`.
+final surveyAlertModeProvider =
+    StateNotifierProvider<IntSettingNotifier, int>((ref) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return IntSettingNotifier(prefs, PrefKeys.surveyAlertMode, 0);
+});
+
+/// Geo-model probability cutoff for the "rare" alert mode (0.0–0.5).
+final surveyAlertRareThresholdProvider =
+    StateNotifierProvider<DoubleSettingNotifier, double>((ref) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return DoubleSettingNotifier(prefs, PrefKeys.surveyAlertRareThreshold, 0.05);
+});
+
+/// Name of the saved [CustomSpeciesList] used as the watchlist. Empty
+/// when no list selected.
+final surveyAlertWatchlistNameProvider =
+    StateNotifierProvider<StringSettingNotifier, String>((ref) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return StringSettingNotifier(prefs, PrefKeys.surveyAlertWatchlistName, '');
+});
+
+/// Whether alert notifications play a sound.
+final surveyAlertSoundProvider =
+    StateNotifierProvider<BoolSettingNotifier, bool>((ref) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return BoolSettingNotifier(prefs, PrefKeys.surveyAlertSound, true);
+});
+
+/// Whether alert notifications vibrate.
+final surveyAlertVibrateProvider =
+    StateNotifierProvider<BoolSettingNotifier, bool>((ref) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return BoolSettingNotifier(prefs, PrefKeys.surveyAlertVibrate, true);
+});
+
+/// Detections below this confidence never fire alerts.
+final surveyAlertMinConfidenceProvider =
+    StateNotifierProvider<DoubleSettingNotifier, double>((ref) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return DoubleSettingNotifier(prefs, PrefKeys.surveyAlertMinConfidence, 0.5);
+});
+
+/// Seconds at the start of a survey during which non-bypass alerts are
+/// silently suppressed (default 60).
+final surveyAlertStartupGraceSecondsProvider =
+    StateNotifierProvider<IntSettingNotifier, int>((ref) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return IntSettingNotifier(prefs, PrefKeys.surveyAlertStartupGraceSeconds, 60);
+});
+
+/// Hard cooldown between any two delivered alerts (default 15 s).
+final surveyAlertMinIntervalSecondsProvider =
+    StateNotifierProvider<IntSettingNotifier, int>((ref) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return IntSettingNotifier(prefs, PrefKeys.surveyAlertMinIntervalSeconds, 15);
+});
+
+/// Maximum delivered alerts per minute. `0` means unlimited.
+final surveyAlertMaxPerMinuteProvider =
+    StateNotifierProvider<IntSettingNotifier, int>((ref) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return IntSettingNotifier(prefs, PrefKeys.surveyAlertMaxPerMinute, 3);
+});
+
+/// Whether over-cap alerts are queued for a summary notification (true)
+/// or silently dropped (false).
+final surveyAlertCoalesceProvider =
+    StateNotifierProvider<BoolSettingNotifier, bool>((ref) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return BoolSettingNotifier(prefs, PrefKeys.surveyAlertCoalesce, true);
+});
+
+/// Whether to mirror system notifications as in-app snackbars on the
+/// Survey Live screen.
+final surveyAlertInAppToastProvider =
+    StateNotifierProvider<BoolSettingNotifier, bool>((ref) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return BoolSettingNotifier(prefs, PrefKeys.surveyAlertInAppToast, true);
+});
+
+// ===========================================================================
 // Generic setting notifiers
 // ===========================================================================
 

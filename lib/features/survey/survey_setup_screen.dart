@@ -13,6 +13,10 @@
 // After pressing Start, navigates to [SurveyLiveScreen].
 // =============================================================================
 
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -20,13 +24,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../shared/models/taxonomy_species.dart';
 import '../../shared/providers/settings_providers.dart';
 import '../../shared/widgets/app_help_bottom_sheet.dart';
 import '../../shared/widgets/map_picker_screen.dart';
 import '../../shared/widgets/wizard_scaffold.dart';
 import '../audio/audio_providers.dart';
 import '../explore/explore_providers.dart';
+import '../inference/custom_species_list.dart';
 import '../settings/settings_screen.dart';
+import 'survey_alert_engine.dart';
+import 'species_alert_notifier.dart';
+import 'survey_providers.dart';
 import 'survey_live_screen.dart';
 import 'survey_notification.dart';
 
@@ -44,7 +53,7 @@ class SurveySetupScreen extends ConsumerStatefulWidget {
 class _SurveySetupScreenState extends ConsumerState<SurveySetupScreen>
     with WidgetsBindingObserver {
   int _step = 0;
-  static const _totalSteps = 4;
+  static const _totalSteps = 5;
 
   // ── Step 1: Survey Details ────────────────────────────────────────────
   _LocationChoice _locationChoice = _LocationChoice.gps;
@@ -145,6 +154,23 @@ class _SurveySetupScreenState extends ConsumerState<SurveySetupScreen>
     if (_step == 0 && _locationChoice == _LocationChoice.manual) {
       _latitude = double.tryParse(_latController.text)?.clamp(-90, 90);
       _longitude = double.tryParse(_lonController.text)?.clamp(-180, 180);
+    }
+    // Validate the alerts step: watchlist mode requires a non-empty list.
+    if (_step == 2) {
+      final mode = AlertMode.fromPrefValue(ref.read(surveyAlertModeProvider));
+      if (mode == AlertMode.watchlist) {
+        final selected = ref.read(surveyAlertWatchlistNameProvider);
+        if (selected.trim().isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                AppLocalizations.of(context)!.surveyAlertWatchlistRequired,
+              ),
+            ),
+          );
+          return;
+        }
+      }
     }
     if (_step < _totalSteps - 1) {
       setState(() => _step++);
@@ -284,9 +310,10 @@ class _SurveySetupScreenState extends ConsumerState<SurveySetupScreen>
               },
             ),
           1 => const _ParametersStep(key: ValueKey(1)),
-          2 => const _FieldTipsStep(key: ValueKey(2)),
+          2 => const _AlertsStep(key: ValueKey(2)),
+          3 => const _FieldTipsStep(key: ValueKey(3)),
           _ => _ReadyStep(
-              key: const ValueKey(3),
+              key: const ValueKey(4),
               hasBackgroundGps: _hasBackgroundGps,
             ),
         },
@@ -851,7 +878,934 @@ class _FieldTipsStep extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Step 4 — Ready
+// Step 4 — Species Alerts
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _AlertsStep extends ConsumerStatefulWidget {
+  const _AlertsStep({super.key});
+
+  @override
+  ConsumerState<_AlertsStep> createState() => _AlertsStepState();
+}
+
+class _AlertsStepState extends ConsumerState<_AlertsStep> {
+  bool _advancedExpanded = false;
+  List<String>? _watchlists;
+  bool _permissionRequested = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadWatchlists();
+  }
+
+  Future<void> _loadWatchlists() async {
+    try {
+      final names = await CustomSpeciesList.listSaved();
+      if (!mounted) return;
+      setState(() => _watchlists = names);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _watchlists = const []);
+    }
+  }
+
+  Future<void> _ensureNotificationPermission() async {
+    if (_permissionRequested) return;
+    _permissionRequested = true;
+    try {
+      final l10n = AppLocalizations.of(context)!;
+      final notifier = ref.read(speciesAlertNotifierProvider);
+      final strings = SpeciesAlertStrings(
+        channelName: l10n.surveyAlertChannelName,
+        channelDescription: l10n.surveyAlertChannelDescription,
+        firstInSessionBody: l10n.surveyAlertBodyFirstInSession,
+        firstEverBody: l10n.surveyAlertBodyFirstEver,
+        rareBody: l10n.surveyAlertBodyRare('{pct}'),
+        watchlistBody: l10n.surveyAlertBodyWatchlist,
+        summaryTitle:
+            l10n.surveyAlertSummaryTitle(0).replaceAll('0', '{count}'),
+        summaryBody: l10n
+            .surveyAlertSummaryBody(0, '__NAMES__')
+            .replaceAll('0', '{count}')
+            .replaceAll('__NAMES__', '{names}'),
+      );
+      await notifier.requestPermission(strings: strings);
+    } catch (_) {
+      // Non-fatal — user can still try again from system settings.
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final mode = AlertMode.fromPrefValue(ref.watch(surveyAlertModeProvider));
+    final modes = const [
+      (AlertMode.off, 'surveyAlertModeOff', 'surveyAlertModeOffDescription'),
+      (
+        AlertMode.firstInSession,
+        'surveyAlertModeFirstInSession',
+        'surveyAlertModeFirstInSessionDescription'
+      ),
+      (
+        AlertMode.firstEver,
+        'surveyAlertModeFirstEver',
+        'surveyAlertModeFirstEverDescription'
+      ),
+      (AlertMode.rare, 'surveyAlertModeRare', 'surveyAlertModeRareDescription'),
+      (
+        AlertMode.watchlist,
+        'surveyAlertModeWatchlist',
+        'surveyAlertModeWatchlistDescription'
+      ),
+    ];
+
+    final selectedWatchlist = ref.watch(surveyAlertWatchlistNameProvider);
+    final watchlistInvalid =
+        mode == AlertMode.watchlist && selectedWatchlist.trim().isEmpty;
+
+    return ListView(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(l10n.surveyAlertsTitle,
+                      style: theme.textTheme.titleSmall),
+                  const SizedBox(height: 4),
+                  Text(l10n.surveyAlertsSubtitle,
+                      style: theme.textTheme.bodySmall),
+                ],
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.help_outline_rounded, size: 20),
+              tooltip: l10n.surveyAlertHelpModesTitle,
+              onPressed: () => _showAlertsHelp(context, l10n),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        for (final entry in modes)
+          RadioListTile<AlertMode>(
+            value: entry.$1,
+            groupValue: mode,
+            onChanged: (v) {
+              if (v != null) {
+                ref.read(surveyAlertModeProvider.notifier).set(v.prefValue);
+                if (v != AlertMode.off) {
+                  _ensureNotificationPermission();
+                }
+              }
+            },
+            title: Text(_l10nMode(l10n, entry.$2)),
+            subtitle: Text(_l10nMode(l10n, entry.$3)),
+            dense: true,
+          ),
+        if (mode == AlertMode.rare) ...[
+          const Divider(height: 32),
+          _RareThresholdControl(),
+        ],
+        if (mode == AlertMode.watchlist) ...[
+          const Divider(height: 32),
+          _WatchlistControl(
+            watchlists: _watchlists,
+            onChanged: _loadWatchlists,
+          ),
+          if (watchlistInvalid)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  Icon(Icons.error_outline_rounded,
+                      size: 18, color: theme.colorScheme.error),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      l10n.surveyAlertWatchlistRequired,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.error,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+        if (mode != AlertMode.off) ...[
+          const Divider(height: 32),
+          _MinConfidenceControl(),
+          const SizedBox(height: 8),
+          SwitchListTile(
+            title: Text(l10n.surveyAlertSoundLabel),
+            secondary: const Icon(Icons.volume_up_rounded),
+            value: ref.watch(surveyAlertSoundProvider),
+            onChanged: (v) =>
+                ref.read(surveyAlertSoundProvider.notifier).set(v),
+          ),
+          SwitchListTile(
+            title: Text(l10n.surveyAlertVibrateLabel),
+            secondary: const Icon(Icons.vibration_rounded),
+            value: ref.watch(surveyAlertVibrateProvider),
+            onChanged: (v) =>
+                ref.read(surveyAlertVibrateProvider.notifier).set(v),
+          ),
+          ExpansionTile(
+            title: Text(l10n.surveyAlertAdvancedTitle),
+            initiallyExpanded: _advancedExpanded,
+            onExpansionChanged: (v) => setState(() => _advancedExpanded = v),
+            tilePadding: EdgeInsets.zero,
+            childrenPadding: EdgeInsets.zero,
+            children: [
+              _SegmentedSecondsControl(
+                label: l10n.surveyAlertGraceLabel,
+                helper: l10n.surveyAlertGraceHelp,
+                icon: Icons.hourglass_top_rounded,
+                value: ref.watch(surveyAlertStartupGraceSecondsProvider),
+                options: const [0, 30, 60, 120, 300],
+                offLabel: l10n.surveyAlertModeOff,
+                onChanged: (v) => ref
+                    .read(surveyAlertStartupGraceSecondsProvider.notifier)
+                    .set(v),
+              ),
+              _SegmentedSecondsControl(
+                label: l10n.surveyAlertMinIntervalLabel,
+                helper: l10n.surveyAlertMinIntervalHelp,
+                icon: Icons.timer_outlined,
+                value: ref.watch(surveyAlertMinIntervalSecondsProvider),
+                options: const [0, 5, 15, 30, 60],
+                offLabel: l10n.surveyAlertModeOff,
+                onChanged: (v) => ref
+                    .read(surveyAlertMinIntervalSecondsProvider.notifier)
+                    .set(v),
+              ),
+              _SegmentedCountControl(
+                label: l10n.surveyAlertMaxPerMinuteLabel,
+                helper: l10n.surveyAlertMaxPerMinuteHelp,
+                icon: Icons.notifications_active_rounded,
+                value: ref.watch(surveyAlertMaxPerMinuteProvider),
+                options: const [1, 3, 5, 10, 0],
+                unlimitedValue: 0,
+                unlimitedLabel: l10n.surveyAlertUnlimited,
+                onChanged: (v) =>
+                    ref.read(surveyAlertMaxPerMinuteProvider.notifier).set(v),
+              ),
+              SwitchListTile(
+                title: Text(l10n.surveyAlertCoalesceLabel),
+                subtitle: Text(l10n.surveyAlertCoalesceHelp),
+                value: ref.watch(surveyAlertCoalesceProvider),
+                onChanged: (v) =>
+                    ref.read(surveyAlertCoalesceProvider.notifier).set(v),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
+  void _showAlertsHelp(BuildContext context, AppLocalizations l10n) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => AppHelpBottomSheet(
+        title: l10n.surveyAlertsTitle,
+        sections: [
+          AppHelpSection(
+            icon: Icons.notifications_active_rounded,
+            body:
+                '${l10n.surveyAlertHelpModesTitle}\n\n${l10n.surveyAlertHelpModesBody}',
+          ),
+          AppHelpSection(
+            icon: Icons.schedule_rounded,
+            body:
+                '${l10n.surveyAlertHelpThrottlingTitle}\n\n${l10n.surveyAlertHelpThrottlingBody}',
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _l10nMode(AppLocalizations l10n, String key) {
+    switch (key) {
+      case 'surveyAlertModeOff':
+        return l10n.surveyAlertModeOff;
+      case 'surveyAlertModeFirstInSession':
+        return l10n.surveyAlertModeFirstInSession;
+      case 'surveyAlertModeFirstEver':
+        return l10n.surveyAlertModeFirstEver;
+      case 'surveyAlertModeRare':
+        return l10n.surveyAlertModeRare;
+      case 'surveyAlertModeWatchlist':
+        return l10n.surveyAlertModeWatchlist;
+      case 'surveyAlertModeOffDescription':
+        return l10n.surveyAlertModeOffDescription;
+      case 'surveyAlertModeFirstInSessionDescription':
+        return l10n.surveyAlertModeFirstInSessionDescription;
+      case 'surveyAlertModeFirstEverDescription':
+        return l10n.surveyAlertModeFirstEverDescription;
+      case 'surveyAlertModeRareDescription':
+        return l10n.surveyAlertModeRareDescription;
+      case 'surveyAlertModeWatchlistDescription':
+        return l10n.surveyAlertModeWatchlistDescription;
+    }
+    return key;
+  }
+}
+
+class _RareThresholdControl extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final value = ref.watch(surveyAlertRareThresholdProvider);
+    final pct = (value * 100).toStringAsFixed(0);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ListTile(
+          leading: const Icon(Icons.public_off_rounded),
+          title: Text(l10n.surveyAlertRareThresholdLabel),
+          subtitle: Text(l10n.surveyAlertRareThresholdHelp,
+              style: theme.textTheme.bodySmall),
+          trailing: Text('$pct%'),
+        ),
+        Slider(
+          value: value.clamp(0.0, 0.5),
+          min: 0.0,
+          max: 0.5,
+          divisions: 50,
+          label: '$pct%',
+          onChanged: (v) =>
+              ref.read(surveyAlertRareThresholdProvider.notifier).set(v),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text(
+            l10n.surveyAlertRareLiveLabel(pct),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.primary,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MinConfidenceControl extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    // Floor: session confidence threshold (0..100 stored as int) → 0..1.
+    final sessionFloor =
+        ref.watch(confidenceThresholdProvider).clamp(0, 100) / 100.0;
+    final raw = ref.watch(surveyAlertMinConfidenceProvider);
+    final value = raw < sessionFloor ? sessionFloor : raw;
+    // Lazily clamp the persisted value if it's below the floor.
+    if (raw < sessionFloor) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref
+            .read(surveyAlertMinConfidenceProvider.notifier)
+            .set(sessionFloor.toDouble());
+      });
+    }
+    final pct = (value * 100).toStringAsFixed(0);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ListTile(
+          leading: const Icon(Icons.verified_rounded),
+          title: Text(l10n.surveyAlertMinConfidenceLabel),
+          subtitle: Text(l10n.surveyAlertMinConfidenceHelp,
+              style: theme.textTheme.bodySmall),
+          trailing: Text('$pct%'),
+        ),
+        Slider(
+          value: value.clamp(sessionFloor, 1.0).toDouble(),
+          min: sessionFloor.toDouble(),
+          max: 1.0,
+          divisions: ((1.0 - sessionFloor) * 100).round().clamp(1, 100),
+          label: '$pct%',
+          onChanged: (v) =>
+              ref.read(surveyAlertMinConfidenceProvider.notifier).set(v),
+        ),
+      ],
+    );
+  }
+}
+
+class _WatchlistControl extends ConsumerWidget {
+  const _WatchlistControl({required this.watchlists, required this.onChanged});
+  final List<String>? watchlists;
+  final VoidCallback onChanged;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final selected = ref.watch(surveyAlertWatchlistNameProvider);
+    final lists = watchlists;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: Row(
+            children: [
+              const Icon(Icons.list_alt_rounded),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  l10n.surveyAlertWatchlistLabel,
+                  style: theme.textTheme.titleSmall,
+                ),
+              ),
+              TextButton.icon(
+                icon: const Icon(Icons.add_rounded, size: 18),
+                label: Text(l10n.surveyAlertCreateListButton),
+                onPressed: () => _createList(context, ref),
+              ),
+            ],
+          ),
+        ),
+        if (lists == null)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (lists.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text(
+              l10n.surveyAlertWatchlistEmpty,
+              style: theme.textTheme.bodySmall,
+            ),
+          )
+        else
+          ...lists.map((name) => _WatchlistTile(
+                name: name,
+                selected: selected == name,
+                onSelect: () => ref
+                    .read(surveyAlertWatchlistNameProvider.notifier)
+                    .set(name),
+                onDelete: () async {
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      content: Text(
+                        l10n.surveyAlertWatchlistDeleteConfirm(name),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(ctx).pop(false),
+                          child: Text(l10n.surveyAlertCreateListCancel),
+                        ),
+                        FilledButton(
+                          onPressed: () => Navigator.of(ctx).pop(true),
+                          child: Text(l10n.sessionRemove),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirmed == true) {
+                    await CustomSpeciesList.delete(name);
+                    if (selected == name) {
+                      ref
+                          .read(surveyAlertWatchlistNameProvider.notifier)
+                          .set('');
+                    }
+                    onChanged();
+                  }
+                },
+              )),
+      ],
+    );
+  }
+
+  Future<void> _createList(BuildContext context, WidgetRef ref) async {
+    final created = await Navigator.of(context).push<String>(
+      MaterialPageRoute<String>(
+        fullscreenDialog: true,
+        builder: (_) => const _CreateWatchlistScreen(),
+      ),
+    );
+    if (created != null && created.isNotEmpty) {
+      ref.read(surveyAlertWatchlistNameProvider.notifier).set(created);
+      onChanged();
+    }
+  }
+}
+
+class _WatchlistTile extends StatelessWidget {
+  const _WatchlistTile({
+    required this.name,
+    required this.selected,
+    required this.onSelect,
+    required this.onDelete,
+  });
+  final String name;
+  final bool selected;
+  final VoidCallback onSelect;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return FutureBuilder<Set<String>>(
+      future: CustomSpeciesList.load(name),
+      builder: (context, snap) {
+        final count = snap.data?.length ?? 0;
+        return RadioListTile<bool>(
+          value: true,
+          groupValue: selected ? true : null,
+          onChanged: (_) => onSelect(),
+          title: Text(name),
+          subtitle: snap.connectionState == ConnectionState.done
+              ? Text(l10n.surveyAlertSpeciesCount(count))
+              : const Text('…'),
+          secondary: IconButton(
+            icon: const Icon(Icons.delete_outline_rounded),
+            onPressed: onDelete,
+            tooltip: l10n.sessionRemove,
+          ),
+          dense: true,
+        );
+      },
+    );
+  }
+}
+
+class _CreateWatchlistScreen extends ConsumerStatefulWidget {
+  const _CreateWatchlistScreen();
+
+  @override
+  ConsumerState<_CreateWatchlistScreen> createState() =>
+      _CreateWatchlistScreenState();
+}
+
+class _CreateWatchlistScreenState
+    extends ConsumerState<_CreateWatchlistScreen> {
+  final _nameCtrl = TextEditingController();
+  final _searchCtrl = TextEditingController();
+  final Set<String> _selected = <String>{};
+  // Cache common-name labels so the "selected" list keeps a friendly label
+  // even after the user clears the search and the species drops out of
+  // [_results].
+  final Map<String, String> _labels = <String, String>{};
+  List<TaxonomySpecies> _results = const [];
+  String? _error;
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged(String query) {
+    final svc = ref.read(taxonomyServiceProvider).valueOrNull;
+    if (svc == null) return;
+    setState(() {
+      _results = query.trim().isEmpty ? const [] : svc.search(query, limit: 60);
+    });
+  }
+
+  void _toggle(TaxonomySpecies sp, String label) {
+    setState(() {
+      if (_selected.contains(sp.scientificName)) {
+        _selected.remove(sp.scientificName);
+      } else {
+        _selected.add(sp.scientificName);
+        _labels[sp.scientificName] = label;
+      }
+    });
+  }
+
+  Future<void> _importFromFile() async {
+    final l10n = AppLocalizations.of(context)!;
+    try {
+      final result = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: const ['txt', 'csv'],
+        withData: true,
+      );
+      if (result == null || result.files.isEmpty) return;
+      final file = result.files.single;
+      String content;
+      if (file.bytes != null) {
+        content = utf8.decode(file.bytes!, allowMalformed: true);
+      } else if (file.path != null) {
+        content = await File(file.path!).readAsString();
+      } else {
+        return;
+      }
+      final names = CustomSpeciesList.parse(content);
+      if (names.isEmpty) {
+        setState(() => _error = l10n.surveyAlertCreateListImportError);
+        return;
+      }
+      final svc = ref.read(taxonomyServiceProvider).valueOrNull;
+      final speciesLocale = ref.read(effectiveSpeciesLocaleProvider);
+      setState(() {
+        _selected.addAll(names);
+        if (svc != null) {
+          for (final n in names) {
+            final sp = svc.lookup(n);
+            _labels[n] = sp?.commonNameForLocale(speciesLocale) ?? n;
+          }
+        } else {
+          for (final n in names) {
+            _labels.putIfAbsent(n, () => n);
+          }
+        }
+        _error = null;
+      });
+    } catch (_) {
+      setState(() => _error = l10n.surveyAlertCreateListImportError);
+    }
+  }
+
+  Future<void> _save() async {
+    final l10n = AppLocalizations.of(context)!;
+    final name = _nameCtrl.text.trim();
+    if (name.isEmpty) {
+      setState(() => _error = l10n.surveyAlertCreateListNameLabel);
+      return;
+    }
+    if (_selected.isEmpty) {
+      setState(() => _error = l10n.surveyAlertCreateListEmpty);
+      return;
+    }
+    final existing = await CustomSpeciesList.listSaved();
+    if (existing.contains(name)) {
+      setState(() => _error = l10n.surveyAlertCreateListNameTaken);
+      return;
+    }
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    await CustomSpeciesList.save(name, _selected.toSet());
+    if (!mounted) return;
+    Navigator.of(context).pop(name);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final speciesLocale = ref.watch(effectiveSpeciesLocaleProvider);
+    final showSci = ref.watch(showSciNamesProvider);
+
+    String labelFor(TaxonomySpecies sp) {
+      if (showSci) return sp.scientificName;
+      return sp.commonNameForLocale(speciesLocale);
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(l10n.surveyAlertCreateListTitle),
+        leading: IconButton(
+          icon: const Icon(Icons.close_rounded),
+          onPressed: _saving ? null : () => Navigator.of(context).pop(),
+          tooltip: l10n.surveyAlertCreateListCancel,
+        ),
+        actions: [
+          TextButton.icon(
+            icon: const Icon(Icons.save_rounded, size: 18),
+            label: Text(l10n.surveyAlertCreateListSave),
+            onPressed: _saving ? null : _save,
+          ),
+        ],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: _nameCtrl,
+              decoration: InputDecoration(
+                labelText: l10n.surveyAlertCreateListNameLabel,
+                border: const OutlineInputBorder(),
+                isDense: true,
+              ),
+              autofocus: true,
+              textInputAction: TextInputAction.next,
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _searchCtrl,
+                    decoration: InputDecoration(
+                      hintText: l10n.surveyAlertCreateListSearchHint,
+                      prefixIcon: const Icon(Icons.search_rounded),
+                      suffixIcon: _searchCtrl.text.isEmpty
+                          ? null
+                          : IconButton(
+                              icon: const Icon(Icons.clear_rounded),
+                              onPressed: () {
+                                _searchCtrl.clear();
+                                _onSearchChanged('');
+                              },
+                            ),
+                      border: const OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    onChanged: _onSearchChanged,
+                    textInputAction: TextInputAction.search,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton.filledTonal(
+                  icon: const Icon(Icons.upload_file_rounded),
+                  tooltip: l10n.surveyAlertCreateListImportFile,
+                  onPressed: _importFromFile,
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: _results.isEmpty
+                  ? _SelectedSpeciesList(
+                      selected: _selected,
+                      labels: _labels,
+                      onRemove: (sci) => setState(() {
+                        _selected.remove(sci);
+                      }),
+                    )
+                  : ListView.builder(
+                      itemCount: _results.length,
+                      itemBuilder: (context, i) {
+                        final sp = _results[i];
+                        final label = labelFor(sp);
+                        final isSelected =
+                            _selected.contains(sp.scientificName);
+                        return CheckboxListTile(
+                          value: isSelected,
+                          onChanged: (_) => _toggle(sp, label),
+                          title: Text(label),
+                          subtitle: showSci
+                              ? Text(sp.commonNameForLocale(speciesLocale),
+                                  style: theme.textTheme.bodySmall)
+                              : Text(sp.scientificName,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    fontStyle: FontStyle.italic,
+                                  )),
+                          dense: true,
+                          controlAffinity: ListTileControlAffinity.leading,
+                        );
+                      },
+                    ),
+            ),
+            if (_error != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  _error!,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.error,
+                  ),
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                l10n.surveyAlertCreateListSelectedHeader(_selected.length),
+                style: theme.textTheme.labelMedium,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SelectedSpeciesList extends StatelessWidget {
+  const _SelectedSpeciesList({
+    required this.selected,
+    required this.labels,
+    required this.onRemove,
+  });
+  final Set<String> selected;
+  final Map<String, String> labels;
+  final ValueChanged<String> onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    if (selected.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            l10n.surveyAlertCreateListNoSelection,
+            style: theme.textTheme.bodySmall,
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+    final list = selected.toList();
+    return ListView.builder(
+      itemCount: list.length,
+      itemBuilder: (context, i) {
+        final sci = list[i];
+        final label = labels[sci] ?? sci;
+        return ListTile(
+          leading: const Icon(Icons.check_rounded),
+          title: Text(label),
+          subtitle: Text(sci,
+              style: theme.textTheme.bodySmall
+                  ?.copyWith(fontStyle: FontStyle.italic)),
+          trailing: IconButton(
+            icon: const Icon(Icons.close_rounded),
+            onPressed: () => onRemove(sci),
+            tooltip: l10n.sessionRemove,
+          ),
+          dense: true,
+        );
+      },
+    );
+  }
+}
+
+class _SegmentedSecondsControl extends StatelessWidget {
+  const _SegmentedSecondsControl({
+    required this.label,
+    required this.helper,
+    required this.icon,
+    required this.value,
+    required this.options,
+    required this.offLabel,
+    required this.onChanged,
+  });
+  final String label;
+  final String helper;
+  final IconData icon;
+  final int value;
+  final List<int> options;
+  final String offLabel;
+  final ValueChanged<int> onChanged;
+
+  String _format(int seconds) {
+    if (seconds == 0) return offLabel;
+    if (seconds < 60) return '${seconds}s';
+    final m = seconds ~/ 60;
+    return '${m}m';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 18, color: theme.colorScheme.onSurfaceVariant),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(label, style: theme.textTheme.bodyMedium),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(helper, style: theme.textTheme.bodySmall),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            children: [
+              for (final opt in options)
+                ChoiceChip(
+                  label: Text(_format(opt)),
+                  selected: value == opt,
+                  onSelected: (_) => onChanged(opt),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SegmentedCountControl extends StatelessWidget {
+  const _SegmentedCountControl({
+    required this.label,
+    required this.helper,
+    required this.icon,
+    required this.value,
+    required this.options,
+    required this.unlimitedValue,
+    required this.unlimitedLabel,
+    required this.onChanged,
+  });
+  final String label;
+  final String helper;
+  final IconData icon;
+  final int value;
+  final List<int> options;
+  final int unlimitedValue;
+  final String unlimitedLabel;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 18, color: theme.colorScheme.onSurfaceVariant),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(label, style: theme.textTheme.bodyMedium),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(helper, style: theme.textTheme.bodySmall),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            children: [
+              for (final opt in options)
+                ChoiceChip(
+                  label: Text(
+                    opt == unlimitedValue ? unlimitedLabel : opt.toString(),
+                  ),
+                  selected: value == opt,
+                  onSelected: (_) => onChanged(opt),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Step 5 — Ready
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _ReadyStep extends ConsumerWidget {

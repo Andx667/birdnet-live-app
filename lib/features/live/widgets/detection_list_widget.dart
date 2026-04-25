@@ -94,10 +94,10 @@ class DetectionTile extends ConsumerWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // ── Thumbnail (3:2) ───────────────────────────────
+            // ── Thumbnail (4:3, matching the 320×240 bundled photos) ──
             SizedBox(
               width: 60,
-              height: 40,
+              height: 45,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(6),
                 child: _buildSpeciesImage(taxonomyAsync),

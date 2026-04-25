@@ -9,6 +9,8 @@
 // Accessible from the Home screen footer.
 // =============================================================================
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -495,8 +497,9 @@ class _SessionTile extends ConsumerWidget {
                 ),
               ],
               const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
                 children: [
                   StatChip(
                     icon: Icons.timer_outlined,
@@ -513,6 +516,7 @@ class _SessionTile extends ConsumerWidget {
                     value: '$detectionCount det.',
                     variant: StatChipVariant.badge,
                   ),
+                  _SessionSizeChip(session: session),
                 ],
               ),
             ],
@@ -612,6 +616,7 @@ class _SpeciesGroupedView extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final speciesLocale = ref.watch(effectiveSpeciesLocaleProvider);
     final taxonomy = ref.watch(taxonomyServiceProvider).valueOrNull;
+    final showSciNames = ref.watch(showSciNamesProvider);
 
     // Group: scientificName → set of sessions containing it.
     final speciesMap = <String, _SpeciesGroup>{};
@@ -672,7 +677,9 @@ class _SpeciesGroupedView extends ConsumerWidget {
           ),
           title: Text(displayName, style: theme.textTheme.titleSmall),
           subtitle: Text(
-            '${group.scientificName} · ${l10n.sessionSpeciesSessionCount(sessionCount)}',
+            showSciNames
+                ? '${group.scientificName} · ${l10n.sessionSpeciesSessionCount(sessionCount)}'
+                : l10n.sessionSpeciesSessionCount(sessionCount),
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -713,6 +720,84 @@ class _SpeciesGroup {
   final String scientificName;
   final String commonName;
   final Set<String> sessionIds = {};
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Session size chip — shows total on-disk size of the recording or all
+// per-detection clips for this session. Computed off the UI thread via
+// [File.stat]; renders a placeholder while the future resolves and
+// silently omits the chip when the session has no audio on disk.
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _SessionSizeChip extends StatelessWidget {
+  const _SessionSizeChip({required this.session});
+
+  final LiveSession session;
+
+  Future<int> _computeSize() async {
+    var total = 0;
+    // 1) Continuous session recording (live, point count, file analysis).
+    final rec = session.recordingPath;
+    if (rec != null) {
+      try {
+        final f = File(rec);
+        if (await f.exists()) total += await f.length();
+      } catch (_) {/* ignore */}
+    }
+    // 2) Per-detection clips (survey, or any session that kept clips
+    //    instead of a full recording). Iterate in parallel-friendly
+    //    chunks rather than all at once to avoid spamming the I/O pool.
+    for (final d in session.detections) {
+      final p = d.audioClipPath;
+      if (p == null) continue;
+      try {
+        final f = File(p);
+        if (await f.exists()) total += await f.length();
+      } catch (_) {/* ignore */}
+    }
+    return total;
+  }
+
+  String _format(int bytes) {
+    if (bytes < 1024) return '${bytes}B';
+    final kb = bytes / 1024.0;
+    if (kb < 1024) return '${kb.toStringAsFixed(0)}KB';
+    final mb = kb / 1024.0;
+    if (mb < 10) return '${mb.toStringAsFixed(1)}MB';
+    if (mb < 1024) return '${mb.toStringAsFixed(0)}MB';
+    final gb = mb / 1024.0;
+    return '${gb.toStringAsFixed(1)}GB';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<int>(
+      future: _computeSize(),
+      builder: (context, snap) {
+        final bytes = snap.data;
+        if (bytes == null) {
+          // Reserve a fixed slot so the row layout doesn't shift when
+          // the future resolves. Show a neutral placeholder.
+          return const StatChip(
+            icon: Icons.sd_storage_outlined,
+            value: '…',
+            variant: StatChipVariant.badge,
+          );
+        }
+        if (bytes == 0) {
+          // Don't bother showing 0B — saves a slot for sessions with
+          // no on-disk audio (manual annotations only, or clips were
+          // evicted by the survey sampler).
+          return const SizedBox.shrink();
+        }
+        return StatChip(
+          icon: Icons.sd_storage_outlined,
+          value: _format(bytes),
+          variant: StatChipVariant.badge,
+        );
+      },
+    );
+  }
 }
 
 /// Returns a localized display label for the given [SessionType].
