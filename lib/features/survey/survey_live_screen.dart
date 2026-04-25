@@ -202,14 +202,15 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
 
   /// Build a closure that maps a scientific name to the user's preferred
   /// localized common name (honoring the species locale and the
-  /// "show scientific names" toggle). Falls back to the supplied English
-  /// common name when taxonomy isn't loaded or the species is unknown.
+  /// "show scientific names" toggle). Reads the taxonomy lazily on each
+  /// call so names start translating as soon as the taxonomy service
+  /// finishes loading (which can happen *after* survey start).
   String Function(String, String) _buildNameLocalizer() {
-    final taxonomy = ref.read(taxonomyServiceProvider).valueOrNull;
-    final speciesLocale = ref.read(effectiveSpeciesLocaleProvider);
-    final showSci = ref.read(showSciNamesProvider);
     return (sciName, fallback) {
+      final showSci = ref.read(showSciNamesProvider);
       if (showSci) return sciName;
+      final taxonomy = ref.read(taxonomyServiceProvider).valueOrNull;
+      final speciesLocale = ref.read(effectiveSpeciesLocaleProvider);
       return taxonomy?.lookup(sciName)?.commonNameForLocale(speciesLocale) ??
           fallback;
     };
@@ -285,10 +286,13 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
     // recent-detections list (species names + relative timestamps).
     controller.setNameLocalizer(_buildNameLocalizer());
     controller.setNotificationStrings(
+      title: l10n.surveyNotificationTitle,
       justNow: l10n.surveyJustNow,
       secondsAgo: (s) => l10n.surveySecondsAgo(s),
       minutesAgo: (m) => l10n.surveyMinutesAgo(m),
       hoursAgo: (h) => l10n.surveyHoursAgo(h),
+      stats: (elapsed, det, spp, km) =>
+          l10n.surveyNotificationStats(elapsed, det, spp, km),
     );
 
     if (widget.resumeSession != null) {

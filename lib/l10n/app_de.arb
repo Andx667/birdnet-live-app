@@ -601,6 +601,7 @@
   "surveyNotificationChannelName": "BirdNET Survey",
   "surveyNotificationChannelDescription": "Aktive Survey-Aufnahme",
   "surveyNotificationTitle": "Survey-Aufnahme",
+  "surveyNotificationStats": "⏱ {elapsed}   🐦 {detections} Det. · {species} Arten   📍 {distanceKm} km",
   "notificationStop": "Stopp",
   "notificationOpen": "Öffnen",
   "monthJanShort": "Jan",

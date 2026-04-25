@@ -601,6 +601,7 @@
   "surveyNotificationChannelName": "BirdNET Survey",
   "surveyNotificationChannelDescription": "Aktivní nahrávání Survey",
   "surveyNotificationTitle": "Nahrávání Survey",
+  "surveyNotificationStats": "⏱ {elapsed}   🐦 {detections} det. · {species} druhů   📍 {distanceKm} km",
   "notificationStop": "Zastavit",
   "notificationOpen": "Otevřít",
   "monthJanShort": "led",

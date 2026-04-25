@@ -192,6 +192,12 @@ class SurveyController {
   /// Currently-attached alert coordinator (read-only).
   SurveyAlertCoordinator? get alertCoordinator => _alertCoordinator;
 
+  /// Localized title used for the foreground-service notification. Falls
+  /// back to the device-locale title loaded in [SurveyNotificationService]
+  /// until [setNotificationStrings] supplies an app-locale title.
+  String get _notificationTitle =>
+      _notificationStrings?.title ?? SurveyNotificationService.notificationTitle;
+
   /// Set the species-name localizer used by the foreground notification.
   /// Pass `null` to revert to English fallbacks.
   void setNameLocalizer(
@@ -201,19 +207,29 @@ class SurveyController {
   }
 
   /// Set localized strings for the foreground-notification recent-detections
-  /// list ("just now", "Ns ago", "Nm ago", "Nh ago"). Call once during
-  /// survey setup with values pulled from [AppLocalizations].
+  /// list and the stats footer. Call once during survey setup with values
+  /// pulled from [AppLocalizations]. Without this the controller falls
+  /// back to terse English ("just now", "X det · Y spp · Z km").
   void setNotificationStrings({
+    String? title,
     required String justNow,
     required String Function(int seconds) secondsAgo,
     required String Function(int minutes) minutesAgo,
     required String Function(int hours) hoursAgo,
+    required String Function(
+      String elapsed,
+      int detections,
+      int species,
+      String distanceKm,
+    ) stats,
   }) {
     _notificationStrings = _NotificationStrings(
+      title: title,
       justNow: justNow,
       secondsAgo: secondsAgo,
       minutesAgo: minutesAgo,
       hoursAgo: hoursAgo,
+      stats: stats,
     );
   }
 
@@ -426,7 +442,7 @@ class SurveyController {
 
       // Start foreground service notification.
       await _notificationService.start(
-        title: SurveyNotificationService.notificationTitle,
+        title: _notificationTitle,
         text: _buildNotificationText(),
       );
 
@@ -562,7 +578,7 @@ class SurveyController {
       );
 
       await _notificationService.start(
-        title: SurveyNotificationService.notificationTitle,
+        title: _notificationTitle,
         text: _buildNotificationText(),
       );
 
@@ -1002,29 +1018,41 @@ class SurveyController {
 
   // ── Notification + battery ─────────────────────────────────────────────
 
-  /// Build the notification body text with current stats and the three
-  /// most recent detections. The header line stays compact so it fits in
-  /// the collapsed notification; recent detections appear on subsequent
-  /// lines and Android shows them via [Notification.BigTextStyle] when
-  /// the notification is expanded.
+  /// Build the notification body text with the three most recent
+  /// detections on top, an empty separator line, then a compact stats
+  /// footer (elapsed time, detections, species, distance). Android
+  /// expands the multi-line body via [Notification.BigTextStyle].
   String _buildNotificationText() {
     final e = elapsed;
     final hh = e.inHours.toString().padLeft(2, '0');
     final mm = (e.inMinutes % 60).toString().padLeft(2, '0');
     final ss = (e.inSeconds % 60).toString().padLeft(2, '0');
+    final elapsedStr = '$hh:$mm:$ss';
     final det = _session?.detections.length ?? 0;
     final spp = _session?.uniqueSpeciesCount ?? 0;
     final dist = _gpsTracker?.distanceMeters ?? 0;
     final km = (dist / 1000).toStringAsFixed(1);
-    final header = '\u23F1 $hh:$mm:$ss   \uD83D\uDC26 $det det · $spp spp   '
-        '\uD83D\uDCCD $km km';
+    final s = _notificationStrings;
+    // Localized stats footer (falls back to English when no strings have
+    // been wired). The localizer takes care of plural / unit ordering.
+    final stats = s?.stats(elapsedStr, det, spp, km) ??
+        '\u23F1 $elapsedStr   \uD83D\uDC26 $det det · $spp spp   '
+            '\uD83D\uDCCD $km km';
 
-    // _sessionDetections is newest-first. Take up to 3 most recent and
-    // render them with confidence percentage and a relative time stamp.
-    if (_sessionDetections.isEmpty) return header;
+    // _sessionDetections is newest-first. Take up to 3 most recent
+    // *unique* species (so a chatty bird doesn't fill the whole list)
+    // and render them with confidence percentage and a relative time.
+    if (_sessionDetections.isEmpty) return stats;
     final now = DateTime.now();
-    final recent = _sessionDetections.take(3);
-    final lines = <String>[header];
+    final seen = <String>{};
+    final recent = <DetectionRecord>[];
+    for (final r in _sessionDetections) {
+      if (seen.add(r.scientificName)) {
+        recent.add(r);
+        if (recent.length == 3) break;
+      }
+    }
+    final lines = <String>[];
     for (final r in recent) {
       final name =
           _nameLocalizer?.call(r.scientificName, r.commonName) ?? r.commonName;
@@ -1032,6 +1060,8 @@ class SurveyController {
       final ago = _formatRelativeTime(now.difference(r.timestamp));
       lines.add('$name · $pct% · $ago');
     }
+    lines.add(''); // blank separator line between detections and stats
+    lines.add(stats);
     return lines.join('\n');
   }
 
@@ -1052,7 +1082,7 @@ class SurveyController {
   /// Push updated stats to the foreground notification.
   Future<void> _updateNotification() async {
     await _notificationService.update(
-      title: SurveyNotificationService.notificationTitle,
+      title: _notificationTitle,
       text: _buildNotificationText(),
     );
   }
@@ -1103,14 +1133,23 @@ class SurveyController {
 /// survey foreground notification.
 class _NotificationStrings {
   const _NotificationStrings({
+    required this.title,
     required this.justNow,
     required this.secondsAgo,
     required this.minutesAgo,
     required this.hoursAgo,
+    required this.stats,
   });
 
+  final String? title;
   final String justNow;
   final String Function(int seconds) secondsAgo;
   final String Function(int minutes) minutesAgo;
   final String Function(int hours) hoursAgo;
+  final String Function(
+    String elapsed,
+    int detections,
+    int species,
+    String distanceKm,
+  ) stats;
 }

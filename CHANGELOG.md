@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.4] - 2026-04-25
+
+### Changed
+
+- **Survey notification is now fully translated.** The recent-detections list, stats footer (elapsed time / detections / species / distance), and notification title now all honor the user's selected app locale instead of mixing English fragments. Species names are also resolved lazily on each notification refresh, so they start translating as soon as the taxonomy service finishes loading even if it loads after survey start.
+- **Recent-detections list deduplicates by species.** A chatty bird no longer fills all three slots — the list now shows the three most-recent *unique* species instead.
+- **Recent detections appear above the stats footer**, separated by a blank line, so the most actionable information (what was just heard) sits at the top of the expanded notification.
+
+### Added
+
+- `surveyNotificationStats` ARB key with `{elapsed}` / `{detections}` / `{species}` / `{distanceKm}` placeholders so each locale can adjust unit ordering, abbreviations, and pluralization for the stats footer.
+
 ## [0.7.3] - 2026-04-25
 
 ### Changed

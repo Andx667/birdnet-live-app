@@ -2319,6 +2319,16 @@
   "@surveyNotificationTitle": {
     "description": "Foreground notification title shown while a survey is active"
   },
+  "surveyNotificationStats": "⏱ {elapsed}   🐦 {detections} det · {species} spp   📍 {distanceKm} km",
+  "@surveyNotificationStats": {
+    "description": "Stats footer in the survey foreground notification: elapsed time, total detections, unique species, distance walked. Emoji are decorative.",
+    "placeholders": {
+      "elapsed": { "type": "String" },
+      "detections": { "type": "int" },
+      "species": { "type": "int" },
+      "distanceKm": { "type": "String" }
+    }
+  },
   "notificationStop": "Stop",
   "@notificationStop": {
     "description": "Foreground notification action label to stop the current task"
