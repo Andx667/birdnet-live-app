@@ -13,6 +13,10 @@
 // After pressing Start, navigates to [SurveyLiveScreen].
 // =============================================================================
 
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -20,6 +24,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../shared/models/taxonomy_species.dart';
 import '../../shared/providers/settings_providers.dart';
 import '../../shared/widgets/app_help_bottom_sheet.dart';
 import '../../shared/widgets/map_picker_screen.dart';
@@ -957,8 +962,8 @@ class _AlertsStepState extends ConsumerState<_AlertsStep> {
     ];
 
     final selectedWatchlist = ref.watch(surveyAlertWatchlistNameProvider);
-    final watchlistInvalid = mode == AlertMode.watchlist &&
-        selectedWatchlist.trim().isEmpty;
+    final watchlistInvalid =
+        mode == AlertMode.watchlist && selectedWatchlist.trim().isEmpty;
 
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -1326,9 +1331,11 @@ class _WatchlistControl extends ConsumerWidget {
   }
 
   Future<void> _createList(BuildContext context, WidgetRef ref) async {
-    final created = await showDialog<String>(
-      context: context,
-      builder: (_) => const _CreateWatchlistDialog(),
+    final created = await Navigator.of(context).push<String>(
+      MaterialPageRoute<String>(
+        fullscreenDialog: true,
+        builder: (_) => const _CreateWatchlistScreen(),
+      ),
     );
     if (created != null && created.isNotEmpty) {
       ref.read(surveyAlertWatchlistNameProvider.notifier).set(created);
@@ -1376,45 +1383,107 @@ class _WatchlistTile extends StatelessWidget {
   }
 }
 
-class _CreateWatchlistDialog extends StatefulWidget {
-  const _CreateWatchlistDialog();
+class _CreateWatchlistScreen extends ConsumerStatefulWidget {
+  const _CreateWatchlistScreen();
 
   @override
-  State<_CreateWatchlistDialog> createState() => _CreateWatchlistDialogState();
+  ConsumerState<_CreateWatchlistScreen> createState() =>
+      _CreateWatchlistScreenState();
 }
 
-class _CreateWatchlistDialogState extends State<_CreateWatchlistDialog> {
+class _CreateWatchlistScreenState
+    extends ConsumerState<_CreateWatchlistScreen> {
   final _nameCtrl = TextEditingController();
-  final _speciesCtrl = TextEditingController();
+  final _searchCtrl = TextEditingController();
+  final Set<String> _selected = <String>{};
+  // Cache common-name labels so the "selected" list keeps a friendly label
+  // even after the user clears the search and the species drops out of
+  // [_results].
+  final Map<String, String> _labels = <String, String>{};
+  List<TaxonomySpecies> _results = const [];
   String? _error;
   bool _saving = false;
 
   @override
   void dispose() {
     _nameCtrl.dispose();
-    _speciesCtrl.dispose();
+    _searchCtrl.dispose();
     super.dispose();
   }
 
-  Future<void> _pasteFromClipboard() async {
-    final data = await Clipboard.getData(Clipboard.kTextPlain);
-    final text = data?.text;
-    if (text == null || text.isEmpty) return;
+  void _onSearchChanged(String query) {
+    final svc = ref.read(taxonomyServiceProvider).valueOrNull;
+    if (svc == null) return;
     setState(() {
-      final existing = _speciesCtrl.text.trim();
-      _speciesCtrl.text = existing.isEmpty ? text : '$existing\n$text';
+      _results = query.trim().isEmpty
+          ? const []
+          : svc.search(query, limit: 60);
     });
+  }
+
+  void _toggle(TaxonomySpecies sp, String label) {
+    setState(() {
+      if (_selected.contains(sp.scientificName)) {
+        _selected.remove(sp.scientificName);
+      } else {
+        _selected.add(sp.scientificName);
+        _labels[sp.scientificName] = label;
+      }
+    });
+  }
+
+  Future<void> _importFromFile() async {
+    final l10n = AppLocalizations.of(context)!;
+    try {
+      final result = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: const ['txt', 'csv'],
+        withData: true,
+      );
+      if (result == null || result.files.isEmpty) return;
+      final file = result.files.single;
+      String content;
+      if (file.bytes != null) {
+        content = utf8.decode(file.bytes!, allowMalformed: true);
+      } else if (file.path != null) {
+        content = await File(file.path!).readAsString();
+      } else {
+        return;
+      }
+      final names = CustomSpeciesList.parse(content);
+      if (names.isEmpty) {
+        setState(() => _error = l10n.surveyAlertCreateListImportError);
+        return;
+      }
+      final svc = ref.read(taxonomyServiceProvider).valueOrNull;
+      final speciesLocale = ref.read(effectiveSpeciesLocaleProvider);
+      setState(() {
+        _selected.addAll(names);
+        if (svc != null) {
+          for (final n in names) {
+            final sp = svc.lookup(n);
+            _labels[n] = sp?.commonNameForLocale(speciesLocale) ?? n;
+          }
+        } else {
+          for (final n in names) {
+            _labels.putIfAbsent(n, () => n);
+          }
+        }
+        _error = null;
+      });
+    } catch (_) {
+      setState(() => _error = l10n.surveyAlertCreateListImportError);
+    }
   }
 
   Future<void> _save() async {
     final l10n = AppLocalizations.of(context)!;
     final name = _nameCtrl.text.trim();
-    final species = CustomSpeciesList.parse(_speciesCtrl.text);
     if (name.isEmpty) {
       setState(() => _error = l10n.surveyAlertCreateListNameLabel);
       return;
     }
-    if (species.isEmpty) {
+    if (_selected.isEmpty) {
       setState(() => _error = l10n.surveyAlertCreateListEmpty);
       return;
     }
@@ -1427,7 +1496,7 @@ class _CreateWatchlistDialogState extends State<_CreateWatchlistDialog> {
       _saving = true;
       _error = null;
     });
-    await CustomSpeciesList.save(name, species);
+    await CustomSpeciesList.save(name, _selected.toSet());
     if (!mounted) return;
     Navigator.of(context).pop(name);
   }
@@ -1436,66 +1505,182 @@ class _CreateWatchlistDialogState extends State<_CreateWatchlistDialog> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    return AlertDialog(
-      title: Text(l10n.surveyAlertCreateListTitle),
-      content: SizedBox(
-        width: 400,
+    final speciesLocale = ref.watch(effectiveSpeciesLocaleProvider);
+    final showSci = ref.watch(showSciNamesProvider);
+
+    String labelFor(TaxonomySpecies sp) {
+      if (showSci) return sp.scientificName;
+      return sp.commonNameForLocale(speciesLocale);
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(l10n.surveyAlertCreateListTitle),
+        leading: IconButton(
+          icon: const Icon(Icons.close_rounded),
+          onPressed: _saving ? null : () => Navigator.of(context).pop(),
+          tooltip: l10n.surveyAlertCreateListCancel,
+        ),
+        actions: [
+          TextButton.icon(
+            icon: const Icon(Icons.save_rounded, size: 18),
+            label: Text(l10n.surveyAlertCreateListSave),
+            onPressed: _saving ? null : _save,
+          ),
+        ],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             TextField(
               controller: _nameCtrl,
               decoration: InputDecoration(
                 labelText: l10n.surveyAlertCreateListNameLabel,
+                border: const OutlineInputBorder(),
                 isDense: true,
               ),
               autofocus: true,
+              textInputAction: TextInputAction.next,
             ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _speciesCtrl,
-              decoration: InputDecoration(
-                labelText: l10n.surveyAlertCreateListSpeciesLabel,
-                hintText: l10n.surveyAlertCreateListSpeciesHint,
-                isDense: true,
-                alignLabelWithHint: true,
-              ),
-              maxLines: 6,
-              minLines: 4,
-              keyboardType: TextInputType.multiline,
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _searchCtrl,
+                    decoration: InputDecoration(
+                      hintText: l10n.surveyAlertCreateListSearchHint,
+                      prefixIcon: const Icon(Icons.search_rounded),
+                      suffixIcon: _searchCtrl.text.isEmpty
+                          ? null
+                          : IconButton(
+                              icon: const Icon(Icons.clear_rounded),
+                              onPressed: () {
+                                _searchCtrl.clear();
+                                _onSearchChanged('');
+                              },
+                            ),
+                      border: const OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    onChanged: _onSearchChanged,
+                    textInputAction: TextInputAction.search,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton.filledTonal(
+                  icon: const Icon(Icons.upload_file_rounded),
+                  tooltip: l10n.surveyAlertCreateListImportFile,
+                  onPressed: _importFromFile,
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
-                icon: const Icon(Icons.content_paste_rounded, size: 18),
-                label: Text(l10n.surveyAlertCreateListPaste),
-                onPressed: _pasteFromClipboard,
-              ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: _results.isEmpty
+                  ? _SelectedSpeciesList(
+                      selected: _selected,
+                      labels: _labels,
+                      onRemove: (sci) => setState(() {
+                        _selected.remove(sci);
+                      }),
+                    )
+                  : ListView.builder(
+                      itemCount: _results.length,
+                      itemBuilder: (context, i) {
+                        final sp = _results[i];
+                        final label = labelFor(sp);
+                        final isSelected =
+                            _selected.contains(sp.scientificName);
+                        return CheckboxListTile(
+                          value: isSelected,
+                          onChanged: (_) => _toggle(sp, label),
+                          title: Text(label),
+                          subtitle: showSci
+                              ? Text(sp.commonNameForLocale(speciesLocale),
+                                  style: theme.textTheme.bodySmall)
+                              : Text(sp.scientificName,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    fontStyle: FontStyle.italic,
+                                  )),
+                          dense: true,
+                          controlAffinity: ListTileControlAffinity.leading,
+                        );
+                      },
+                    ),
             ),
-            if (_error != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                _error!,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.error,
+            if (_error != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  _error!,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.error,
+                  ),
                 ),
               ),
-            ],
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                l10n.surveyAlertCreateListSelectedHeader(_selected.length),
+                style: theme.textTheme.labelMedium,
+              ),
+            ),
           ],
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: _saving ? null : () => Navigator.of(context).pop(),
-          child: Text(l10n.surveyAlertCreateListCancel),
+    );
+  }
+}
+
+class _SelectedSpeciesList extends StatelessWidget {
+  const _SelectedSpeciesList({
+    required this.selected,
+    required this.labels,
+    required this.onRemove,
+  });
+  final Set<String> selected;
+  final Map<String, String> labels;
+  final ValueChanged<String> onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    if (selected.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            l10n.surveyAlertCreateListNoSelection,
+            style: theme.textTheme.bodySmall,
+            textAlign: TextAlign.center,
+          ),
         ),
-        FilledButton(
-          onPressed: _saving ? null : _save,
-          child: Text(l10n.surveyAlertCreateListSave),
-        ),
-      ],
+      );
+    }
+    final list = selected.toList();
+    return ListView.builder(
+      itemCount: list.length,
+      itemBuilder: (context, i) {
+        final sci = list[i];
+        final label = labels[sci] ?? sci;
+        return ListTile(
+          leading: const Icon(Icons.check_rounded),
+          title: Text(label),
+          subtitle: Text(sci,
+              style: theme.textTheme.bodySmall
+                  ?.copyWith(fontStyle: FontStyle.italic)),
+          trailing: IconButton(
+            icon: const Icon(Icons.close_rounded),
+            onPressed: () => onRemove(sci),
+            tooltip: l10n.sessionRemove,
+          ),
+          dense: true,
+        );
+      },
     );
   }
 }

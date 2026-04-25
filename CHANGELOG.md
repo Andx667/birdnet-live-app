@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.2] - 2026-04-25
+
+### Changed
+
+- **Watchlist editor is now a real species picker.** Replaced the cramped paste-the-scientific-names dialog with a full-screen editor: a search field on top scans the entire taxonomy (matches scientific name, English common name, and every localized common name) and shows tappable checkbox results, while an *Import from file* button reads any `.txt`/`.csv` plain-text list of scientific names from device storage. The selected-species pane stays visible when you clear the search so it's obvious what's already in the list, and selections survive locale switches because friendly labels are cached at pick time.
+- **Survey alert notifications now use a monochrome blue-jay icon** instead of a white square. Switched both `SpeciesAlertNotifier.init` and `requestPermission` to the existing `ic_notification` drawable that the foreground-service notification already uses, so the heads-up alert visually matches the persistent recording notification.
+- **Cleaner alert text.** Notifications no longer repeat the species name twice (title and body both said it). The body is now just the reason — *"First detection of this survey"*, *"On your watchlist"*, *"Detected at this location with under 4% likelihood"*, etc. — keeping the species name in the bold notification title where Android renders it largest.
+- **Localized notifications work end-to-end.** When the app delivers a species alert it now uses the user's selected species locale (and respects the *Show scientific names* toggle), so a German user sees *Kohlmeise* in the notification instead of *Great Tit*. The localizer plumbs through `SurveyAlertCoordinator` so it stays correct across coalesced summary alerts too.
+- **German wording fix.** *Erkennung* in the alert bodies is now *Detektion*, matching the term used everywhere else in the German UI.
+
 ## [0.7.1] - 2026-04-25
 
 ### Changed

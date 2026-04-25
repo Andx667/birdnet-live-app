@@ -1669,6 +1669,20 @@
   "@surveyAlertCreateListSpeciesLabel": {},
   "surveyAlertCreateListSpeciesHint": "Parus major\nTurdus merula\nFringilla coelebs",
   "@surveyAlertCreateListSpeciesHint": {},
+  "surveyAlertCreateListImportFile": "Import from file",
+  "@surveyAlertCreateListImportFile": {},
+  "surveyAlertCreateListImportError": "Could not read file. Make sure it's a plain-text list with one scientific name per line.",
+  "@surveyAlertCreateListImportError": {},
+  "surveyAlertCreateListSearchHint": "Search species…",
+  "@surveyAlertCreateListSearchHint": {},
+  "surveyAlertCreateListSelectedHeader": "Selected ({count})",
+  "@surveyAlertCreateListSelectedHeader": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "surveyAlertCreateListNoSelection": "No species selected yet. Search above or import a file.",
+  "@surveyAlertCreateListNoSelection": {},
   "surveyAlertCreateListPaste": "Paste from clipboard",
   "@surveyAlertCreateListPaste": {},
   "surveyAlertCreateListSave": "Save",
