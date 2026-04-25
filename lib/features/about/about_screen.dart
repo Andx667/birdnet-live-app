@@ -92,7 +92,10 @@ class AboutScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
 
-          // Audio model info
+          // Combined model info — audio model + geo-model in one card.
+          // Shows the model display name for each plus the shared species
+          // count once at the bottom (both ship with the same 5,250-species
+          // intersection, so repeating it on two cards was redundant).
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -108,27 +111,7 @@ class AboutScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(l10n.aboutModelName),
-                  const SizedBox(height: 4),
-                  Text(
-                    l10n.aboutSpeciesCount(AppConstants.speciesCount),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withAlpha(153),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 12),
-
-          // Geo-model info
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+                  const SizedBox(height: 12),
                   Text(
                     l10n.aboutGeoModel,
                     style: theme.textTheme.titleSmall?.copyWith(
@@ -138,16 +121,9 @@ class AboutScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(l10n.aboutGeoModelName),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 12),
                   Text(
                     l10n.aboutSpeciesCount(AppConstants.speciesCount),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withAlpha(153),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    l10n.aboutGeoModelDescription,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurface.withAlpha(153),
                     ),

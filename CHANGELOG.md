@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.8] - 2026-04-26
+
+### Changed
+
+- **About screen: audio model and geo-model now share a single card.** Each model still gets its own labelled section (display name only), with the species count printed once at the bottom — it's the same 5,250-species intersection for both. The narrative description under the geo-model is gone; the section header already conveys what it is.
+
 ## [0.7.7] - 2026-04-26
 
 ### Added

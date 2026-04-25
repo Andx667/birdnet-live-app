@@ -337,10 +337,6 @@
   "@aboutGeoModelName": {
     "description": "Geo-model name shown in about screen"
   },
-  "aboutGeoModelDescription": "Predicts which species are likely at a given location and time of year.",
-  "@aboutGeoModelDescription": {
-    "description": "Geo-model description"
-  },
   "aboutCredits": "Developed by",
   "@aboutCredits": {
     "description": "Section title for the team that built BirdNET"

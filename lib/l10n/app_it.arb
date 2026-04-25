@@ -83,7 +83,6 @@
   "aboutSpeciesCount": "{count} specie",
   "aboutGeoModel": "Geomodello",
   "aboutGeoModelName": "BirdNET Geomodel V3.0.1 Global (pruned, FP16)",
-  "aboutGeoModelDescription": "Prevede quali specie sono probabilmente presenti in un dato luogo e stagione.",
   "aboutCredits": "Sviluppato da",
   "aboutFunding": "Finanziamento",
   "aboutFundingDescription": "Lo sviluppo di BirdNET Live è sostenuto dalla Deutsche Bundesstiftung Umwelt attraverso il progetto RangerSound (progetto 39263/01).",

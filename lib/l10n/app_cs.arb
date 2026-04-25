@@ -83,7 +83,6 @@
   "aboutSpeciesCount": "{count} druhů",
   "aboutGeoModel": "Geomodel",
   "aboutGeoModelName": "BirdNET Geomodel V3.0.1 Global (pruned, FP16)",
-  "aboutGeoModelDescription": "Předpovídá, které druhy se pravděpodobně vyskytují na daném místě a v daném ročním období.",
   "aboutCredits": "Vývojáři",
   "aboutFunding": "Financování",
   "aboutFundingDescription": "Vývoj BirdNET Live je podporován nadací Deutsche Bundesstiftung Umwelt prostřednictvím projektu RangerSound (projekt č. 39263/01).",
