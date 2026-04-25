@@ -1818,8 +1818,22 @@ String _sessionReviewTitle(AppLocalizations l10n, LiveSession session) {
 // Fullscreen Survey Track Map
 // ─────────────────────────────────────────────────────────────────────────────
 
+/// Filter modes available on the fullscreen survey track map.
+enum _MapFilterMode {
+  all,
+  withAudio,
+  highConfidence,
+  manual,
+}
+
+/// Confidence threshold (inclusive) for the "high confidence" filter.
+const double _highConfidenceThreshold = 0.8;
+
 /// Fullscreen map showing the complete survey track with species markers.
-/// Tapping a species marker plays the detection's audio clip.
+/// Tapping a species marker plays the detection's audio clip. The app bar
+/// hosts a filter button that opens a bottom sheet for restricting which
+/// detections are shown (audio only, high confidence, manual additions, or
+/// limited to a single species).
 class _FullscreenSurveyMapScreen extends StatefulWidget {
   const _FullscreenSurveyMapScreen({
     required this.gpsTrack,
@@ -1837,6 +1851,37 @@ class _FullscreenSurveyMapScreen extends StatefulWidget {
 class _FullscreenSurveyMapScreenState
     extends State<_FullscreenSurveyMapScreen> {
   DetectionRecord? _highlight;
+  _MapFilterMode _mode = _MapFilterMode.all;
+  String? _speciesFilter; // scientific name, or null for "all species"
+
+  bool get _isFilterActive =>
+      _mode != _MapFilterMode.all || _speciesFilter != null;
+
+  List<DetectionRecord> get _filtered {
+    return widget.detections.where((d) {
+      switch (_mode) {
+        case _MapFilterMode.all:
+          break;
+        case _MapFilterMode.withAudio:
+          final p = d.audioClipPath;
+          if (p == null || !File(p).existsSync()) return false;
+          break;
+        case _MapFilterMode.highConfidence:
+          if (d.confidence < _highConfidenceThreshold) return false;
+          break;
+        case _MapFilterMode.manual:
+          if (d.source != DetectionSource.manual &&
+              d.source != DetectionSource.manualGlobal) {
+            return false;
+          }
+          break;
+      }
+      if (_speciesFilter != null && d.scientificName != _speciesFilter) {
+        return false;
+      }
+      return true;
+    }).toList();
+  }
 
   Future<void> _onMarkerTap(DetectionRecord detection) async {
     // Only play markers whose own clip is still on disk. The map widget
@@ -1851,19 +1896,233 @@ class _FullscreenSurveyMapScreenState
     if (mounted) setState(() => _highlight = null);
   }
 
+  Future<void> _openFilterSheet() async {
+    final l10n = AppLocalizations.of(context)!;
+    // Unique scientific names present in the session, sorted by common name
+    // for a friendlier picker.
+    final speciesByCommon = <String, String>{}; // sci -> common
+    for (final d in widget.detections) {
+      speciesByCommon.putIfAbsent(d.scientificName, () => d.commonName);
+    }
+    final speciesEntries = speciesByCommon.entries.toList()
+      ..sort((a, b) => a.value.toLowerCase().compareTo(b.value.toLowerCase()));
+
+    final result = await showModalBottomSheet<_MapFilterChoice>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        var pendingMode = _mode;
+        String? pendingSpecies = _speciesFilter;
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            final theme = Theme.of(ctx);
+            return SafeArea(
+              child: DraggableScrollableSheet(
+                initialChildSize: 0.65,
+                minChildSize: 0.4,
+                maxChildSize: 0.92,
+                expand: false,
+                builder: (_, scrollController) {
+                  return ListView(
+                    controller: scrollController,
+                    padding: const EdgeInsets.fromLTRB(8, 12, 8, 16),
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                        child: Text(
+                          l10n.surveyMapFilterTitle,
+                          style: theme.textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      RadioListTile<_MapFilterMode>(
+                        value: _MapFilterMode.all,
+                        groupValue: pendingMode,
+                        title: Text(l10n.surveyMapFilterAll),
+                        onChanged: (v) => setSheetState(() => pendingMode = v!),
+                      ),
+                      RadioListTile<_MapFilterMode>(
+                        value: _MapFilterMode.withAudio,
+                        groupValue: pendingMode,
+                        title: Text(l10n.surveyMapFilterWithAudio),
+                        onChanged: (v) => setSheetState(() => pendingMode = v!),
+                      ),
+                      RadioListTile<_MapFilterMode>(
+                        value: _MapFilterMode.highConfidence,
+                        groupValue: pendingMode,
+                        title: Text(l10n.surveyMapFilterHighConfidence),
+                        onChanged: (v) => setSheetState(() => pendingMode = v!),
+                      ),
+                      RadioListTile<_MapFilterMode>(
+                        value: _MapFilterMode.manual,
+                        groupValue: pendingMode,
+                        title: Text(l10n.surveyMapFilterManual),
+                        onChanged: (v) => setSheetState(() => pendingMode = v!),
+                      ),
+                      const Divider(height: 24),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                        child: Text(
+                          l10n.surveyMapFilterSpecies,
+                          style: theme.textTheme.titleSmall
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      RadioListTile<String?>(
+                        value: null,
+                        groupValue: pendingSpecies,
+                        title: Text(l10n.surveyMapFilterAllSpecies),
+                        onChanged: (v) =>
+                            setSheetState(() => pendingSpecies = v),
+                      ),
+                      for (final e in speciesEntries)
+                        RadioListTile<String?>(
+                          value: e.key,
+                          groupValue: pendingSpecies,
+                          title: Text(e.value),
+                          subtitle: Text(
+                            e.key,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontStyle: FontStyle.italic,
+                              color: theme.colorScheme.onSurface.withAlpha(150),
+                            ),
+                          ),
+                          onChanged: (v) =>
+                              setSheetState(() => pendingSpecies = v),
+                        ),
+                      const SizedBox(height: 8),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Row(
+                          children: [
+                            TextButton(
+                              onPressed: () => Navigator.of(sheetContext).pop(
+                                const _MapFilterChoice(
+                                  mode: _MapFilterMode.all,
+                                  species: null,
+                                ),
+                              ),
+                              child: Text(l10n.clearFilters),
+                            ),
+                            const Spacer(),
+                            FilledButton(
+                              onPressed: () => Navigator.of(sheetContext).pop(
+                                _MapFilterChoice(
+                                  mode: pendingMode,
+                                  species: pendingSpecies,
+                                ),
+                              ),
+                              child: Text(l10n.apply),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (result != null && mounted) {
+      setState(() {
+        _mode = result.mode;
+        _speciesFilter = result.species;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final filtered = _filtered;
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.surveyTrackMap)),
-      body: SurveyMapWidget(
-        gpsTrack: widget.gpsTrack,
-        detections: widget.detections,
-        autoFollow: false,
-        fitAllPoints: true,
-        highlightedDetection: _highlight,
-        onMarkerTap: _onMarkerTap,
+      appBar: AppBar(
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(l10n.surveyTrackMap),
+            if (_isFilterActive)
+              Text(
+                l10n.surveyMapMatchCount(filtered.length),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurface.withAlpha(170),
+                ),
+              ),
+          ],
+        ),
+        actions: [
+          IconButton(
+            icon: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(_isFilterActive
+                    ? Icons.filter_list
+                    : Icons.filter_list_outlined),
+                if (_isFilterActive)
+                  Positioned(
+                    right: -2,
+                    top: -2,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            tooltip: l10n.surveyMapFilterTooltip,
+            onPressed: _openFilterSheet,
+          ),
+        ],
+      ),
+      body: Stack(
+        children: [
+          SurveyMapWidget(
+            gpsTrack: widget.gpsTrack,
+            detections: filtered,
+            autoFollow: false,
+            fitAllPoints: true,
+            highlightedDetection: _highlight,
+            onMarkerTap: _onMarkerTap,
+          ),
+          if (filtered.isEmpty)
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 24,
+              child: Card(
+                color: theme.colorScheme.surfaceContainerHighest,
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(l10n.surveyMapFilterEmpty),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
+}
+
+class _MapFilterChoice {
+  const _MapFilterChoice({required this.mode, required this.species});
+  final _MapFilterMode mode;
+  final String? species;
 }
