@@ -1026,8 +1026,8 @@ class SurveyController {
     final recent = _sessionDetections.take(3);
     final lines = <String>[header];
     for (final r in recent) {
-      final name = _nameLocalizer?.call(r.scientificName, r.commonName) ??
-          r.commonName;
+      final name =
+          _nameLocalizer?.call(r.scientificName, r.commonName) ?? r.commonName;
       final pct = (r.confidence * 100).round();
       final ago = _formatRelativeTime(now.difference(r.timestamp));
       lines.add('$name · $pct% · $ago');
