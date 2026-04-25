@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.5] - 2026-04-26
+
+### Added
+
+- **Filter button on the fullscreen survey track map.** The map's app bar now has a :material-filter-list-outlined: button that opens a filter sheet for restricting which detection markers are drawn. Filter modes are *All detections*, *With audio clip* (only markers whose clip is still on disk), *High confidence* (≥80 %), and *Manual additions* (only the ones you added in Session Review). A *Limit to species* picker lets you collapse the map to a single species — useful for asking "where exactly along the route did I hear the wood thrush?". The two filters combine, an active filter shows a dot on the icon and a match-count subtitle in the app bar, and an *Empty filter* card appears at the bottom of the map when nothing matches.
+- **Funding card on the About screen.** Acknowledges support for BirdNET Live development by the Deutsche Bundesstiftung Umwelt through the project RangerSound (project 39263/01).
+
+### Changed
+
+- **Onboarding screens use vertical space more carefully.** The icon-only top half is gone — every page now starts its body copy near the top of the safe area instead of at the vertical centre, so the Terms-Of-Use page no longer overflows on smaller phones. Hero icons are smaller (44 dp instead of 56 dp), spacings are tighter, and the bottom controls bar is more compact.
+- **The "Credits" card on the About screen is now titled "Developed by"** in every locale, since the card just names the BirdNET development team and never actually thanked anyone.
+
 ## [0.7.4] - 2026-04-25
 
 ### Changed

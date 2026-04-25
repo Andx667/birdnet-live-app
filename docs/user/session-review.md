@@ -23,6 +23,21 @@ Session Review combines playback, spectrogram navigation, and a species list. Fo
 
 Species are grouped into expandable rows. You can inspect detections by species and move through the recording while reviewing them.
 
+### Survey track map
+
+Survey sessions show a small inline map of the GPS track and detection markers. Tap it to open a **fullscreen map** with the same data.
+
+The fullscreen map's app bar has a :material-filter-list-outlined: **filter** button that opens a sheet for restricting which markers are shown. Available filters:
+
+- **All detections** (default).
+- **With audio clip** — only detections whose clip is still on disk and playable.
+- **High confidence** — only detections at or above 80 % confidence.
+- **Manual additions** — only detections you added in Session Review (excludes auto-detected ones).
+
+Below the mode picker is a **Limit to species** picker that lets you collapse the map to a single species — useful for asking "where exactly along the route did I hear the wood thrush?". An *All species* entry clears the species restriction. The two filters combine: e.g. *With audio clip* + *Wood Thrush* shows only the playable Wood Thrush markers.
+
+When a filter is active, the app-bar title gains a match-count subtitle (e.g. *"7 detections"*) and the filter button shows a small dot. *Reset* in the sheet returns to the default.
+
 ## Toolbar Icons
 
 The toolbar uses the same icon meanings described in [Icons & Controls](icons-and-controls.md):
@@ -46,4 +61,4 @@ The toolbar uses the same icon meanings described in [Icons & Controls](icons-an
 
 ## Export
 
-Export behavior depends on the options selected in [Settings](settings.md). The app can package detections and, optionally, audio into the chosen export format.
+Export behavior depends on the options selected in [Settings](settings.md). The app can package detections and, optionally, audio into the chosen export format. Every export now ships with full provenance metadata — the app version, model name and version, species locale, export timestamp, and a snapshot of all settings at export time — written to a `<prefix>.metadata.json` side-file (ZIP) or a top-level `meta` block (JSON) so that exports are self-describing and reproducible.

@@ -8,7 +8,7 @@ From Home, tap the **Survey Mode** card with the :material-routes: icon.
 
 ## Setup Flow
 
-Survey setup currently uses four steps.
+Survey setup is a five-step wizard.
 
 ### 1. Details
 
@@ -51,11 +51,23 @@ The N limit is **per species, not global** — if you record 10 robins and 10 ch
 
 In Smart mode, if GPS is missing on a detection the same-spot check falls back to a time-only window (~2 min). With GPS available, both distance and time must overlap for two detections to count as the same spot.
 
-### 3. Field tips
+### 3. Species alerts
 
-This is a short pre-start checklist inside the setup flow.
+Push-style notifications that fire mid-survey when something noteworthy is detected. Pick one of:
 
-### 4. Ready
+- **Off** — no alerts (default).
+- **First in session** — one alert the first time each species is heard during this survey.
+- **First ever** — alert only when the app encounters a species for the very first time across all your sessions (a "lifer" alert). Backed by a lifetime species history that is auto-populated from your existing sessions on first launch.
+- **Rare for this location** — alert when the geo-model probability for the current location is below a configurable threshold. A live readout under the slider explains exactly what the current value will trigger on (e.g. *"Alerts on species with under 5 % likelihood at this location."*).
+- **Watchlist** — alert only on species you've added to a saved custom list. The wizard step itself lets you create new watchlists, edit existing ones in a dedicated full-screen editor with searchable taxonomy and *Import from file* (any plain `.txt`/`.csv` of scientific names), and delete lists you no longer need.
+
+A *Minimum confidence* slider sits under the mode picker and is automatically floored to your session confidence threshold (alerts are never more sensitive than the detections themselves). An **Advanced** section exposes throttling controls — a startup grace window, a hard minimum interval between any two alerts, and a sliding per-minute cap with optional coalescing of over-cap alerts into a single summary notification — all with one-tap chip selectors. The first time you switch to a non-Off mode, the wizard requests Android notification permission for you.
+
+### 4. Field tips
+
+A short pre-start checklist inside the setup flow.
+
+### 5. Ready
 
 The ready screen summarizes the active survey configuration before you start with :material-play:.
 
@@ -82,7 +94,14 @@ Below the tab content, the survey dashboard shows a stats bar and a recent detec
 
 ## Background Operation
 
-Survey Mode is the workflow that relies most heavily on notifications and background operation. If the app requests notification permission, it is doing so to keep the foreground survey service visible and controllable.
+Survey Mode keeps a persistent foreground notification visible while recording so Android won't suspend the audio pipeline. The notification expands to show:
+
+- the elapsed time, detection count, species count, and distance walked, and
+- the **three most recent unique species** with their confidence and a relative timestamp (`just now`, `42s ago`, `5m ago`, `2h ago`).
+
+The notification — title, recent detections, and stats footer — is fully translated into the app's selected language and uses the same species-locale and *Show scientific names* preferences as the in-app cards.
+
+Species alerts (when enabled) appear on a separate Android notification channel so you can mute alerts independently of the silent ongoing recording notification. The alert icon matches the foreground notification icon (a monochrome bird), and alert bodies show only the *reason* — *"First detection of this survey"*, *"On your watchlist"*, *"Detected at this location with under 4% likelihood"* — leaving the species name in the bold notification title where Android renders it largest.
 
 ## After Stopping
 
