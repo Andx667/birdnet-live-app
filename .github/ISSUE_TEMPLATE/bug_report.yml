@@ -1,0 +1,141 @@
+name: Bug Report
+description: Report a reproducible problem in BirdNET Live
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve BirdNET Live.
+
+        Please provide a clear, reproducible report. Well-structured reports are triaged much faster.
+
+  - type: dropdown
+    id: affected_mode
+    attributes:
+      label: Affected mode or area
+      description: Which part of the app is impacted?
+      options:
+        - Live Mode
+        - Point Count Mode
+        - Survey Mode
+        - File Analysis
+        - Explore
+        - History / Session Review
+        - Settings
+        - Onboarding / Home
+        - Build / CI / Tooling
+        - Other
+      multiple: true
+    validations:
+      required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Problem summary
+      description: One concise paragraph describing the bug and its impact.
+      placeholder: When I start a Live session and lock the screen, audio detection stops after ~30 seconds.
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro_steps
+    attributes:
+      label: Steps to reproduce
+      description: Provide exact, numbered steps.
+      placeholder: |
+        1. Open the app
+        2. Go to Live Mode
+        3. Enable ...
+        4. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_behavior
+    attributes:
+      label: Expected behavior
+      placeholder: Detection should continue in the background while the session is active.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual_behavior
+    attributes:
+      label: Actual behavior
+      placeholder: Detection pauses and no new results appear until the app is foregrounded.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: reproducibility
+    attributes:
+      label: Reproducibility
+      options:
+        - Always
+        - Often
+        - Sometimes
+        - Rarely
+        - Unable to reproduce consistently
+    validations:
+      required: true
+
+  - type: input
+    id: introduced_in_version
+    attributes:
+      label: First observed in version
+      description: App version where you first noticed the issue (for example, 0.1.28+28)
+      placeholder: 0.1.28+28
+
+  - type: input
+    id: last_known_good
+    attributes:
+      label: Last known working version (optional)
+      placeholder: 0.1.27+27
+
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Logs, stack traces, or screenshots
+      description: Paste relevant logs or attach screenshots/videos.
+      render: shell
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment details
+      description: Provide as much as possible.
+      placeholder: |
+        - Platform: Android / iOS / Windows
+        - Device model: Pixel 8
+        - OS version: Android 15
+        - App version: 0.1.28+28
+        - Install source: Play Store / Test build / Sideload
+        - Audio source: Built-in mic / External mic
+        - Permissions granted: Microphone, Location
+        - Model assets: default bundle or custom
+        - Network state: online / offline
+    validations:
+      required: true
+
+  - type: textarea
+    id: regression_scope
+    attributes:
+      label: Scope and regression check
+      description: Did you test related features or alternate paths?
+      placeholder: |
+        - Also tested File Analysis with same recording.
+        - Issue appears only in Survey Mode.
+
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Confirmations
+      options:
+        - label: I searched existing issues and did not find a duplicate.
+          required: true
+        - label: I can reproduce this on the latest available app version.
+          required: true
+        - label: I included clear reproduction steps and environment details.
+          required: true

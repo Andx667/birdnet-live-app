@@ -1,0 +1,128 @@
+name: Feature Request
+description: Propose an improvement or new capability for BirdNET Live
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for sharing ideas.
+
+        The best requests describe the problem, users impacted, and success criteria rather than just a UI tweak.
+
+  - type: dropdown
+    id: request_area
+    attributes:
+      label: Area
+      description: Where should this feature apply?
+      options:
+        - Live Mode
+        - Point Count Mode
+        - Survey Mode
+        - File Analysis
+        - Explore
+        - History / Session Review
+        - Settings
+        - Data Export
+        - Performance / Battery
+        - Accessibility
+        - Developer Experience / Tooling
+        - Other
+      multiple: true
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem_statement
+    attributes:
+      label: Problem statement
+      description: What user problem are you trying to solve?
+      placeholder: In noisy environments, it is hard to distinguish recurring detections from one-off false positives.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed_solution
+    attributes:
+      label: Proposed solution
+      description: Describe your preferred approach.
+      placeholder: Add a confidence smoothing window with optional visual clustering in the timeline.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What other approaches did you consider and why are they less suitable?
+      placeholder: A simple global threshold helps, but misses short valid calls.
+
+  - type: textarea
+    id: user_value
+    attributes:
+      label: User value and target users
+      description: Who benefits and how?
+      placeholder: Field survey users in windy habitats can maintain reliable counts with fewer manual corrections.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: Acceptance criteria
+      description: Define measurable outcomes.
+      placeholder: |
+        - Users can enable the feature in Settings.
+        - Timeline groups repeated detections within a configurable interval.
+        - Exported CSV includes grouped event metadata.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - Nice to have
+        - Important
+        - Critical for my workflow
+    validations:
+      required: true
+
+  - type: dropdown
+    id: breaking_change_risk
+    attributes:
+      label: Backward compatibility risk
+      description: Could this disrupt existing workflows or exports?
+      options:
+        - None expected
+        - Low
+        - Medium
+        - High
+        - Unsure
+    validations:
+      required: true
+
+  - type: textarea
+    id: implementation_notes
+    attributes:
+      label: Implementation notes (optional)
+      description: Relevant technical details, references, or sketches.
+
+  - type: textarea
+    id: mockups
+    attributes:
+      label: Mockups or examples (optional)
+      description: Screenshots, diagrams, links to similar UX, or pseudocode.
+
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Confirmations
+      options:
+        - label: I searched existing issues and did not find a duplicate request.
+          required: true
+        - label: This request describes a user problem, not only an implementation detail.
+          required: true
+        - label: I included success criteria so completion can be validated.
+          required: true
