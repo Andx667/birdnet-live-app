@@ -72,8 +72,8 @@ This runs three steps: (1) prune to 5,250-species intersection, (2) fix audio mo
 
 Species images and descriptions come from `https://birdnet.cornell.edu/taxonomy/api/`:
 
-- `GET /api/image/{sci_name}?size=thumb` — 150×100 WebP thumbnail (4:3)
-- `GET /api/image/{sci_name}?size=medium` — 480×320 WebP image (4:3)
+- `GET /api/image/{sci_name}?size=thumb` — 150×100 WebP thumbnail (3:2)
+- `GET /api/image/{sci_name}?size=medium` — 480×320 WebP image (3:2)
 - `GET /api/species/{sci_name}` — Full species record (descriptions, Wikipedia, links)
 
 ## Coding Conventions
