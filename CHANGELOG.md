@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.10] - 2026-04-26
+
+### Fixed
+
+- **Explore species cards no longer crop the edges of the photo.** The card's row was stretching every tile to a uniform height, which made the thumbnail box slightly taller than its native 3:2 ratio. With `BoxFit.cover` the image was being scaled up to fill that extra height and a slice was getting cut off the sides. The thumbnail is now sized to its natural 3:2 ratio (96×64) and centered vertically in the row, so the whole bird is visible while the card's rounded corners on the left still hug the photo.
+
 ## [0.7.9] - 2026-04-26
 
 ### Added

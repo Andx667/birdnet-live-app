@@ -65,11 +65,19 @@ class SpeciesCard extends ConsumerWidget {
         onTap: onTap,
         child: IntrinsicHeight(
           child: Row(
+            // Stretch so the thumbnail fills the card's full height and the
+            // rounded left corners hug the photo.
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // ── Thumbnail (3:2, matching the 360×240 bundled photos) ──
+              //
+              // Width is 120 so that the AspectRatio's intrinsic height
+              // (120 / 1.5 = 80) matches the text column's natural height
+              // closely. With Row(stretch) + IntrinsicHeight that gives a
+              // 120×80 box whose ratio matches the source image, so
+              // BoxFit.cover fills it exactly with no edge cropping.
               SizedBox(
-                width: 96,
+                width: 120,
                 child: AspectRatio(
                   aspectRatio: 3 / 2,
                   child: _SpeciesImage(scientificName: scientificName),
