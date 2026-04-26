@@ -1593,20 +1593,13 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              Text(
-                l10n.sessionTrimRecording,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const Spacer(),
               TextButton(
                 onPressed: _resetTrim,
                 child: Text(l10n.sessionTrimReset),
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: 8),
               FilledButton(
                 onPressed: _applyTrim,
                 child: Text(l10n.sessionTrimApply),
