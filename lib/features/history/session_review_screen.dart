@@ -1634,7 +1634,7 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
                         : Icons.public,
                     size: 16,
                   ),
-                  deleteIcon: const Icon(Icons.close, size: 16),
+                  deleteIcon: const Icon(Icons.delete_outline, size: 16),
                   onDeleted: () => _deleteAnnotation(i),
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   visualDensity: VisualDensity.compact,

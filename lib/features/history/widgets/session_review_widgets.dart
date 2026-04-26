@@ -1092,7 +1092,7 @@ class _ClusterRow extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: Icon(
-                  Icons.close,
+                  Icons.delete_outline,
                   size: 24,
                   color: theme.colorScheme.onSurface.withAlpha(100),
                 ),
@@ -1768,7 +1768,7 @@ class _AnnotationRow extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.all(4),
               child: Icon(
-                Icons.close,
+                Icons.delete_outline,
                 size: 16,
                 color: theme.colorScheme.onSurface.withAlpha(100),
               ),
