@@ -627,6 +627,10 @@
   "@sessionLibrarySortTooltip": {
     "description": "Tooltip for the sort button in the session library"
   },
+  "sessionLibraryFilterTooltip": "Filter by session type",
+  "@sessionLibraryFilterTooltip": {
+    "description": "Tooltip for the session type filter button in the session library"
+  },
   "sessionSortDateNewest": "Newest first",
   "@sessionSortDateNewest": {
     "description": "Sort sessions by date, newest first"

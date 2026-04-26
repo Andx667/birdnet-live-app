@@ -148,6 +148,7 @@
   "sessionLibrarySearchHint": "Pesquisar sessões…",
   "sessionLibraryNoResults": "Nenhuma sessão encontrada.",
   "sessionLibrarySortTooltip": "Ordenar sessões",
+  "sessionLibraryFilterTooltip": "Filtrar por tipo de sessão",
   "sessionSortDateNewest": "Mais recentes primeiro",
   "sessionSortDateOldest": "Mais antigas primeiro",
   "sessionSortNameAZ": "Nome A–Z",

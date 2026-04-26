@@ -1856,12 +1856,9 @@ class _FullscreenSurveyMapScreenState
       _speciesFilter != null ||
       _minConfidence > _defaultConfidenceFloor;
 
-  /// Localized common name for [sciName], honoring the *Show scientific
-  /// names* toggle. Falls back to the record's stored common name when
-  /// the taxonomy hasn't loaded yet.
+  /// Localized common name for [sciName]. Falls back to the record's stored
+  /// common name when the taxonomy hasn't loaded yet.
   String _localizedName(String sciName, String fallback) {
-    final showSci = ref.watch(showSciNamesProvider);
-    if (showSci) return sciName;
     final taxonomy = ref.watch(taxonomyServiceProvider).valueOrNull;
     final speciesLocale = ref.watch(effectiveSpeciesLocaleProvider);
     return taxonomy?.lookup(sciName)?.commonNameForLocale(speciesLocale) ??
@@ -2223,6 +2220,7 @@ class _MapFilterSheetState extends State<_MapFilterSheet> {
                   for (final e in filteredSpecies)
                     _SpeciesPickerTile(
                       label: e.displayName,
+                      scientificName: e.scientificName,
                       selected: _species == e.scientificName,
                       onTap: () => setState(
                         () => _species = e.scientificName,
@@ -2273,20 +2271,23 @@ class _MapFilterSheetState extends State<_MapFilterSheet> {
 /// Lightweight tappable row used by the species picker. Avoids the
 /// heavy radio-list look (which felt cluttered with hundreds of
 /// detections) and gives a clear selected-state pill.
-class _SpeciesPickerTile extends StatelessWidget {
+class _SpeciesPickerTile extends ConsumerWidget {
   const _SpeciesPickerTile({
     required this.label,
+    this.scientificName,
     required this.selected,
     required this.onTap,
   });
 
   final String label;
+  final String? scientificName;
   final bool selected;
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final showSciNames = ref.watch(showSciNamesProvider);
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(10),
@@ -2305,11 +2306,27 @@ class _SpeciesPickerTile extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(
-                label,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    label,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                    ),
+                  ),
+                  if (showSciNames &&
+                      scientificName != null &&
+                      scientificName != label)
+                    Text(
+                      scientificName!,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontStyle: FontStyle.italic,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                ],
               ),
             ),
           ],

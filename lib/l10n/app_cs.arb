@@ -148,6 +148,7 @@
   "sessionLibrarySearchHint": "Hledat relace…",
   "sessionLibraryNoResults": "Žádné odpovídající relace.",
   "sessionLibrarySortTooltip": "Seřadit relace",
+  "sessionLibraryFilterTooltip": "Filtrovat podle typu relace",
   "sessionSortDateNewest": "Nejnovější první",
   "sessionSortDateOldest": "Nejstarší první",
   "sessionSortNameAZ": "Název A–Z",

@@ -142,4 +142,8 @@ abstract final class PrefKeys {
   /// `true` once the one-time backfill from existing sessions has run.
   static const String globalSpeciesHistorySeeded =
       'global_species_history_seeded';
+
+  /// Persisted view mode for the Session Library screen
+  /// (one of `_ViewMode.name`: detailed, compact, bySpecies).
+  static const String sessionLibraryViewMode = 'session_library_view_mode';
 }
