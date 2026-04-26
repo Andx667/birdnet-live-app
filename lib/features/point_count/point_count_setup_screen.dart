@@ -2,13 +2,16 @@
 // Point Count Setup Screen — Wizard for configuring a timed point-count survey
 // =============================================================================
 //
-// A three-step setup wizard following standard point-count protocol:
+// A four-step setup wizard following standard point-count protocol:
 //
 //   1. **Duration & Context** — Select count duration (3–20 min), choose
 //      location (GPS / Manual with map picker / Skip), and display date.
-//   2. **Field Tips** — Best-practice reminders (stable surface, avoid wind,
+//   2. **Inference Parameters** — Tweak window duration, inference rate,
+//      confidence threshold, and species filter mode for this session.
+//      Defaults come from the global app settings.
+//   3. **Field Tips** — Best-practice reminders (stable surface, avoid wind,
 //      stay quiet, microphone placement, etc.).
-//   3. **Ready** — Summary and explicit "Start Count" button.
+//   4. **Ready** — Summary and explicit "Start Count" button.
 //
 // After the user presses Start, navigates to [PointCountLiveScreen] which
 // runs the timed session with a countdown timer.
@@ -43,7 +46,7 @@ class PointCountSetupScreen extends ConsumerStatefulWidget {
 
 class _PointCountSetupScreenState extends ConsumerState<PointCountSetupScreen> {
   int _step = 0;
-  static const _totalSteps = 3;
+  static const _totalSteps = 4;
 
   /// Available durations in minutes.
   static const _durations = [3, 5, 10, 15, 20];
@@ -60,11 +63,22 @@ class _PointCountSetupScreenState extends ConsumerState<PointCountSetupScreen> {
   final _nameController = TextEditingController();
   final _observerController = TextEditingController();
 
+  // ── Inference parameters (overrides for this session only) ─────────────
+  late int _windowDuration;
+  late double _inferenceRate;
+  late int _confidenceThreshold;
+  late String _speciesFilterMode;
+
   @override
   void initState() {
     super.initState();
     // Pre-fill observer with the last value used.
     _observerController.text = ref.read(pointCountLastObserverProvider);
+    // Seed parameter state from the global app defaults.
+    _windowDuration = ref.read(windowDurationProvider);
+    _inferenceRate = ref.read(inferenceRateProvider);
+    _confidenceThreshold = ref.read(confidenceThresholdProvider);
+    _speciesFilterMode = ref.read(speciesFilterModeProvider);
     // Start fetching GPS location immediately.
     _fetchGpsLocation();
   }
@@ -135,6 +149,10 @@ class _PointCountSetupScreenState extends ConsumerState<PointCountSetupScreen> {
           longitude: lon,
           customName: name.isEmpty ? null : name,
           observerName: observer.isEmpty ? null : observer,
+          windowDurationOverride: _windowDuration,
+          inferenceRateOverride: _inferenceRate,
+          confidenceThresholdOverride: _confidenceThreshold,
+          speciesFilterModeOverride: _speciesFilterMode,
         ),
       ),
     );
@@ -226,8 +244,22 @@ class _PointCountSetupScreenState extends ConsumerState<PointCountSetupScreen> {
                 });
               },
             ),
-          1 => _TipsStep(key: const ValueKey(1)),
-          _ => _ReadyStep(key: const ValueKey(2)),
+          1 => _ParametersStep(
+              key: const ValueKey(1),
+              windowDuration: _windowDuration,
+              inferenceRate: _inferenceRate,
+              confidenceThreshold: _confidenceThreshold,
+              speciesFilterMode: _speciesFilterMode,
+              onWindowDurationChanged: (v) =>
+                  setState(() => _windowDuration = v),
+              onInferenceRateChanged: (v) => setState(() => _inferenceRate = v),
+              onConfidenceChanged: (v) =>
+                  setState(() => _confidenceThreshold = v),
+              onFilterModeChanged: (v) =>
+                  setState(() => _speciesFilterMode = v),
+            ),
+          2 => _TipsStep(key: const ValueKey(2)),
+          _ => _ReadyStep(key: const ValueKey(3)),
         },
       ),
     );
@@ -515,7 +547,180 @@ class _DurationStep extends ConsumerWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Step 2: Field Tips
+// Step 2: Inference Parameters
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _ParametersStep extends StatelessWidget {
+  const _ParametersStep({
+    super.key,
+    required this.windowDuration,
+    required this.inferenceRate,
+    required this.confidenceThreshold,
+    required this.speciesFilterMode,
+    required this.onWindowDurationChanged,
+    required this.onInferenceRateChanged,
+    required this.onConfidenceChanged,
+    required this.onFilterModeChanged,
+  });
+
+  final int windowDuration;
+  final double inferenceRate;
+  final int confidenceThreshold;
+  final String speciesFilterMode;
+  final ValueChanged<int> onWindowDurationChanged;
+  final ValueChanged<double> onInferenceRateChanged;
+  final ValueChanged<int> onConfidenceChanged;
+  final ValueChanged<String> onFilterModeChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            l10n.fileAnalysisParamsTitle,
+            style: theme.textTheme.headlineSmall,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            l10n.fileAnalysisParamsSubtitle,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // ── Window duration ──────────────────────────────────
+          _ParamTile(
+            title: l10n.settingsWindowDuration,
+            value: '${windowDuration}s',
+            child: SegmentedButton<int>(
+              segments: const [
+                ButtonSegment(value: 3, label: Text('3s')),
+                ButtonSegment(value: 5, label: Text('5s')),
+                ButtonSegment(value: 10, label: Text('10s')),
+              ],
+              selected: {windowDuration},
+              onSelectionChanged: (s) {
+                HapticFeedback.selectionClick();
+                onWindowDurationChanged(s.first);
+              },
+              showSelectedIcon: false,
+            ),
+          ),
+
+          // ── Inference rate ───────────────────────────────────
+          _ParamTile(
+            title: l10n.settingsInferenceRate,
+            value: '${inferenceRate.toStringAsFixed(2)} Hz',
+            child: Slider(
+              value: inferenceRate,
+              min: 0.25,
+              max: 4.0,
+              divisions: 15,
+              onChanged: onInferenceRateChanged,
+            ),
+          ),
+
+          // ── Confidence threshold ─────────────────────────────
+          _ParamTile(
+            title: l10n.settingsConfidenceThreshold,
+            value: '$confidenceThreshold%',
+            child: Slider(
+              value: confidenceThreshold.toDouble(),
+              min: 1,
+              max: 99,
+              divisions: 98,
+              onChanged: (v) => onConfidenceChanged(v.round()),
+            ),
+          ),
+
+          // ── Species filter mode ──────────────────────────────
+          _ParamTile(
+            title: l10n.settingsSpeciesFilter,
+            value: '',
+            child: DropdownButton<String>(
+              value: speciesFilterMode,
+              isExpanded: true,
+              items: [
+                DropdownMenuItem(
+                  value: 'off',
+                  child: Text(l10n.settingsFilterOff),
+                ),
+                DropdownMenuItem(
+                  value: 'geoExclude',
+                  child: Text(l10n.settingsFilterGeoExclude),
+                ),
+                DropdownMenuItem(
+                  value: 'geoMerge',
+                  child: Text(l10n.settingsFilterGeoMerge),
+                ),
+              ],
+              onChanged: (v) {
+                if (v != null) onFilterModeChanged(v);
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ParamTile extends StatelessWidget {
+  const _ParamTile({
+    required this.title,
+    required this.value,
+    required this.child,
+  });
+
+  final String title;
+  final String value;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                title,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (value.isNotEmpty) ...[
+                const Spacer(),
+                Text(
+                  value,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 8),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Step 3: Field Tips
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _TipsStep extends StatelessWidget {

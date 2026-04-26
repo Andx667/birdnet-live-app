@@ -57,6 +57,10 @@ class PointCountLiveScreen extends ConsumerStatefulWidget {
     this.longitude,
     this.customName,
     this.observerName,
+    this.windowDurationOverride,
+    this.inferenceRateOverride,
+    this.confidenceThresholdOverride,
+    this.speciesFilterModeOverride,
   });
 
   /// Total survey duration in minutes.
@@ -73,6 +77,13 @@ class PointCountLiveScreen extends ConsumerStatefulWidget {
 
   /// Optional observer name persisted with the session.
   final String? observerName;
+
+  /// Optional per-session inference parameter overrides chosen in the setup
+  /// wizard. When `null`, the corresponding global setting is used.
+  final int? windowDurationOverride;
+  final double? inferenceRateOverride;
+  final int? confidenceThresholdOverride;
+  final String? speciesFilterModeOverride;
 
   @override
   ConsumerState<PointCountLiveScreen> createState() =>
@@ -134,11 +145,15 @@ class _PointCountLiveScreenState extends ConsumerState<PointCountLiveScreen>
     await WakelockService.enable();
     await captureNotifier.start(deviceId: deviceId);
 
-    // Read inference settings.
-    final windowDuration = ref.read(windowDurationProvider);
-    final inferenceRate = ref.read(inferenceRateProvider);
-    final confidenceThreshold = ref.read(confidenceThresholdProvider);
-    final filterMode = ref.read(speciesFilterModeProvider);
+    // Read inference settings (use wizard overrides when provided).
+    final int windowDuration =
+        widget.windowDurationOverride ?? ref.read(windowDurationProvider);
+    final double inferenceRate =
+        widget.inferenceRateOverride ?? ref.read(inferenceRateProvider);
+    final int confidenceThreshold = widget.confidenceThresholdOverride ??
+        ref.read(confidenceThresholdProvider);
+    final String filterMode =
+        widget.speciesFilterModeOverride ?? ref.read(speciesFilterModeProvider);
     final recordingModeStr = ref.read(recordingModeProvider);
     final recordingMode = recordingModeFromString(recordingModeStr);
     final recordingFormat = ref.read(recordingFormatProvider);
