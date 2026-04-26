@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.9] - 2026-04-26
+
+### Added
+
+- **Inference Parameters step in the Point Count setup wizard.** Point Count now has a fourth setup step — between *Duration & Context* and *Field Tips* — that lets you tweak window duration (3 / 5 / 10 s), inference rate (0.25–4 Hz), confidence threshold (1–99 %) and species filter mode just for that one count, without touching your global defaults. Values are seeded from your global settings so the default behaviour is unchanged; tweaking them only affects the count you're about to start. Mirrors the same parameters page that File Analysis already exposes, but with an *inference rate* slider instead of *overlap* (since live inference is rate-driven, not overlap-driven).
+- **Per-mode icon colours throughout the app.** Each mode now has its own accent colour applied to its icon — red for Live (recording), blue for Point Count (a fixed pin), green for Survey (a route), and amber for File Analysis (an archived file). The colour shows up everywhere the mode icon appears: the home menu cards, the Help screen sections, and Session Library cards / list rows / species-grouped sub-rows. Tile and card backgrounds are deliberately untouched — only the glyph itself is tinted, so the surrounding layout stays calm and you can recognise a mode at a glance without the screen feeling busier. Centralised in `shared/utils/session_type_visuals.dart` so the home, help, and history surfaces can never drift apart again.
+
+### Changed
+
+- **Session Library: three-dot menu replaced with a single, well-organised filter sheet.** The cluttered toolbar dropdown is gone — there's now a single :material-filter-list-outlined: button that opens a clean modal bottom sheet with three labelled sections (*Sort*, *View*, *Filter*) using chip selectors. Same options as before, but the relationship between sort order, view mode, and filter is finally visible at a glance, and the sheet opens in the natural place for a touch (bottom of the screen) instead of cascading off the right edge.
+- **Session Library view mode (Compact / Detailed / By species) now persists across app restarts.** Picking *By species* once will keep the library in that view the next time you open it, instead of snapping back to *Compact* on every cold start.
+- **Bundled species photos now show the full, un-distorted bird.** Auditing the BirdNET taxonomy API turned up that *both* the `medium` (480×320) and `thumb` (150×100) responses are 3:2 — not 4:3 as we'd assumed. Our build pipeline was resizing every photo to 320×240 (4:3), which silently squashed every bird vertically. The bundle is now built at 360×240 (true 3:2) at higher WebP quality (`82` instead of `75`, with `method=6` for best compression effort), and `process_image()` letterboxes any non-3:2 source instead of stretching it. Every in-app species frame (Explore card, info overlay, Live detection list, Session Review thumbnail, Session Library species rows) was switched to a matching 3:2 box so what you see in the app is now exactly the photo the BirdNET team curated. The species-image asset bundle grows from ~44 MB to ~60 MB; the release APK gains a few MB but the photos finally look right.
+
 ## [0.7.8] - 2026-04-26
 
 ### Changed
