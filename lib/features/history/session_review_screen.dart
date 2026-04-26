@@ -1338,14 +1338,42 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
             },
           ),
           actions: [
-            IconButton(
+            PopupMenuButton<_ReviewMenuAction>(
               icon: const Icon(Icons.tune_rounded),
               tooltip: l10n.settings,
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const SettingsScreen(),
+              onSelected: (action) {
+                if (action == _ReviewMenuAction.settings) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const SettingsScreen(),
+                    ),
+                  );
+                } else if (action == _ReviewMenuAction.help) {
+                  _showHelp();
+                }
+              },
+              itemBuilder: (_) => [
+                PopupMenuItem(
+                  value: _ReviewMenuAction.settings,
+                  child: Row(
+                    children: [
+                      const Icon(Icons.tune_rounded, size: 20),
+                      const SizedBox(width: 12),
+                      Text(l10n.settings),
+                    ],
+                  ),
                 ),
-              ),
+                PopupMenuItem(
+                  value: _ReviewMenuAction.help,
+                  child: Row(
+                    children: [
+                      const Icon(Icons.help_outline, size: 20),
+                      const SizedBox(width: 12),
+                      Text(l10n.sessionHelpTitle),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -1465,11 +1493,6 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
               tooltip: l10n.surveyContinue,
               onPressed: _continueSurvey,
             ),
-          IconButton(
-            icon: const Icon(Icons.help_outline),
-            tooltip: l10n.sessionHelpTitle,
-            onPressed: _showHelp,
-          ),
         ],
       ),
     );
@@ -2329,3 +2352,7 @@ class _MapFilterChoice {
   final double minConfidence;
   final String? species;
 }
+
+
+enum _ReviewMenuAction { settings, help }
+
