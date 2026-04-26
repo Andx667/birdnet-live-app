@@ -52,7 +52,7 @@ The bioacoustics companion app for field researchers, conservationists, and bird
 
 BirdNET Live is available as a signed APK for sideloading. Download the latest release from the [Releases page](https://github.com/birdnet-team/birdnet-live-app/releases/latest), transfer the `.apk` file to your phone, and open it to install. You may need to allow installation from unknown sources in your device settings.
 
-> **Note:** The APK is ~237 MB because it includes the full BirdNET+ audio model (~152 MB) for offline inference.
+> **Note:** The APK is ~253 MB because it includes the full BirdNET+ audio model (~152 MB) for offline inference.
 
 ## Quick Start
 
