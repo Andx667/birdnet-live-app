@@ -177,7 +177,7 @@ class HelpScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   FilledButton.tonalIcon(
-                    onPressed: () => _launchUserGuide(),
+                    onPressed: () => _launchUserGuide(context),
                     icon: const Icon(Icons.open_in_new),
                     label: Text(l10n.aboutUserGuide),
                   ),
@@ -352,8 +352,10 @@ class _TipRow extends StatelessWidget {
   }
 }
 
-Future<void> _launchUserGuide() async {
-  final uri = Uri.parse('${AppConstants.docsUrl}/user/');
+Future<void> _launchUserGuide(BuildContext context) async {
+  final localeCode = Localizations.localeOf(context).languageCode;
+  final basePath = localeCode == 'en' ? '' : '/$localeCode';
+  final uri = Uri.parse('${AppConstants.docsUrl}$basePath/user/');
   if (await canLaunchUrl(uri)) {
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }

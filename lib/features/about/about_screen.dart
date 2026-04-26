@@ -208,19 +208,22 @@ class AboutScreen extends ConsumerWidget {
             leading: const Icon(Icons.privacy_tip_outlined),
             title: Text(l10n.aboutPrivacyPolicy),
             trailing: const Icon(Icons.open_in_new),
-            onTap: () => _launchUrl('${AppConstants.docsUrl}/privacy/'),
+            onTap: () => _launchUrl(
+                '${AppConstants.docsUrl}${Localizations.localeOf(context).languageCode == 'en' ? '' : '/${Localizations.localeOf(context).languageCode}'}/privacy/'),
           ),
           ListTile(
             leading: const Icon(Icons.gavel),
             title: Text(l10n.aboutTermsOfUse),
             trailing: const Icon(Icons.open_in_new),
-            onTap: () => _launchUrl('${AppConstants.docsUrl}/terms/'),
+            onTap: () => _launchUrl(
+                '${AppConstants.docsUrl}${Localizations.localeOf(context).languageCode == 'en' ? '' : '/${Localizations.localeOf(context).languageCode}'}/terms/'),
           ),
           ListTile(
             leading: const Icon(Icons.menu_book_outlined),
             title: Text(l10n.aboutUserGuide),
             trailing: const Icon(Icons.open_in_new),
-            onTap: () => _launchUrl('${AppConstants.docsUrl}/user/'),
+            onTap: () => _launchUrl(
+                '${AppConstants.docsUrl}${Localizations.localeOf(context).languageCode == 'en' ? '' : '/${Localizations.localeOf(context).languageCode}'}/user/'),
           ),
 
           const SizedBox(height: 32),

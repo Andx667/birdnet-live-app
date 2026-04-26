@@ -1,5 +1,6 @@
 site_name: BirdNET Live
-site_description: Real-time bird species identification using on-device ONNX inference
+site_description: Real-time bird species identification using on-device ONNX 
+  inference
 site_url: https://birdnet-team.github.io/birdnet-live-app
 repo_url: https://github.com/birdnet-team/birdnet-live-app
 repo_name: birdnet-live-app
@@ -9,76 +10,302 @@ theme:
   logo: assets/images/logo.png
   favicon: assets/images/logo.png
   palette:
-    - scheme: slate
-      primary: blue
-      accent: amber
-      toggle:
-        icon: material/brightness-4
-        name: Switch to light mode
-    - scheme: default
-      primary: blue
-      accent: amber
-      toggle:
-        icon: material/brightness-7
-        name: Switch to dark mode
+  - scheme: slate
+    primary: blue
+    accent: amber
+    toggle:
+      icon: material/brightness-4
+      name: Switch to light mode
+  - scheme: default
+    primary: blue
+    accent: amber
+    toggle:
+      icon: material/brightness-7
+      name: Switch to dark mode
   features:
-    - navigation.tabs
-    - navigation.sections
-    - navigation.expand
-    - navigation.top
-    - search.suggest
-    - search.highlight
-    - content.code.copy
+  - navigation.tabs
+  - navigation.sections
+  - navigation.expand
+  - navigation.top
+  - search.suggest
+  - search.highlight
+  - content.code.copy
 
 markdown_extensions:
-  - admonition
-  - pymdownx.details
-  - pymdownx.superfences
-  - pymdownx.tabbed:
-      alternate_style: true
-  - pymdownx.highlight:
-      anchor_linenums: true
-  - pymdownx.emoji:
-      emoji_index: !!python/name:material.extensions.emoji.twemoji
-      emoji_generator: !!python/name:material.extensions.emoji.to_svg
-  - attr_list
-  - md_in_html
-  - tables
-  - toc:
-      permalink: true
+- admonition
+- pymdownx.details
+- pymdownx.superfences
+- pymdownx.tabbed:
+    alternate_style: true
+- pymdownx.highlight:
+    anchor_linenums: true
+- pymdownx.emoji:
+    emoji_index: !!python/name:material.extensions.emoji.twemoji
+    emoji_generator: !!python/name:material.extensions.emoji.to_svg
+- attr_list
+- md_in_html
+- tables
+- toc:
+    permalink: true
 
+plugins:
+- search
+- i18n:
+    languages:
+    - locale: en
+      name: English
+      default: true
+      build: true
+    - locale: de
+      name: Deutsch
+      build: true
+      nav_translations:
+        API Integration: API-Integration
+        API Reference: API-Referenz
+        Architecture: Architektur
+        Audio Pipeline: Audio-Pipeline
+        Building: Gebäude
+        Code Style: Codestil
+        Developer Guide: Entwicklerhandbuch
+        Explore: Erkunden
+        FAQ: FAQ
+        File Analysis: Dateianalyse
+        Getting Started: Erste Schritte
+        Home: Heim
+        Icons & Controls: Symbole und Steuerelemente
+        Inference Engine: Inferenz-Engine
+        Live Mode: Live-Modus
+        Localization: Lokalisierung
+        Overview: Überblick
+        Point Count Mode: Punktzählmodus
+        Privacy Policy: Datenschutzrichtlinie
+        Releasing: Loslassen
+        Session Library: Sitzungsbibliothek
+        Session Review: Sitzungsrückblick
+        Settings: Einstellungen
+        Species Bundle: Artenpaket
+        Spectrogram: Spektrogramm
+        State Management: Staatsmanagement
+        Storage: Lagerung
+        Survey Mode: Umfragemodus
+        Taxonomy & Sync API: Taxonomie- und Synchronisierungs-API
+        Terms of Use: Nutzungsbedingungen
+        Testing: Testen
+        User Guide: Benutzerhandbuch
+    - locale: cs
+      name: Čeština
+      build: true
+      nav_translations:
+        API Integration: Integrace API
+        API Reference: Reference API
+        Architecture: Architektura
+        Audio Pipeline: Audio potrubí
+        Building: Budova
+        Code Style: Styl kódu
+        Developer Guide: Příručka pro vývojáře
+        Explore: Prozkoumat
+        FAQ: FAQ
+        File Analysis: Analýza souborů
+        Getting Started: Začínáme
+        Home: Domov
+        Icons & Controls: Ikony a ovládací prvky
+        Inference Engine: Inference Engine
+        Live Mode: Živý režim
+        Localization: Lokalizace
+        Overview: Přehled
+        Point Count Mode: Režim počítání bodů
+        Privacy Policy: Zásady ochrany osobních údajů
+        Releasing: Uvolnění
+        Session Library: Knihovna relací
+        Session Review: Recenze relace
+        Settings: Nastavení
+        Species Bundle: Svazek druhů
+        Spectrogram: Spektrogram
+        State Management: Řízení státu
+        Storage: Skladování
+        Survey Mode: Režim průzkumu
+        Taxonomy & Sync API: Taxonomy & Sync API
+        Terms of Use: Podmínky použití
+        Testing: Testování
+        User Guide: Uživatelská příručka
+    - locale: es
+      name: Español
+      build: true
+      nav_translations:
+        API Integration: Integración API
+        API Reference: Referencia de API
+        Architecture: Arquitectura
+        Audio Pipeline: Canalización de audio
+        Building: Edificio
+        Code Style: Estilo de código
+        Developer Guide: Guía para desarrolladores
+        Explore: Explorar
+        FAQ: Preguntas frecuentes
+        File Analysis: Análisis de archivos
+        Getting Started: Empezando
+        Home: Hogar
+        Icons & Controls: Iconos y controles
+        Inference Engine: Motor de inferencia
+        Live Mode: Modo en vivo
+        Localization: Localización
+        Overview: Descripción general
+        Point Count Mode: Modo de recuento de puntos
+        Privacy Policy: política de privacidad
+        Releasing: Liberando
+        Session Library: Biblioteca de sesiones
+        Session Review: Revisión de la sesión
+        Settings: Ajustes
+        Species Bundle: Paquete de especies
+        Spectrogram: espectrograma
+        State Management: Gestión del Estado
+        Storage: Almacenamiento
+        Survey Mode: Modo de encuesta
+        Taxonomy & Sync API: API de taxonomía y sincronización
+        Terms of Use: Condiciones de uso
+        Testing: Pruebas
+        User Guide: Guía del usuario
+    - locale: fr
+      name: Français
+      build: true
+      nav_translations:
+        API Integration: Intégration d'API
+        API Reference: Référence API
+        Architecture: Architecture
+        Audio Pipeline: Pipeline audio
+        Building: Bâtiment
+        Code Style: Style de code
+        Developer Guide: Guide du développeur
+        Explore: Explorer
+        FAQ: FAQ
+        File Analysis: Analyse de fichiers
+        Getting Started: Commencer
+        Home: Maison
+        Icons & Controls: Icônes et commandes
+        Inference Engine: Moteur d'inférence
+        Live Mode: Mode direct
+        Localization: Localisation
+        Overview: Aperçu
+        Point Count Mode: Mode de comptage de points
+        Privacy Policy: politique de confidentialité
+        Releasing: Libération
+        Session Library: Bibliothèque de sessions
+        Session Review: Examen de la séance
+        Settings: Paramètres
+        Species Bundle: Ensemble d'espèces
+        Spectrogram: Spectrogramme
+        State Management: Gestion de l'État
+        Storage: Stockage
+        Survey Mode: Mode enquête
+        Taxonomy & Sync API: API de taxonomie et de synchronisation
+        Terms of Use: Conditions d'utilisation
+        Testing: Essai
+        User Guide: Guide de l'utilisateur
+    - locale: it
+      name: Italiano
+      build: true
+      nav_translations:
+        API Integration: Integrazione API
+        API Reference: Riferimento API
+        Architecture: Architettura
+        Audio Pipeline: Conduttura audio
+        Building: Edificio
+        Code Style: Stile del codice
+        Developer Guide: Guida per gli sviluppatori
+        Explore: Esplorare
+        FAQ: Domande frequenti
+        File Analysis: Analisi dei file
+        Getting Started: Iniziare
+        Home: Casa
+        Icons & Controls: Icone e controlli
+        Inference Engine: Motore di inferenza
+        Live Mode: Modalità dal vivo
+        Localization: Localizzazione
+        Overview: Panoramica
+        Point Count Mode: Modalità conteggio punti
+        Privacy Policy: politica sulla riservatezza
+        Releasing: Rilasciando
+        Session Library: Libreria di sessione
+        Session Review: Revisione della sessione
+        Settings: Impostazioni
+        Species Bundle: Pacchetto specie
+        Spectrogram: Spettrogramma
+        State Management: Gestione statale
+        Storage: Magazzinaggio
+        Survey Mode: Modalità sondaggio
+        Taxonomy & Sync API: API di tassonomia e sincronizzazione
+        Terms of Use: Termini di utilizzo
+        Testing: Test
+        User Guide: Guida per l'utente
+    - locale: pt
+      name: Português
+      build: true
+
+      nav_translations:
+        API Integration: Integração de API
+        API Reference: Referência de API
+        Architecture: Arquitetura
+        Audio Pipeline: Pipeline de áudio
+        Building: Prédio
+        Code Style: Estilo de código
+        Developer Guide: Guia do desenvolvedor
+        Explore: Explorar
+        FAQ: Perguntas frequentes
+        File Analysis: Análise de arquivo
+        Getting Started: Começando
+        Home: Lar
+        Icons & Controls: Ícones e controles
+        Inference Engine: Mecanismo de Inferência
+        Live Mode: Modo ao vivo
+        Localization: Localização
+        Overview: Visão geral
+        Point Count Mode: Modo de contagem de pontos
+        Privacy Policy: política de Privacidade
+        Releasing: Liberando
+        Session Library: Biblioteca de Sessões
+        Session Review: Revisão da sessão
+        Settings: Configurações
+        Species Bundle: Pacote de Espécies
+        Spectrogram: Espectrograma
+        State Management: Gestão Estadual
+        Storage: Armazenar
+        Survey Mode: Modo de pesquisa
+        Taxonomy & Sync API: API de taxonomia e sincronização
+        Terms of Use: Termos de Uso
+        Testing: Teste
+        User Guide: Guia do usuário
 nav:
-  - Home: index.md
-  - User Guide:
-    - Overview: user/index.md
-    - Getting Started: user/getting-started.md
-    - Icons & Controls: user/icons-and-controls.md
-    - Live Mode: user/live-mode.md
-    - Explore: user/explore.md
-    - Session Library: user/session-library.md
-    - Session Review: user/session-review.md
-    - Point Count Mode: user/point-count-mode.md
-    - Survey Mode: user/survey-mode.md
-    - File Analysis: user/file-analysis.md
-    - Settings: user/settings.md
-    - FAQ: user/faq.md
-  - Developer Guide:
-      - Overview: developer/index.md
-      - Getting Started: developer/getting-started.md
-      - Architecture: developer/architecture.md
-      - Building: developer/building.md
-      - Testing: developer/testing.md
-      - Code Style: developer/code-style.md
-      - Species Bundle: developer/species-bundle.md
-      - State Management: developer/state-management.md
-      - Audio Pipeline: developer/audio-pipeline.md
-      - Inference Engine: developer/inference-engine.md
-      - Spectrogram: developer/spectrogram.md
-      - Localization: developer/localization.md
-      - Storage: developer/database.md
-      - API Integration: developer/api-integration.md
-      - Releasing: developer/releasing.md
-  - API Reference:
-      - Taxonomy & Sync API: api/sync-api.md
-  - Privacy Policy: privacy.md
-  - Terms of Use: terms.md
+- Home: index.md
+- User Guide:
+  - Overview: user/index.md
+  - Getting Started: user/getting-started.md
+  - Icons & Controls: user/icons-and-controls.md
+  - Live Mode: user/live-mode.md
+  - Explore: user/explore.md
+  - Session Library: user/session-library.md
+  - Session Review: user/session-review.md
+  - Point Count Mode: user/point-count-mode.md
+  - Survey Mode: user/survey-mode.md
+  - File Analysis: user/file-analysis.md
+  - Settings: user/settings.md
+  - FAQ: user/faq.md
+- Developer Guide:
+  - Overview: developer/index.md
+  - Getting Started: developer/getting-started.md
+  - Architecture: developer/architecture.md
+  - Building: developer/building.md
+  - Testing: developer/testing.md
+  - Code Style: developer/code-style.md
+  - Species Bundle: developer/species-bundle.md
+  - Session Review: developer/session-review.md
+  - State Management: developer/state-management.md
+  - Audio Pipeline: developer/audio-pipeline.md
+  - Inference Engine: developer/inference-engine.md
+  - Spectrogram: developer/spectrogram.md
+  - Localization: developer/localization.md
+  - Storage: developer/database.md
+  - API Integration: developer/api-integration.md
+  - Releasing: developer/releasing.md
+- API Reference:
+  - Taxonomy & Sync API: api/sync-api.md
+- Privacy Policy: privacy.md
+- Terms of Use: terms.md

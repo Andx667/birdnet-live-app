@@ -613,8 +613,10 @@ class _TermsPage extends StatelessWidget {
   final bool agreed;
   final ValueChanged<bool?> onAgreedChanged;
 
-  Future<void> _open(String path) async {
-    final uri = Uri.parse('${AppConstants.docsUrl}$path');
+  Future<void> _open(BuildContext context, String path) async {
+    final localeCode = Localizations.localeOf(context).languageCode;
+    final basePath = localeCode == 'en' ? '' : '/$localeCode';
+    final uri = Uri.parse('${AppConstants.docsUrl}$basePath$path');
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
@@ -662,12 +664,12 @@ class _TermsPage extends StatelessWidget {
             spacing: 4,
             children: [
               TextButton.icon(
-                onPressed: () => _open('/terms/'),
+                onPressed: () => _open(context, '/terms/'),
                 icon: const Icon(Icons.gavel_rounded, size: 18),
                 label: Text(l10n.onboardingTermsLink),
               ),
               TextButton.icon(
-                onPressed: () => _open('/privacy/'),
+                onPressed: () => _open(context, '/privacy/'),
                 icon: const Icon(Icons.privacy_tip_outlined, size: 18),
                 label: Text(l10n.onboardingPrivacyLink),
               ),

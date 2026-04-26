@@ -149,8 +149,8 @@ flutter analyze   # Check for issues
 To preview the documentation locally:
 
 ```bash
-pip install mkdocs-material
-mkdocs serve # python -m mkdocs serve on Windows
+pip install mkdocs mkdocs-material mkdocs-static-i18n pymdown-extensions
+mkdocs serve
 ```
 
 Then open [http://127.0.0.1:8000](http://127.0.0.1:8000) in your browser.
