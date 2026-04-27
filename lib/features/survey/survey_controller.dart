@@ -320,6 +320,7 @@ class SurveyController {
     bool backgroundGps = true,
     int autoStopBattery = 0,
     SessionSettings? settingsSnapshot,
+    int? poolingWindows,
   }) async {
     if (_state == SurveyState.active) return;
     _state = SurveyState.starting;
@@ -359,6 +360,7 @@ class SurveyController {
       _sessionDetections.clear();
       _currentLiveDetections = const [];
       _activeCardSpecies.clear();
+      _isolate.setMaxPoolWindows(poolingWindows);
       _isolate.resetPooling();
       _inferenceCycleCount = 0;
       ringBuffer.clear();
@@ -483,6 +485,7 @@ class SurveyController {
     int topNPerSpecies = 10,
     bool backgroundGps = true,
     int autoStopBattery = 0,
+    int? poolingWindows,
   }) async {
     if (_state == SurveyState.active) return;
     _state = SurveyState.starting;
@@ -502,6 +505,7 @@ class SurveyController {
       _sessionDetections.addAll(existingSession.detections.reversed);
       _currentLiveDetections = const [];
       _activeCardSpecies.clear();
+      _isolate.setMaxPoolWindows(poolingWindows);
       _isolate.resetPooling();
       _inferenceCycleCount = 0;
       ringBuffer.clear();

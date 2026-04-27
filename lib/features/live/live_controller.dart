@@ -291,6 +291,8 @@ class LiveController {
   /// [geoModelSpeciesNames] — all scientific names in the geo-model labels;
   ///   when provided, detections for species absent from the geo-model are
   ///   always removed regardless of the active filter mode.
+  /// [poolingWindows] — number of consecutive inference windows to pool
+  ///   over; pass `null` to use the model-config default.
   Future<void> startSession({
     required int windowDuration,
     required double inferenceRate,
@@ -301,6 +303,7 @@ class LiveController {
     Map<String, double>? geoScores,
     double geoThreshold = 0.03,
     Set<String>? geoModelSpeciesNames,
+    int? poolingWindows,
   }) async {
     if (_state != LiveState.ready) return;
 
@@ -321,6 +324,7 @@ class LiveController {
     _latestDetections = const [];
     _currentLiveDetections = const [];
     _activeCardSpecies.clear();
+    _isolate.setMaxPoolWindows(poolingWindows);
     _isolate.resetPooling();
     _inferenceCycleCount = 0;
     ringBuffer.clear();

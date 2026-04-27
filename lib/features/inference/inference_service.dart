@@ -78,8 +78,32 @@ class InferenceService {
   /// Defaults to 32 000 if no config is loaded.
   int get sampleRate => _config?.audio.sampleRate ?? 32000;
 
-  /// Maximum pooling window count from the active config.
-  int get maxPoolWindows => _config?.inference.temporalPooling.maxWindows ?? 5;
+  /// Maximum pooling window count.
+  ///
+  /// Defaults to the value from the active model config but can be overridden
+  /// at runtime via [setMaxPoolWindows] (driven by the user setting). The
+  /// effective value is clamped to ≥ 1 so the rolling buffer always contains
+  /// at least the current window.
+  int get maxPoolWindows =>
+      _maxPoolWindowsOverride ??
+      _config?.inference.temporalPooling.maxWindows ??
+      5;
+  int? _maxPoolWindowsOverride;
+
+  /// Override the pooling-window count from a user setting. Pass `null` to
+  /// fall back to the model-config default.
+  void setMaxPoolWindows(int? value) {
+    if (value != null && value < 1) {
+      _maxPoolWindowsOverride = 1;
+    } else {
+      _maxPoolWindowsOverride = value;
+    }
+    // Trim the rolling buffer immediately so a smaller setting takes effect
+    // without waiting for the next inference call to push fresh samples in.
+    while (_recentScores.length > maxPoolWindows) {
+      _recentScores.removeAt(0);
+    }
+  }
 
   /// Log-Mean-Exp alpha from the active config.
   double get poolingAlpha => _config?.inference.temporalPooling.alpha ?? 5.0;

@@ -140,6 +140,7 @@ class _LiveScreenState extends ConsumerState<LiveScreen>
       final recordingMode = recordingModeFromString(recordingModeStr);
       final recordingFormat = ref.read(recordingFormatProvider);
       final geoThreshold = ref.read(geoThresholdProvider);
+      final poolingWindows = ref.read(scorePoolingWindowsProvider);
 
       // Fetch geo-model scores (if available) for species filtering.
       // Also fetch the full geo-model species names for model intersection.
@@ -158,6 +159,7 @@ class _LiveScreenState extends ConsumerState<LiveScreen>
         geoScores: geoScores,
         geoThreshold: geoThreshold,
         geoModelSpeciesNames: geoSpeciesNames,
+        poolingWindows: poolingWindows,
       );
 
       _isStarting = false;
@@ -773,11 +775,16 @@ class _SessionInfoBar extends ConsumerWidget {
       durationSec = controller.session!.duration.inSeconds;
     }
 
+    final recordingMode = ref.watch(recordingModeProvider);
     final recordingFormat = ref.read(recordingFormatProvider);
-    // Estimate: Wav is ~96 kB/s, FLAC is ~60 kB/s
-    final bytesPerSec = recordingFormat == 'flac' ? 60000 : 96000;
+    // Realistic average bytes/second for 32 kHz, 16-bit mono audio:
+    //   • WAV: 32000 * 2 = 64 000 B/s (lossless PCM, fixed)
+    //   • FLAC: ~10 000 B/s for typical outdoor ambient (highly variable;
+    //     real recordings on this app average ~500 KB / minute).
+    // We avoid surfacing a size estimate at all when recording is off.
+    final bytesPerSec = recordingFormat == 'flac' ? 10000 : 64000;
     final estimatedBytes = durationSec * bytesPerSec;
-    final mb = estimatedBytes / (1024 * 1024);
+    final sizeStr = _formatSize(estimatedBytes);
 
     final String durationStr = _formatDuration(durationSec);
 
@@ -787,7 +794,7 @@ class _SessionInfoBar extends ConsumerWidget {
     parts.add('$totalDetections det');
     if (durationSec > 0) {
       parts.add(durationStr);
-      parts.add('${mb.toStringAsFixed(1)}MB');
+      if (recordingMode != 'off') parts.add(sizeStr);
     }
 
     final label = parts.join(' • ');
@@ -823,6 +830,17 @@ class _SessionInfoBar extends ConsumerWidget {
       return '${h}h ${rh}m';
     }
     return '$m:${s.toString().padLeft(2, '0')}';
+  }
+
+  String _formatSize(int bytes) {
+    if (bytes < 1024) return '${bytes}B';
+    final kb = bytes / 1024.0;
+    if (kb < 1024) return '${kb.toStringAsFixed(0)}KB';
+    final mb = kb / 1024.0;
+    if (mb < 10) return '${mb.toStringAsFixed(1)}MB';
+    if (mb < 1024) return '${mb.toStringAsFixed(0)}MB';
+    final gb = mb / 1024.0;
+    return '${gb.toStringAsFixed(1)}GB';
   }
 }
 

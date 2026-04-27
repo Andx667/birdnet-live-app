@@ -68,6 +68,17 @@ final scorePoolingProvider =
   return StringSettingNotifier(prefs, PrefKeys.scorePooling, 'lme');
 });
 
+/// Number of consecutive inference windows that participate in score pooling.
+///
+/// A larger value smooths the per-species score over a longer time horizon,
+/// which suppresses spurious one-off detections at the cost of latency. The
+/// default of 5 matches the value historically baked into the model config.
+final scorePoolingWindowsProvider =
+    StateNotifierProvider<IntSettingNotifier, int>((ref) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return IntSettingNotifier(prefs, PrefKeys.scorePoolingWindows, 5);
+});
+
 /// Species filter mode ('off', 'geoExclude', 'geoMerge', 'customList').
 final speciesFilterModeProvider =
     StateNotifierProvider<StringSettingNotifier, String>((ref) {

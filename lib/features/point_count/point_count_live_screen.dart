@@ -171,6 +171,7 @@ class _PointCountLiveScreenState extends ConsumerState<PointCountLiveScreen>
       geoScores: geoScores,
       geoThreshold: geoThreshold,
       geoModelSpeciesNames: geoSpeciesNames,
+      poolingWindows: ref.read(scorePoolingWindowsProvider),
     );
 
     _started = true;

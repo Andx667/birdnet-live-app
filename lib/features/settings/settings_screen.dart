@@ -232,6 +232,22 @@ class SettingsScreen extends ConsumerWidget {
               },
               onChanged: (v) => ref.read(scorePoolingProvider.notifier).set(v),
             ),
+            // The pooling-windows slider only matters when pooling is on. We
+            // still leave it visible (greyed out at the bottom of the section
+            // would be more discoverable than hiding it entirely) so users can
+            // dial it in before re-enabling pooling.
+            _SliderTile(
+              title: l10n.settingsScorePoolingWindows,
+              helpBody: l10n.settingsHelpScorePoolingWindows,
+              value: ref.watch(scorePoolingWindowsProvider).toDouble(),
+              min: 1,
+              max: 10,
+              divisions: 9,
+              format: (v) => v.toInt().toString(),
+              onChanged: (v) => ref
+                  .read(scorePoolingWindowsProvider.notifier)
+                  .set(v.toInt()),
+            ),
             const Divider(),
           ],
 
@@ -335,15 +351,16 @@ class SettingsScreen extends ConsumerWidget {
                 segments: [
                   ButtonSegment(
                     value: 'full',
-                    label: Text(l10n.settingsRecordingModeFull),
+                    label: _SegmentLabel(text: l10n.settingsRecordingModeFull),
                   ),
                   ButtonSegment(
                     value: 'detections',
-                    label: Text(l10n.settingsRecordingModeDetections),
+                    label: _SegmentLabel(
+                        text: l10n.settingsRecordingModeDetections),
                   ),
                   ButtonSegment(
                     value: 'off',
-                    label: Text(l10n.settingsRecordingModeOff),
+                    label: _SegmentLabel(text: l10n.settingsRecordingModeOff),
                   ),
                 ],
                 selected: {ref.watch(recordingModeProvider)},
@@ -374,14 +391,18 @@ class SettingsScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
             ],
-            _ChoiceTile<String>(
-              title: l10n.settingsRecordingFormat,
-              helpBody: l10n.settingsHelpRecordingFormat,
-              value: ref.watch(recordingFormatProvider),
-              options: const {'wav': 'WAV', 'flac': 'FLAC'},
-              onChanged: (v) =>
-                  ref.read(recordingFormatProvider.notifier).set(v),
-            ),
+            // Audio file format only matters when something is being
+            // recorded; hiding it for mode = off avoids implying that the
+            // setting has any effect.
+            if (ref.watch(recordingModeProvider) != 'off')
+              _ChoiceTile<String>(
+                title: l10n.settingsRecordingFormat,
+                helpBody: l10n.settingsHelpRecordingFormat,
+                value: ref.watch(recordingFormatProvider),
+                options: const {'wav': 'WAV', 'flac': 'FLAC'},
+                onChanged: (v) =>
+                    ref.read(recordingFormatProvider.notifier).set(v),
+              ),
             const Divider(),
           ],
 
@@ -1098,6 +1119,31 @@ class _MicInputTile extends ConsumerWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// Two-line auto-shrinking label for a [SegmentedButton] segment.
+///
+/// Some locales (notably German "Nur Detektionen" and French
+/// "Détections uniquement") overflow the default single-line label when
+/// three segments share the row. Allowing two lines plus a small
+/// font-scale fallback keeps every locale legible without forcing tiny
+/// fixed text everywhere.
+class _SegmentLabel extends StatelessWidget {
+  const _SegmentLabel({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      textAlign: TextAlign.center,
+      maxLines: 2,
+      softWrap: true,
+      overflow: TextOverflow.ellipsis,
+      style: const TextStyle(fontSize: 13, height: 1.1),
     );
   }
 }

@@ -210,6 +210,14 @@ class InferenceIsolate {
   void resetPooling() {
     _sendPort?.send(const _WorkerResetPooling());
   }
+
+  /// Override the temporal-pooling window count in the worker. Pass `null`
+  /// to revert to the model-config default. Safe to call before the worker
+  /// has finished initialising — the message is dropped if the send port is
+  /// not yet wired up.
+  void setMaxPoolWindows(int? value) {
+    _sendPort?.send(_WorkerSetMaxPoolWindows(value));
+  }
 }
 
 // =============================================================================
@@ -286,6 +294,11 @@ Future<void> _workerEntryPoint(_WorkerInit init) async {
 
     if (message is _WorkerResetPooling) {
       service.resetPooling();
+      continue;
+    }
+
+    if (message is _WorkerSetMaxPoolWindows) {
+      service.setMaxPoolWindows(message.value);
       continue;
     }
 
@@ -383,6 +396,12 @@ class _WorkerResponse {
 /// Signal to reset the temporal pooling buffer.
 class _WorkerResetPooling {
   const _WorkerResetPooling();
+}
+
+/// Override the rolling temporal-pooling window count.
+class _WorkerSetMaxPoolWindows {
+  const _WorkerSetMaxPoolWindows(this.value);
+  final int? value;
 }
 
 /// Signal that the worker has finished initialising the model.

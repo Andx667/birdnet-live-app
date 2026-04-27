@@ -313,6 +313,7 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
         topNPerSpecies: topN,
         backgroundGps: widget.backgroundGps,
         autoStopBattery: autoStopBattery,
+        poolingWindows: ref.read(scorePoolingWindowsProvider),
       );
     } else {
       await controller.startSurvey(
@@ -337,6 +338,7 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
         startLongitude: widget.startLongitude,
         backgroundGps: widget.backgroundGps,
         autoStopBattery: autoStopBattery,
+        poolingWindows: ref.read(scorePoolingWindowsProvider),
       );
     }
 

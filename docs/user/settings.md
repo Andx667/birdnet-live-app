@@ -63,6 +63,16 @@ Controls how frequently BirdNET runs inference.
 
 Controls how overlapping analysis windows are combined.
 
+### Pooling window count
+
+Controls how many consecutive inference windows participate in score pooling.
+A larger value smooths each species' score over a longer time horizon, which
+suppresses spurious one-off detections — useful for steady, distant calls
+where you'd rather wait for a few corroborating windows before raising a
+detection. A smaller value reacts faster to brief vocalizations but lets
+through more noise. The default of **5** matches the value historically
+hard-coded into the model and is a sensible starting point for live use.
+
 ## Spectrogram
 
 ### FFT size
