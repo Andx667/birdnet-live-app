@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
   workflow_dispatch:
 
 jobs:
@@ -80,6 +77,21 @@ jobs:
       - name: Generate localization files
         run: flutter gen-l10n
 
+      - name: Decode Android keystore
+        shell: bash
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
+
+      - name: Create Android key.properties
+        shell: bash
+        run: |
+          cat > android/key.properties <<EOF
+          storeFile=app/upload-keystore.jks
+          storePassword=${{ secrets.ANDROID_STORE_PASSWORD }}
+          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          EOF
+
       - name: Build release APK
         run: flutter build apk --release
 
@@ -89,6 +101,12 @@ jobs:
           name: android-apk
           path: build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
+
+      - name: Clean up Android signing files
+        if: always()
+        shell: bash
+        run: |
+          rm -f android/key.properties android/app/upload-keystore.jks
 
   build_ios:
     name: Build iOS App (No Codesign)
