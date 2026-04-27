@@ -25,6 +25,8 @@ import '../../../shared/models/taxonomy_species.dart';
 import '../../../shared/providers/settings_providers.dart';
 import '../explore_providers.dart';
 import '../../inference/geo_model.dart';
+import '../../history/global_species_history.dart';
+import '../../live/live_providers.dart';
 
 /// Shows a modal bottom sheet with detailed species information.
 class SpeciesInfoOverlay {
@@ -154,13 +156,27 @@ class _SpeciesInfoSheetState extends ConsumerState<_SpeciesInfoSheet> {
               // without vertical cropping or sideways distortion.
               AspectRatio(
                 aspectRatio: 3 / 2,
-                child: Image.asset(
-                  _detail?.assetImagePath ?? 'assets/images/dummy_species.png',
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => Image.asset(
-                    'assets/images/dummy_species.png',
-                    fit: BoxFit.contain,
-                  ),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Image.asset(
+                      _detail?.assetImagePath ??
+                          'assets/images/dummy_species.png',
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => Image.asset(
+                        'assets/images/dummy_species.png',
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                    if (ref
+                        .watch(globalSpeciesHistoryProvider)
+                        .contains(widget.scientificName))
+                      const Positioned(
+                        top: 12,
+                        right: 12,
+                        child: _OverlayDetectedBadge(),
+                      ),
+                  ],
                 ),
               ),
 
@@ -202,6 +218,13 @@ class _SpeciesInfoSheetState extends ConsumerState<_SpeciesInfoSheet> {
                       )
                     : const SizedBox.shrink(),
               ),
+
+              // ── Personal detection stats ─────────────────────
+              // Aggregated from the user's saved sessions so they can see
+              // at a glance how often (and when last) they have logged
+              // this species. Skipped entirely when the species has never
+              // been detected — there's nothing useful to show.
+              _DetectionStatsTile(scientificName: widget.scientificName),
 
               // ── Loading skeleton (shimmer placeholder for the bio paragraph) ─
               if (_loading)
@@ -586,3 +609,143 @@ String _localizedProbabilityCategory(AppLocalizations l10n, double score) {
   if (score >= 20) return l10n.speciesFrequencyOccasional;
   return l10n.speciesFrequencyRare;
 }
+
+/// Larger version of the corner badge used over the bird photo in the
+/// species info overlay. Uses the same primary-color check icon as the
+/// thumbnail badge, scaled up so it remains visible against busy photos.
+class _OverlayDetectedBadge extends StatelessWidget {
+  const _OverlayDetectedBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      width: 28,
+      height: 28,
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primary,
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(80),
+            blurRadius: 3,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Icon(
+        Icons.check,
+        size: 18,
+        color: theme.colorScheme.onPrimary,
+      ),
+    );
+  }
+}
+
+/// Aggregates the user's saved sessions to surface "you have detected this
+/// species N times, last on …" inside the species info overlay. Hidden
+/// entirely when the species has never been logged so the overlay stays
+/// uncluttered for unfamiliar birds the user is exploring for the first
+/// time.
+class _DetectionStatsTile extends ConsumerWidget {
+  const _DetectionStatsTile({required this.scientificName});
+
+  final String scientificName;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final asyncSessions = ref.watch(sessionListProvider);
+
+    return asyncSessions.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (sessions) {
+        // Walk every session once. We aggregate three numbers in one pass
+        // so that opening the overlay never depends on session count: total
+        // detections, distinct sessions that contain this species, and the
+        // newest detection timestamp.
+        var totalDetections = 0;
+        var sessionCount = 0;
+        DateTime? lastSeen;
+        for (final session in sessions) {
+          var inThisSession = 0;
+          for (final d in session.detections) {
+            if (d.scientificName != scientificName) continue;
+            inThisSession++;
+            // DetectionRecord.timestamp is already an absolute wall-clock
+            // time so we can compare directly across sessions.
+            final ts = d.timestamp;
+            if (lastSeen == null || ts.isAfter(lastSeen)) {
+              lastSeen = ts;
+            }
+          }
+          if (inThisSession > 0) {
+            sessionCount++;
+            totalDetections += inThisSession;
+          }
+        }
+
+        if (totalDetections == 0) return const SizedBox.shrink();
+
+        final lastSeenText = lastSeen != null
+            ? _formatLastSeen(context, lastSeen)
+            : '—';
+
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primaryContainer.withAlpha(120),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.check_circle,
+                    size: 20, color: theme.colorScheme.primary),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        l10n.speciesYouHaveDetected(
+                            totalDetections, sessionCount),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        l10n.speciesLastSeen(lastSeenText),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurface.withAlpha(170),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  static String _formatLastSeen(BuildContext context, DateTime dt) {
+    final locale = Localizations.localeOf(context).toString();
+    return MaterialLocalizations.of(context)
+        .formatMediumDate(dt.toLocal())
+        .toString()
+        .isNotEmpty
+        // Fall through to a stable yyyy-MM-dd if the platform localization
+        // is unavailable for the active locale (rare on supported devices).
+        ? MaterialLocalizations.of(context).formatMediumDate(dt.toLocal())
+        : '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} ($locale)';
+  }
+}
+
+

@@ -16,6 +16,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../inference/geo_model.dart';
+import '../../history/global_species_history.dart';
 import '../../../shared/providers/settings_providers.dart';
 import '../explore_providers.dart';
 
@@ -80,7 +81,20 @@ class SpeciesCard extends ConsumerWidget {
                 width: 120,
                 child: AspectRatio(
                   aspectRatio: 3 / 2,
-                  child: _SpeciesImage(scientificName: scientificName),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      _SpeciesImage(scientificName: scientificName),
+                      if (ref
+                          .watch(globalSpeciesHistoryProvider)
+                          .contains(scientificName))
+                        const Positioned(
+                          top: 4,
+                          right: 4,
+                          child: _DetectedBadge(),
+                        ),
+                    ],
+                  ),
                 ),
               ),
               // ── Names and Details ──
@@ -308,4 +322,40 @@ class _MiniChart extends StatelessWidget {
         l10n.monthN,
         l10n.monthD,
       ];
+}
+
+/// Small overlay badge that flags a species as previously detected by the
+/// user. Rendered in the corner of the species thumbnail in the Explore
+/// screen and the species info overlay so users can spot at a glance which
+/// species they have already added to their personal life list.
+class _DetectedBadge extends StatelessWidget {
+  const _DetectedBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      width: 18,
+      height: 18,
+      decoration: BoxDecoration(
+        // Solid background so the icon stays legible over both bright and
+        // dark areas of the bird photo. Using the primary color makes it
+        // clearly an "earned" marker rather than a UI affordance.
+        color: theme.colorScheme.primary,
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(60),
+            blurRadius: 2,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Icon(
+        Icons.check,
+        size: 12,
+        color: theme.colorScheme.onPrimary,
+      ),
+    );
+  }
 }
