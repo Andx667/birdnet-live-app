@@ -1,0 +1,185 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  prepare_assets:
+    name: Prepare Species Assets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install species-bundle dependencies
+        run: pip install -r tools/requirements-species-bundle.txt
+
+      - name: Download BirdNET taxonomy export
+        run: python tools/download_taxonomy_json.py
+
+      - name: Build species bundle assets
+        run: python tools/build_species_bundle.py
+
+      - name: Upload prepared species assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: prepared-species-assets
+          path: |
+            assets/species_data/
+            assets/species_images/
+            assets/models/taxonomy.csv
+          if-no-files-found: error
+
+  build_android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    needs: prepare_assets
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download prepared species assets
+        uses: actions/download-artifact@v4
+        with:
+          name: prepared-species-assets
+          path: prepared-assets
+
+      - name: Restore prepared assets into workspace
+        shell: bash
+        run: |
+          rm -rf assets/species_data assets/species_images
+          mkdir -p assets/models
+          cp -R prepared-assets/assets/species_data assets/species_data
+          cp -R prepared-assets/assets/species_images assets/species_images
+          cp prepared-assets/assets/models/taxonomy.csv assets/models/taxonomy.csv
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.29.3
+          channel: stable
+
+      - name: Install Dart and Flutter packages
+        run: flutter pub get
+
+      - name: Generate localization files
+        run: flutter gen-l10n
+
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - name: Upload Android artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+
+  build_ios:
+    name: Build iOS App (No Codesign)
+    runs-on: macos-latest
+    needs: prepare_assets
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download prepared species assets
+        uses: actions/download-artifact@v4
+        with:
+          name: prepared-species-assets
+          path: prepared-assets
+
+      - name: Restore prepared assets into workspace
+        shell: bash
+        run: |
+          rm -rf assets/species_data assets/species_images
+          mkdir -p assets/models
+          cp -R prepared-assets/assets/species_data assets/species_data
+          cp -R prepared-assets/assets/species_images assets/species_images
+          cp prepared-assets/assets/models/taxonomy.csv assets/models/taxonomy.csv
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.29.3
+          channel: stable
+
+      - name: Install Dart and Flutter packages
+        run: flutter pub get
+
+      - name: Generate localization files
+        run: flutter gen-l10n
+
+      - name: Build iOS app (no code signing)
+        run: flutter build ios --release --no-codesign
+
+      - name: Archive Runner.app
+        shell: bash
+        run: |
+          cd build/ios/iphoneos
+          zip -r Runner.app.zip Runner.app
+
+      - name: Upload iOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-runner-app
+          path: build/ios/iphoneos/Runner.app.zip
+          if-no-files-found: error
+
+  build_web:
+    name: Build Web
+    runs-on: ubuntu-latest
+    needs: prepare_assets
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download prepared species assets
+        uses: actions/download-artifact@v4
+        with:
+          name: prepared-species-assets
+          path: prepared-assets
+
+      - name: Restore prepared assets into workspace
+        shell: bash
+        run: |
+          rm -rf assets/species_data assets/species_images
+          mkdir -p assets/models
+          cp -R prepared-assets/assets/species_data assets/species_data
+          cp -R prepared-assets/assets/species_images assets/species_images
+          cp prepared-assets/assets/models/taxonomy.csv assets/models/taxonomy.csv
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.29.3
+          channel: stable
+
+      - name: Install Dart and Flutter packages
+        run: flutter pub get
+
+      - name: Generate localization files
+        run: flutter gen-l10n
+
+      - name: Build web release bundle
+        run: flutter build web --release
+
+      - name: Upload web artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: build/web/
+          if-no-files-found: error
