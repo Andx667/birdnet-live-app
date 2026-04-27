@@ -21,8 +21,8 @@ jobs:
       - uses: subosito/flutter-action@v2 #https://github.com/subosito/flutter-action
         with:
           channel: stable
+      - run: flutter --version
       - run: flutter pub get
       - run: flutter gen-l10n
-      - run: flutter --version
       - run: flutter analyze
       - run: flutter test
