@@ -390,6 +390,7 @@
   "surveyLocationSkip": "Přeskočit",
   "surveyLocationUnavailable": "Oprávnění k poloze neuděleno",
   "surveyManualGpsWarning": "V ručním režimu se GPS zaznamenává pouze při otevření aplikace. Polohy detekcí jsou interpolovány mezi měřeními GPS.",
+  "surveyBackgroundGpsNotice": "Během průzkumu je vaše poloha GPS sledována na pozadí, aby bylo možné zmapovat detekce druhů podél vaší trasy. Žádná data o poloze se nesdílí – vše zůstává ve vašem zařízení.",
   "surveyLatitude": "Zeměpisná šířka",
   "surveyLongitude": "Zeměpisná délka",
   "surveyPickOnMap": "Vybrat na mapě",

@@ -390,6 +390,7 @@
   "surveyLocationSkip": "Salta",
   "surveyLocationUnavailable": "Autorizzazione posizione non concessa",
   "surveyManualGpsWarning": "In modalità manuale, il GPS viene rilevato solo all'apertura dell'app. Le posizioni delle rilevazioni vengono interpolate tra le letture GPS.",
+  "surveyBackgroundGpsNotice": "Durante il rilevamento, la tua posizione GPS viene tracciata in background per mappare le rilevazioni di specie lungo il tuo percorso. Nessun dato di posizione viene condiviso: tutto rimane sul tuo dispositivo.",
   "surveyLatitude": "Latitudine",
   "surveyLongitude": "Longitudine",
   "surveyPickOnMap": "Scegli sulla mappa",

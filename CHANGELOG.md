@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.3] - 2026-04-30
+
+### Added
+
+- **Background-location privacy notice in Survey setup.** When the user selects **GPS** as the location source on the Survey Details step *and* has already granted the background-location permission, a green disclosure card now appears under the GPS coordinates explaining that "during the survey, your GPS location is tracked in the background to map species detections along your path. No location data is shared — everything stays on your device." This satisfies Google Play's policy requirement to disclose background-location usage prominently in the in-app flow that triggers it. The existing tertiary-container "permission not yet granted" prompt is unchanged and continues to be shown when the permission is missing; the green notice only appears once the user has opted in. Translated to all seven supported locales (en, de, es, fr, it, pt, cs).
+
 ## [0.8.2] - 2026-04-30
 
 ### Fixed

@@ -390,6 +390,7 @@
   "surveyLocationSkip": "Pular",
   "surveyLocationUnavailable": "Permissão de localização não concedida",
   "surveyManualGpsWarning": "No modo manual, o GPS só é registrado ao abrir o aplicativo. As localizações das detecções são interpoladas entre as leituras de GPS.",
+  "surveyBackgroundGpsNotice": "Durante o levantamento, sua localização GPS é rastreada em segundo plano para mapear as detecções de espécies ao longo do seu percurso. Nenhum dado de localização é compartilhado — tudo permanece no seu dispositivo.",
   "surveyLatitude": "Latitude",
   "surveyLongitude": "Longitude",
   "surveyPickOnMap": "Escolher no mapa",
