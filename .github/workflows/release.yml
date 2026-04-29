@@ -5,6 +5,25 @@ on:
     types: [published]
 
 jobs:
+  flutter_test:
+    name: Run Flutter Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - uses: subosito/flutter-action@v2 #https://github.com/subosito/flutter-action
+        with:
+          flutter-version: 3.29.3
+          channel: stable
+      - run: flutter --version
+      - run: flutter pub get
+      - run: flutter gen-l10n
+      - run: flutter analyze
+      - run: flutter test
+  
   prepare_assets:
     name: Prepare Species Assets
     runs-on: ubuntu-latest
@@ -121,4 +140,3 @@ jobs:
         shell: bash
         run: |
           rm -f android/key.properties android/app/upload-keystore.jks
-          
