@@ -23,7 +23,7 @@
 // ```dart
 // final svc = InferenceService();
 // await svc.initialize(
-//   modelBytes: bytes,
+//   modelFilePath: '/path/to/model.onnx',
 //   labelsCsv: csvText,
 //   config: modelConfig,
 // );
@@ -114,19 +114,19 @@ class InferenceService {
 
   /// Load the ONNX model and parse species labels.
   ///
-  /// [modelBytes] — raw bytes of the `.onnx` model file.
+  /// [modelFilePath] — absolute path to the `.onnx` model file on disk.
   /// [labelsCsv] — full text content of the labels file.
   /// [config] — model configuration describing tensor names, label format,
   ///   and inference defaults.
   Future<void> initialize({
-    required Uint8List modelBytes,
+    required String modelFilePath,
     required String labelsCsv,
     required ModelConfig config,
   }) async {
     _config = config;
     _labels = LabelParser.parse(labelsCsv, config: config.labels);
-    await _model.loadModel(
-      modelBytes,
+    await _model.loadModelFromFile(
+      modelFilePath,
       inputName: config.onnx.inputName,
       predictionsName: config.onnx.predictionsName,
       embeddingsName: config.onnx.embeddingsName,
@@ -134,8 +134,8 @@ class InferenceService {
   }
 
   /// Release all resources (ONNX session, native memory).
-  void dispose() {
-    _model.dispose();
+  Future<void> dispose() async {
+    await _model.dispose();
     _labels = const [];
     _config = null;
     _recentScores.clear();

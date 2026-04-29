@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2026-04-29
+
+### Changed
+
+- **ONNX runtime swapped for Play Store 16 KB page-size compliance.** Replaced the unmaintained `onnxruntime ^1.4.1` package (gtbluesky, FFI-based, ships ORT 1.15 with 4 KB-aligned `libonnxruntime.so`) with the actively-maintained `flutter_onnxruntime ^1.7.0` package (masicai, MethodChannel-based, ships ORT 1.22 with 16 KB-aligned native libraries since 1.5.1). Verified `libonnxruntime.so` and `libonnxruntime4j_jni.so` in the release App Bundle now report `p_align = 0x4000` (16 KB) in their ELF LOAD program headers, satisfying Google Play's 16 KB memory-page-size requirement on Android 15+ devices.
+- **Inference architecture simplified.** The audio classifier no longer runs in a Dart background isolate. The new runtime plugin uses a Kotlin/Java `BackgroundTaskQueue` to run native ONNX inference off the platform thread, so the UI stays responsive without an isolate hop. The `InferenceIsolate` wrapper preserves its public API (`start`, `stop`, `infer`, `resetPooling`, `setMaxPoolWindows`, `isRunning`) but now delegates to `InferenceService` directly on the root isolate. This removes a class of message-passing bugs and reduces memory overhead.
+- **Flutter SDK upgraded to 3.41.8 (Dart 3.11.5)** to satisfy the new runtime plugin's Dart 3.7 minimum. Kotlin Gradle plugin bumped from 1.9.22 to 2.1.0.
+- All `GeoModel.predict`, `GeoModel.predictAllWeeks`, `GeoModel.expectedSpecies`, and `GeoModel.geoScoresForFilter` calls are now `async` (the new runtime exposes only async APIs). All call sites updated.
+
 ## [0.8.3] - 2026-04-30
 
 ### Added

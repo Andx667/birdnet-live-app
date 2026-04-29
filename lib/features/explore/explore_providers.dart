@@ -229,7 +229,7 @@ final exploreSpeciesProvider =
   final currentWeek = GeoModel.dateTimeToWeek(DateTime.now());
 
   // Run all 48 weeks directly (no isolate — small model, fast inference).
-  final allWeeks = geoModel.predictAllWeeks(
+  final allWeeks = await geoModel.predictAllWeeks(
     latitude: location.latitude,
     longitude: location.longitude,
   );
@@ -299,7 +299,7 @@ final geoScoresProvider = FutureProvider<Map<String, double>?>((ref) async {
   if (location == null) return null;
 
   final week = GeoModel.dateTimeToWeek(DateTime.now());
-  return geoModel.geoScoresForFilter(
+  return await geoModel.geoScoresForFilter(
     latitude: location.latitude,
     longitude: location.longitude,
     week: week,

@@ -1,5 +1,5 @@
 // =============================================================================
-// Classifier Model — ONNX Runtime wrapper for species classification
+// Classifier Model — flutter_onnxruntime wrapper for species classification
 // =============================================================================
 //
 // Encapsulates all ONNX-specific logic: model loading, session management,
@@ -25,13 +25,13 @@
 //
 // ### Threading
 //
-// The `onnxruntime` package uses FFI, so sessions can be created inside
-// Dart [Isolate]s.  The [InferenceIsolate] class in this feature handles
-// isolate lifecycle; this service is the low-level model wrapper.
+// `flutter_onnxruntime` uses platform channels and runs native inference on
+// a background thread (BackgroundTaskQueue), so calls do not block the UI.
+// All Dart-side calls must happen on the root isolate.
 //
 // ### Lifecycle
 //
-// 1. Call [loadModel] or [loadModelFromFile] to load the `.onnx` model.
+// 1. Call [loadModelFromFile] to load the `.onnx` model.
 // 2. Call [predict] as many times as needed.
 // 3. Call [dispose] when finished to free native resources.
 // =============================================================================
@@ -39,23 +39,23 @@
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:onnxruntime/onnxruntime.dart';
+import 'package:flutter_onnxruntime/flutter_onnxruntime.dart';
 
 /// Low-level wrapper around an ONNX classification model.
 ///
 /// Handles session creation, input tensor construction, inference, and
 /// resource cleanup.  Not intended for direct UI consumption — use
-/// [InferenceService] or [InferenceIsolate] instead.
+/// [InferenceService] instead.
 class ClassifierModel {
-  /// Creates a new model instance.  Call [loadModel] to initialize.
+  /// Creates a new model instance.  Call [loadModelFromFile] to initialize.
   ClassifierModel();
 
   // ---------------------------------------------------------------------------
   // State
   // ---------------------------------------------------------------------------
 
+  final OnnxRuntime _ort = OnnxRuntime();
   OrtSession? _session;
-  bool _envInitialized = false;
 
   /// Tensor name used for the audio input.
   String _inputName = 'input';
@@ -67,12 +67,6 @@ class ClassifierModel {
   /// produce embeddings.
   String? _embeddingsName = 'embeddings';
 
-  /// Index of the predictions tensor in the session's output list.
-  int _predictionsIndex = 0;
-
-  /// Index of the embeddings tensor in the session's output list, or -1.
-  int _embeddingsIndex = -1;
-
   /// Whether a model is currently loaded and ready for inference.
   bool get isLoaded => _session != null;
 
@@ -80,10 +74,11 @@ class ClassifierModel {
   // Lifecycle
   // ---------------------------------------------------------------------------
 
-  /// Load an ONNX model from raw [modelBytes].
+  /// Load an ONNX model from a file at [modelPath] on disk.
   ///
-  /// This is the primary loading method, suitable for models read from
-  /// Flutter's `rootBundle` or from any byte source.
+  /// `flutter_onnxruntime` only loads sessions from a file path (not raw
+  /// bytes); the audio model lives on disk via the asset pack service, so
+  /// this is the natural entry point.
   ///
   /// Tensor names default to BirdNET conventions but can be overridden to
   /// support any ONNX model:
@@ -93,76 +88,6 @@ class ClassifierModel {
   /// - [embeddingsName] — name of the embeddings output tensor, or `null` if
   ///   the model does not produce embeddings (default `"embeddings"`).
   ///
-  /// Initializes the ORT environment on first call.  May throw if the model
-  /// bytes are invalid.
-  Future<void> loadModel(
-    Uint8List modelBytes, {
-    String inputName = 'input',
-    String predictionsName = 'predictions',
-    String? embeddingsName = 'embeddings',
-  }) async {
-    _inputName = inputName;
-    _predictionsName = predictionsName;
-    _embeddingsName = embeddingsName;
-    if (!_envInitialized) {
-      OrtEnv.instance.init();
-      _envInitialized = true;
-    }
-
-    // Release previous session if reloading.
-    _session?.release();
-
-    final sessionOptions = OrtSessionOptions();
-    _session = OrtSession.fromBuffer(modelBytes, sessionOptions);
-    sessionOptions
-        .release(); // options are consumed by fromBuffer; release native memory
-
-    // Resolve output tensor indices by name so we don't rely on graph order.
-    _resolveOutputIndices();
-  }
-
-  /// Map configured output tensor names to their actual indices in the
-  /// session's output list.
-  ///
-  /// The ONNX graph may order outputs differently than expected (e.g.
-  /// embeddings before predictions).  Querying [OrtSession.outputNames]
-  /// lets us handle any ordering.
-  void _resolveOutputIndices() {
-    final session = _session;
-    if (session == null) return;
-
-    final names = session.outputNames;
-    debugPrint('[ClassifierModel] output tensor names: $names');
-
-    _predictionsIndex = names.indexOf(_predictionsName);
-    if (_predictionsIndex < 0) {
-      // Fallback: pick whichever output is NOT the embeddings output.
-      // If only one output exists, use index 0.
-      final embName = _embeddingsName;
-      if (embName != null && names.contains(embName)) {
-        _predictionsIndex = names.indexOf(embName) == 0 ? 1 : 0;
-      } else {
-        _predictionsIndex = 0;
-      }
-      debugPrint('[ClassifierModel] predictions name "$_predictionsName" not '
-          'found in outputs; falling back to index $_predictionsIndex');
-    }
-
-    final embName = _embeddingsName;
-    if (embName != null) {
-      _embeddingsIndex = names.indexOf(embName);
-    } else {
-      _embeddingsIndex = -1;
-    }
-
-    debugPrint('[ClassifierModel] resolved — predictions @ index '
-        '$_predictionsIndex, embeddings @ index $_embeddingsIndex');
-  }
-
-  /// Load an ONNX model from a file at [modelPath] on disk.
-  ///
-  /// Convenience wrapper that reads the file and delegates to [loadModel].
-  /// Tensor name parameters are forwarded — see [loadModel] for details.
   /// Throws [FileSystemException] if the file does not exist.
   Future<void> loadModelFromFile(
     String modelPath, {
@@ -174,13 +99,22 @@ class ClassifierModel {
     if (!modelFile.existsSync()) {
       throw FileSystemException('Model file not found', modelPath);
     }
-    final bytes = await modelFile.readAsBytes();
-    await loadModel(
-      bytes,
-      inputName: inputName,
-      predictionsName: predictionsName,
-      embeddingsName: embeddingsName,
-    );
+
+    _inputName = inputName;
+    _predictionsName = predictionsName;
+    _embeddingsName = embeddingsName;
+
+    // Release previous session if reloading.
+    final old = _session;
+    _session = null;
+    if (old != null) {
+      await old.close();
+    }
+
+    _session = await _ort.createSession(modelPath);
+
+    debugPrint('[ClassifierModel] loaded — inputs: ${_session!.inputNames} '
+        'outputs: ${_session!.outputNames}');
   }
 
   // ---------------------------------------------------------------------------
@@ -200,7 +134,7 @@ class ClassifierModel {
   }) async {
     final session = _session;
     if (session == null) {
-      throw StateError('Model not loaded. Call loadModel() first.');
+      throw StateError('Model not loaded. Call loadModelFromFile() first.');
     }
 
     // Prepare input: pad or truncate to exactly [windowSamples].
@@ -214,33 +148,29 @@ class ClassifierModel {
     // Remaining elements are already 0.0 (zero-padding).
 
     // Create input tensor: shape [1, windowSamples].
-    final inputTensor = OrtValueTensor.createTensorWithDataList(
-      input,
-      [1, windowSamples],
-    );
+    final inputTensor = await OrtValue.fromList(input, [1, windowSamples]);
 
-    final runOptions = OrtRunOptions();
-
+    Map<String, OrtValue>? outputs;
     try {
       // Run inference.
-      final outputs =
-          await session.runAsync(runOptions, {_inputName: inputTensor});
+      outputs = await session.run({_inputName: inputTensor});
 
-      // Extract predictions tensor using resolved index.
-      final predictionsRaw = outputs?[_predictionsIndex]?.value;
-      final predictions = _flatten(predictionsRaw);
+      // Extract predictions tensor by name.
+      final predTensor = outputs[_predictionsName];
+      if (predTensor == null) {
+        throw StateError(
+          'Predictions output "$_predictionsName" not found in model outputs '
+          '(${outputs.keys.toList()})',
+        );
+      }
+      final predictions = await _toDoubleList(predTensor);
 
       // Extract embeddings tensor if configured and available.
       List<double>? embeddings;
-      if (_embeddingsIndex >= 0 &&
-          outputs != null &&
-          _embeddingsIndex < outputs.length &&
-          outputs[_embeddingsIndex] != null) {
-        embeddings = _flatten(outputs[_embeddingsIndex]!.value);
+      final embName = _embeddingsName;
+      if (embName != null && outputs.containsKey(embName)) {
+        embeddings = await _toDoubleList(outputs[embName]!);
       }
-
-      // Release output tensors.
-      outputs?.forEach((e) => e?.release());
 
       return ModelOutput(
         predictions: predictions,
@@ -248,8 +178,12 @@ class ClassifierModel {
       );
     } finally {
       // Release native resources.
-      inputTensor.release();
-      runOptions.release();
+      await inputTensor.dispose();
+      if (outputs != null) {
+        for (final t in outputs.values) {
+          await t.dispose();
+        }
+      }
     }
   }
 
@@ -258,12 +192,11 @@ class ClassifierModel {
   // ---------------------------------------------------------------------------
 
   /// Release all native resources held by the ONNX session.
-  void dispose() {
-    _session?.release();
+  Future<void> dispose() async {
+    final s = _session;
     _session = null;
-    if (_envInitialized) {
-      OrtEnv.instance.release();
-      _envInitialized = false;
+    if (s != null) {
+      await s.close();
     }
   }
 
@@ -271,26 +204,14 @@ class ClassifierModel {
   // Helpers
   // ---------------------------------------------------------------------------
 
-  /// Flatten a nested list from ORT output into a single [List<double>].
-  ///
-  /// ORT may return `List<List<double>>` for batched outputs or `List<double>`
-  /// for single outputs.
-  static List<double> _flatten(dynamic value) {
-    if (value is List<List<double>>) {
-      // Batched output — take first batch.
-      return value.first;
-    }
-    if (value is List<double>) {
-      return value;
-    }
-    if (value is List) {
-      // Try to cast inner elements.
-      return value
-          .expand((e) => e is List ? e : [e])
-          .map((e) => (e as num).toDouble())
-          .toList();
-    }
-    throw ArgumentError('Unexpected ORT output type: ${value.runtimeType}');
+  /// Read a tensor's data as a flat `List<double>`. Handles whatever numeric
+  /// list type `flutter_onnxruntime` returns (`Float32List`, `List<num>`,
+  /// etc.).
+  static Future<List<double>> _toDoubleList(OrtValue tensor) async {
+    final raw = await tensor.asFlattenedList();
+    if (raw is List<double>) return raw;
+    if (raw is Float32List) return raw.toList();
+    return raw.map((e) => (e as num).toDouble()).toList(growable: false);
   }
 }
 
@@ -318,6 +239,7 @@ class ModelOutput {
 
   /// Feature embeddings (length = 1 280) for similarity/clustering.
   ///
-  /// May be `null` if the model output did not include embeddings.
+  /// Null if the model doesn't produce embeddings or [embeddingsName] was
+  /// not configured.
   final List<double>? embeddings;
 }

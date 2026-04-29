@@ -42,7 +42,7 @@
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:onnxruntime/onnxruntime.dart';
+import 'package:flutter_onnxruntime/flutter_onnxruntime.dart';
 
 /// A species entry from the geo-model's own labels file.
 class GeoSpecies {
@@ -88,10 +88,10 @@ class GeoModel {
   /// This runs 48 single-sample inferences (the model input is `[1,3]`)
   /// but collects results for every species in one pass — much more
   /// efficient than calling per-species.
-  Map<String, List<double>> predictAllWeeks({
+  Future<Map<String, List<double>>> predictAllWeeks({
     required double latitude,
     required double longitude,
-  }) {
+  }) async {
     if (!isReady) {
       throw StateError('GeoModel not ready. Call loadLabels() + loadModel().');
     }
@@ -103,7 +103,7 @@ class GeoModel {
     }
 
     for (int w = 1; w <= 48; w++) {
-      final scores = predict(
+      final scores = await predict(
         latitude: latitude,
         longitude: longitude,
         week: w,
@@ -120,9 +120,9 @@ class GeoModel {
   // State
   // ---------------------------------------------------------------------------
 
+  final OnnxRuntime _ort = OnnxRuntime();
   List<GeoSpecies> _labels = const [];
   OrtSession? _session;
-  bool _envInitialized = false;
 
   /// Configured tensor names (set from model config or defaults).
   String _inputName = 'input';
@@ -172,33 +172,31 @@ class GeoModel {
     _inputName = inputName;
     _outputName = outputName;
 
-    if (!_envInitialized) {
-      OrtEnv.instance.init();
-      _envInitialized = true;
-    }
-
-    _session?.release();
-
     final modelFile = File(modelPath);
     if (!modelFile.existsSync()) {
       throw FileSystemException('Geo-model file not found', modelPath);
     }
 
-    final bytes = await modelFile.readAsBytes();
-    final sessionOptions = OrtSessionOptions();
-    _session = OrtSession.fromBuffer(bytes, sessionOptions);
-    sessionOptions
-        .release(); // options are consumed by fromBuffer; release native memory
+    final old = _session;
+    _session = null;
+    if (old != null) {
+      await old.close();
+    }
+
+    _session = await _ort.createSession(modelPath);
 
     debugPrint('[GeoModel] model loaded from $modelPath');
     debugPrint('[GeoModel] input: $_inputName, output: $_outputName');
   }
 
   /// Release all resources.
-  void dispose() {
-    _session?.release();
+  Future<void> dispose() async {
+    final s = _session;
     _session = null;
     _labels = const [];
+    if (s != null) {
+      await s.close();
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -213,12 +211,13 @@ class GeoModel {
   /// [latitude]  in degrees (−90 to +90).
   /// [longitude] in degrees (−180 to +180).
   /// [week]      week of the year (1–48, 4 per month).
-  Map<String, double> predict({
+  Future<Map<String, double>> predict({
     required double latitude,
     required double longitude,
     required int week,
-  }) {
-    if (!isReady) {
+  }) async {
+    final session = _session;
+    if (session == null || _labels.isEmpty) {
       throw StateError('GeoModel not ready. Call loadLabels() + loadModel().');
     }
 
@@ -230,36 +229,23 @@ class GeoModel {
       longitude,
       week.toDouble(),
     ]);
-    final inputTensor = OrtValueTensor.createTensorWithDataList(
-      inputData,
-      [1, 3],
-    );
+    final inputTensor = await OrtValue.fromList(inputData, [1, 3]);
 
-    final runOptions = OrtRunOptions();
-
+    Map<String, OrtValue>? outputs;
     try {
-      // Run inference.
-      final inputs = {_inputName: inputTensor};
-      final outputs = _session!.run(runOptions, inputs);
+      outputs = await session.run({_inputName: inputTensor});
 
-      // Extract output probabilities.
-      final outputValue = outputs.firstOrNull;
-      if (outputValue == null) {
+      // Prefer the configured output name; fall back to first output.
+      final outputTensor = outputs[_outputName] ?? outputs.values.firstOrNull;
+      if (outputTensor == null) {
         throw StateError('Geo-model returned no output');
       }
-      final rawOutput = outputValue.value;
-
-      // The output is typically List<List<double>> for shape [1, N].
-      List<double> probabilities;
-      if (rawOutput is List<List<double>>) {
-        probabilities = rawOutput.first;
-      } else if (rawOutput is List) {
-        // Flatten if needed.
-        probabilities = rawOutput.cast<double>();
-      } else {
-        throw StateError(
-            'Unexpected geo-model output type: ${rawOutput.runtimeType}');
-      }
+      final raw = await outputTensor.asFlattenedList();
+      final probabilities = raw is List<double>
+          ? raw
+          : raw is Float32List
+              ? raw.toList()
+              : raw.map((e) => (e as num).toDouble()).toList(growable: false);
 
       // Build the result map.
       final scores = <String, double>{};
@@ -270,16 +256,14 @@ class GeoModel {
         scores[_labels[i].scientificName] = probabilities[i];
       }
 
-      // Release output tensors.
-      for (final o in outputs) {
-        o?.release();
-      }
-
       return scores;
     } finally {
-      // Release native resources.
-      inputTensor.release();
-      runOptions.release();
+      await inputTensor.dispose();
+      if (outputs != null) {
+        for (final t in outputs.values) {
+          await t.dispose();
+        }
+      }
     }
   }
 
@@ -287,13 +271,13 @@ class GeoModel {
   /// sorted by descending probability.
   ///
   /// Returns a list of [GeoSpeciesScore] tuples.
-  List<GeoSpeciesScore> expectedSpecies({
+  Future<List<GeoSpeciesScore>> expectedSpecies({
     required double latitude,
     required double longitude,
     required int week,
     double threshold = 0.03,
-  }) {
-    final scores = predict(
+  }) async {
+    final scores = await predict(
       latitude: latitude,
       longitude: longitude,
       week: week,
@@ -324,7 +308,7 @@ class GeoModel {
   }
 
   /// Return geo-model scores as a map (for use with [SpeciesFilter]).
-  Map<String, double> geoScoresForFilter({
+  Future<Map<String, double>> geoScoresForFilter({
     required double latitude,
     required double longitude,
     required int week,

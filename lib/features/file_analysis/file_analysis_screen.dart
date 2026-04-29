@@ -291,7 +291,7 @@ class _FileAnalysisScreenState extends ConsumerState<FileAnalysisScreen> {
         geoSpeciesNames = (await ref.read(geoModelSpeciesNamesProvider.future));
         final refDate = _recordingDate ?? DateTime.now();
         final week = _weekNumber(refDate);
-        geoScores = geoModel.predict(
+        geoScores = await geoModel.predict(
           latitude: _latitude!,
           longitude: _longitude!,
           week: week,

@@ -1,49 +1,26 @@
 // =============================================================================
-// Inference Isolate — Background ONNX inference via Dart Isolate
+// Inference Isolate — Thin in-process wrapper around InferenceService
 // =============================================================================
 //
-// The `onnxruntime` package uses dart:ffi, which means it CAN run in a Dart
-// isolate (unlike platform-channel-based plugins).  This class manages a
-// long-lived background isolate that:
+// Originally this class spawned a Dart [Isolate] to run ONNX inference off
+// the UI thread, because the `onnxruntime` package used dart:ffi (which is
+// isolate-friendly).
 //
-//   1. Loads the ONNX model once on start-up (using the supplied config).
-//   2. Accepts audio chunks via [SendPort] messages.
-//   3. Returns detection results back to the main isolate.
+// `flutter_onnxruntime` (the runtime we now ship) talks to the native ORT
+// session via platform channels and runs inference on a native background
+// thread queue, so the heavy work already happens off the UI thread.  The
+// remaining Dart-side post-processing (sigmoid, sort, top-K) takes
+// sub-millisecond on the 5,250-class label space and is safe to run on the
+// root isolate.
 //
-// ### Why an isolate?
-//
-// Even though the native ONNX Runtime engine runs inference off-thread, the
-// Dart-side pre-/post-processing (sigmoid over N values, sensitivity scaling,
-// sorting) can take several milliseconds.  Running this work in a separate
-// isolate prevents any chance of UI jank during rapid inference cycles.
-//
-// ### Message protocol
-//
-// Main → Worker:
-//   - [InferenceRequest] — audio samples + configuration
-//   - `null` — shutdown signal
-//
-// Worker → Main:
-//   - [InferenceResult] — list of [Detection]s
-//   - [InferenceError] — exception description
-//
-// ### Usage
-//
-// ```dart
-// final isolate = InferenceIsolate();
-// await isolate.start(
-//   modelFilePath: '/path/to/model.onnx',
-//   labelsCsv: '...',
-//   config: modelConfig,
-// );
-// final detections = await isolate.infer(audioSamples);
-// await isolate.stop();
-// ```
+// To minimize churn at the call sites this class now keeps the same public
+// API but delegates synchronously to a single [InferenceService] instance.
+// If post-processing latency becomes visible, we can wrap individual
+// operations in `compute()` later.
 // =============================================================================
 
 import 'dart:async';
 import 'dart:io';
-import 'dart:isolate';
 
 import 'package:flutter/foundation.dart';
 
@@ -51,40 +28,26 @@ import 'inference_service.dart';
 import 'model_config.dart';
 import 'models/detection.dart';
 
-// =============================================================================
-// Public API
-// =============================================================================
-
-/// Manages a background isolate for ONNX model inference.
+/// Runs ONNX inference for the audio classifier on the root isolate.
 ///
-/// Start the isolate with [start], send work with [infer], and clean up
-/// with [stop].
+/// The class keeps the historical "isolate" name to avoid a wide rename;
+/// see the file header for the rationale.
 class InferenceIsolate {
-  Isolate? _isolate;
-  SendPort? _sendPort;
-  final _responseCompleter = <int, Completer<List<Detection>>>{};
-  int _nextRequestId = 0;
-  StreamSubscription<dynamic>? _responseSubscription;
+  InferenceService? _service;
+  Future<void>? _pendingInfer; // serialize calls into the native session.
 
-  /// Whether the background isolate is running and ready.
-  bool get isRunning => _isolate != null && _sendPort != null;
+  /// Whether the underlying inference service is initialized and ready.
+  bool get isRunning => _service != null;
 
   // ---------------------------------------------------------------------------
   // Lifecycle
   // ---------------------------------------------------------------------------
 
-  /// Spawn the background isolate and load the model from a file.
+  /// Load the model from a file path and parse labels.
   ///
   /// [modelFilePath] — absolute path to the `.onnx` model file on disk.
   /// [labelsCsv] — full content of the labels file.
   /// [config] — model configuration (tensor names, label format, defaults).
-  ///
-  /// Loading from a file path instead of raw bytes avoids serializing ~259 MB
-  /// through the isolate port, which would triple peak memory usage.
-  ///
-  /// This method waits until the worker isolate has fully initialized the
-  /// ONNX session.  If initialization fails, the future completes with an
-  /// error.
   Future<void> start({
     required String modelFilePath,
     required String labelsCsv,
@@ -92,91 +55,43 @@ class InferenceIsolate {
   }) async {
     if (isRunning) return;
 
-    final receivePort = ReceivePort();
-
-    debugPrint('[InferenceIsolate] spawning worker …');
-    _isolate = await Isolate.spawn(
-      _workerEntryPoint,
-      _WorkerInit(
-        sendPort: receivePort.sendPort,
-        modelFilePath: modelFilePath,
-        labelsCsv: labelsCsv,
-        configJson: config.toJson(),
-      ),
-    );
-    debugPrint('[InferenceIsolate] worker spawned');
-
-    final sendPortCompleter = Completer<SendPort>();
-    final readyCompleter = Completer<void>();
-
-    _responseSubscription = receivePort.listen((message) {
-      if (message is SendPort) {
-        if (!sendPortCompleter.isCompleted) {
-          sendPortCompleter.complete(message);
-        }
-      } else if (message is _WorkerReady) {
-        if (!readyCompleter.isCompleted) {
-          readyCompleter.complete();
-        }
-      } else if (message is _WorkerInitError) {
-        if (!readyCompleter.isCompleted) {
-          readyCompleter.completeError(Exception(message.error));
-        }
-      } else if (message is _WorkerResponse) {
-        final c = _responseCompleter.remove(message.requestId);
-        if (c != null) {
-          if (message.error != null) {
-            c.completeError(Exception(message.error));
-          } else {
-            c.complete(message.detections);
-          }
-        }
-      }
-    });
-
-    try {
-      _sendPort = await sendPortCompleter.future.timeout(
-        const Duration(minutes: 2),
-      );
-      debugPrint('[InferenceIsolate] waiting for model init …');
-      await readyCompleter.future.timeout(const Duration(minutes: 2));
-      debugPrint('[InferenceIsolate] model ready');
-    } catch (_) {
-      receivePort.close();
-      await _responseSubscription?.cancel();
-      _responseSubscription = null;
-      _sendPort = null;
-      _isolate?.kill(priority: Isolate.immediate);
-      _isolate = null;
-      rethrow;
+    debugPrint('[InferenceIsolate] loading model from file: $modelFilePath');
+    if (!File(modelFilePath).existsSync()) {
+      throw FileSystemException('Model file not found', modelFilePath);
     }
+
+    final svc = InferenceService();
+    await svc.initialize(
+      modelFilePath: modelFilePath,
+      labelsCsv: labelsCsv,
+      config: config,
+    );
+    _service = svc;
+    debugPrint('[InferenceIsolate] model ready');
   }
 
-  /// Stop the background isolate and free resources.
+  /// Release the inference service and free native resources.
   Future<void> stop() async {
-    _sendPort?.send(null); // Shutdown signal.
-    _isolate?.kill(priority: Isolate.immediate);
-    _isolate = null;
-    _sendPort = null;
-    await _responseSubscription?.cancel();
-    _responseSubscription = null;
-
-    // Complete any pending futures with an error.
-    for (final c in _responseCompleter.values) {
-      c.completeError(StateError('Inference isolate stopped'));
+    final svc = _service;
+    _service = null;
+    if (svc != null) {
+      // Wait for any in-flight inference to settle before closing the session.
+      try {
+        await _pendingInfer;
+      } catch (_) {}
+      await svc.dispose();
     }
-    _responseCompleter.clear();
   }
 
   // ---------------------------------------------------------------------------
   // Inference
   // ---------------------------------------------------------------------------
 
-  /// Run inference on [audioSamples] in the background isolate.
+  /// Run inference on [audioSamples].
   ///
-  /// Parameters that are not supplied fall back to the active [ModelConfig]
-  /// defaults inside the worker.  Returns a list of [Detection] sorted by
-  /// descending confidence.
+  /// Calls are serialized so that overlapping requests never enter the
+  /// native session simultaneously (which would race on output tensor
+  /// disposal).
   Future<List<Detection>> infer(
     Float32List audioSamples, {
     int? windowSeconds,
@@ -184,233 +99,44 @@ class InferenceIsolate {
     double? confidenceThreshold,
     int? topK,
     bool useTemporalPooling = true,
-  }) {
-    if (!isRunning) {
-      throw StateError('Inference isolate not started. Call start() first.');
+  }) async {
+    final svc = _service;
+    if (svc == null) {
+      throw StateError('Inference service not started. Call start() first.');
     }
 
-    final requestId = _nextRequestId++;
-    final completer = Completer<List<Detection>>();
-    _responseCompleter[requestId] = completer;
-
-    _sendPort!.send(_WorkerRequest(
-      requestId: requestId,
-      audioSamples: audioSamples,
-      windowSeconds: windowSeconds,
-      sensitivity: sensitivity,
-      confidenceThreshold: confidenceThreshold,
-      topK: topK,
-      useTemporalPooling: useTemporalPooling,
-    ));
-
-    return completer.future;
-  }
-
-  /// Clear the temporal pooling buffer in the background isolate.
-  void resetPooling() {
-    _sendPort?.send(const _WorkerResetPooling());
-  }
-
-  /// Override the temporal-pooling window count in the worker. Pass `null`
-  /// to revert to the model-config default. Safe to call before the worker
-  /// has finished initializing — the message is dropped if the send port is
-  /// not yet wired up.
-  void setMaxPoolWindows(int? value) {
-    _sendPort?.send(_WorkerSetMaxPoolWindows(value));
-  }
-}
-
-// =============================================================================
-// Worker isolate entry point
-// =============================================================================
-
-/// Load the ONNX model in a **separate async scope** so that the ~259 MB
-/// `modelBytes` Uint8List becomes eligible for GC as soon as this function
-/// returns.  Dart's async state machine retains local variables that are live
-/// across `await` points as persistent fields — if this loading code lived
-/// directly inside the long-running [_workerEntryPoint], the model bytes would
-/// never be collected because that function's state machine stays alive for the
-/// lifetime of the isolate.
-Future<InferenceService> _loadModelInIsolate({
-  required String modelFilePath,
-  required String labelsCsv,
-  required ModelConfig config,
-}) async {
-  debugPrint('[InferenceIsolate] loading model from file: $modelFilePath');
-  final modelFile = File(modelFilePath);
-  final modelBytes = await modelFile.readAsBytes();
-  debugPrint('[InferenceIsolate] model bytes read: ${modelBytes.length}');
-
-  final svc = InferenceService();
-  await svc.initialize(
-    modelBytes: modelBytes,
-    labelsCsv: labelsCsv,
-    config: config,
-  );
-  debugPrint('[InferenceIsolate] model initialized');
-  // modelBytes (~259 MB) becomes unreachable when this frame is collected.
-  return svc;
-}
-
-/// Top-level function that runs inside the background isolate.
-///
-/// Receives an [_WorkerInit] with the model path and labels CSV, initializes
-/// the [InferenceService], then processes [_WorkerRequest] messages in a loop.
-Future<void> _workerEntryPoint(_WorkerInit init) async {
-  final receivePort = ReceivePort();
-
-  // Send our SendPort back so the main isolate can talk to us.
-  init.sendPort.send(receivePort.sendPort);
-
-  final config = ModelConfig.fromJson(
-    Map<String, dynamic>.from(init.configJson),
-  );
-
-  // Initialize the model in a separate async function so the large
-  // modelBytes buffer is not retained by this function's async state machine.
-  final InferenceService service;
-  try {
-    service = await _loadModelInIsolate(
-      modelFilePath: init.modelFilePath,
-      labelsCsv: init.labelsCsv,
-      config: config,
-    );
-    init.sendPort.send(const _WorkerReady());
-  } catch (e) {
-    debugPrint('[InferenceIsolate] init error: $e');
-    init.sendPort.send(_WorkerInitError(e.toString()));
-    receivePort.close();
-    return;
-  }
-
-  // Process inference requests.
-  await for (final message in receivePort) {
-    if (message == null) {
-      // Shutdown signal.
-      service.dispose();
-      receivePort.close();
-      break;
-    }
-
-    if (message is _WorkerResetPooling) {
-      service.resetPooling();
-      continue;
-    }
-
-    if (message is _WorkerSetMaxPoolWindows) {
-      service.setMaxPoolWindows(message.value);
-      continue;
-    }
-
-    if (message is _WorkerRequest) {
-      debugPrint('[InferenceIsolate] processing request #${message.requestId} '
-          '(${message.audioSamples.length} samples)');
-      try {
-        final detections = await service.infer(
-          message.audioSamples,
-          windowSeconds: message.windowSeconds,
-          sensitivity: message.sensitivity,
-          confidenceThreshold: message.confidenceThreshold,
-          topK: message.topK,
-          useTemporalPooling: message.useTemporalPooling,
-        );
-        debugPrint('[InferenceIsolate] request #${message.requestId} → '
-            '${detections.length} detections');
-        init.sendPort.send(_WorkerResponse(
-          requestId: message.requestId,
-          detections: detections,
-        ));
-      } catch (e, st) {
-        debugPrint('[InferenceIsolate] request #${message.requestId} ERROR: '
-            '$e\n$st');
-        init.sendPort.send(_WorkerResponse(
-          requestId: message.requestId,
-          detections: const [],
-          error: e.toString(),
-        ));
+    // Serialize concurrent inference calls.
+    final previous = _pendingInfer;
+    final completer = Completer<void>();
+    _pendingInfer = completer.future;
+    try {
+      if (previous != null) {
+        try {
+          await previous;
+        } catch (_) {}
       }
+      return await svc.infer(
+        audioSamples,
+        windowSeconds: windowSeconds,
+        sensitivity: sensitivity,
+        confidenceThreshold: confidenceThreshold,
+        topK: topK,
+        useTemporalPooling: useTemporalPooling,
+      );
+    } finally {
+      completer.complete();
     }
   }
-}
 
-// =============================================================================
-// Message types (internal, not exported)
-// =============================================================================
+  /// Clear the temporal pooling buffer.
+  void resetPooling() {
+    _service?.resetPooling();
+  }
 
-/// Initialization data sent to the worker isolate.
-class _WorkerInit {
-  const _WorkerInit({
-    required this.sendPort,
-    required this.modelFilePath,
-    required this.labelsCsv,
-    required this.configJson,
-  });
-  final SendPort sendPort;
-
-  /// Absolute path to the `.onnx` model file on the device filesystem.
-  ///
-  /// The isolate reads the file directly, avoiding the need to serialize
-  /// hundreds of megabytes of model bytes through the isolate port.
-  final String modelFilePath;
-  final String labelsCsv;
-
-  /// Serialized [ModelConfig] as a JSON map.
-  ///
-  /// We pass a plain map instead of [ModelConfig] because [Isolate.spawn]
-  /// can only send primitive/transferable types.
-  final Map<String, dynamic> configJson;
-}
-
-/// Inference request sent from main → worker.
-class _WorkerRequest {
-  const _WorkerRequest({
-    required this.requestId,
-    required this.audioSamples,
-    this.windowSeconds,
-    this.sensitivity,
-    this.confidenceThreshold,
-    this.topK,
-    required this.useTemporalPooling,
-  });
-  final int requestId;
-  final Float32List audioSamples;
-  final int? windowSeconds;
-  final double? sensitivity;
-  final double? confidenceThreshold;
-  final int? topK;
-  final bool useTemporalPooling;
-}
-
-/// Response sent from worker → main.
-class _WorkerResponse {
-  const _WorkerResponse({
-    required this.requestId,
-    required this.detections,
-    this.error,
-  });
-  final int requestId;
-  final List<Detection> detections;
-  final String? error;
-}
-
-/// Signal to reset the temporal pooling buffer.
-class _WorkerResetPooling {
-  const _WorkerResetPooling();
-}
-
-/// Override the rolling temporal-pooling window count.
-class _WorkerSetMaxPoolWindows {
-  const _WorkerSetMaxPoolWindows(this.value);
-  final int? value;
-}
-
-/// Signal that the worker has finished initializing the model.
-class _WorkerReady {
-  const _WorkerReady();
-}
-
-/// Signal that the worker failed to initialize the model.
-class _WorkerInitError {
-  const _WorkerInitError(this.error);
-  final String error;
+  /// Override the temporal-pooling window count. Pass `null` to revert to
+  /// the model-config default. Safe to call before [start] has completed —
+  /// the call is dropped if the service is not yet ready.
+  void setMaxPoolWindows(int? value) {
+    _service?.setMaxPoolWindows(value);
+  }
 }

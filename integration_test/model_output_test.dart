@@ -60,8 +60,12 @@ void main() {
     final modelData = await rootBundle.load(
       'assets/models/${config.onnx.modelFile}',
     );
-    await model.loadModel(
-      modelData.buffer.asUint8List(),
+    final tempDir = Directory.systemTemp;
+    final tempModel = File('${tempDir.path}/model_output_test.onnx');
+    await tempModel.writeAsBytes(modelData.buffer
+        .asUint8List(modelData.offsetInBytes, modelData.lengthInBytes));
+    await model.loadModelFromFile(
+      tempModel.path,
       inputName: config.onnx.inputName,
       predictionsName: config.onnx.predictionsName,
       embeddingsName: config.onnx.embeddingsName,
@@ -86,8 +90,8 @@ void main() {
     allAudioSamples = audioBytes.buffer.asFloat32List();
   });
 
-  tearDownAll(() {
-    model.dispose();
+  tearDownAll(() async {
+    await model.dispose();
   });
 
   // -------------------------------------------------------------------------

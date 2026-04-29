@@ -60,10 +60,20 @@ void main() {
     final modelData = await rootBundle.load(
       'assets/models/${config.onnx.modelFile}',
     );
+    final appDirEarly = await getApplicationDocumentsDirectory();
+    tempDir = '${appDirEarly.path}/mem_stress_test';
+    await Directory(tempDir).create(recursive: true);
+    final audioOnnxPath = '$tempDir/audio_model.onnx';
+    if (!File(audioOnnxPath).existsSync()) {
+      await File(audioOnnxPath).writeAsBytes(
+        modelData.buffer
+            .asUint8List(modelData.offsetInBytes, modelData.lengthInBytes),
+        flush: true,
+      );
+    }
     audioModel = ClassifierModel();
-    await audioModel.loadModel(
-      modelData.buffer
-          .asUint8List(modelData.offsetInBytes, modelData.lengthInBytes),
+    await audioModel.loadModelFromFile(
+      audioOnnxPath,
       inputName: config.onnx.inputName,
       predictionsName: config.onnx.predictionsName,
       embeddingsName: config.onnx.embeddingsName,
@@ -83,10 +93,6 @@ void main() {
     );
 
     // Extract geo ONNX to temp path.
-    final appDir = await getApplicationDocumentsDirectory();
-    tempDir = '${appDir.path}/mem_stress_test';
-    await Directory(tempDir).create(recursive: true);
-
     final geoOnnxPath = '$tempDir/geo_model.onnx';
     if (!File(geoOnnxPath).existsSync()) {
       final geoData = await rootBundle.load(
@@ -227,7 +233,7 @@ void main() {
     final phase3Baseline = MemoryMonitor.logOnce(tag: 'geo-start');
 
     // Simulate what happens at session start: predictAllWeeks.
-    geoModel.predictAllWeeks(latitude: 52.5, longitude: 13.4);
+    await geoModel.predictAllWeeks(latitude: 52.5, longitude: 13.4);
 
     final afterGeo = MemoryMonitor.logOnce(tag: 'geo-end');
     debugPrint('[MemStress] Geo 48-week RSS growth: '

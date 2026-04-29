@@ -42,10 +42,12 @@ void main() {
     audioModel = ClassifierModel();
     final audioModelData =
         await rootBundle.load('assets/models/${config.onnx.modelFile}');
-    final audioModelBytes = audioModelData.buffer.asUint8List(
-        audioModelData.offsetInBytes, audioModelData.lengthInBytes);
-    await audioModel.loadModel(
-      audioModelBytes,
+    final audioTempDir = Directory.systemTemp;
+    final audioTempFile = File('${audioTempDir.path}/audio_model_test.onnx');
+    await audioTempFile.writeAsBytes(audioModelData.buffer.asUint8List(
+        audioModelData.offsetInBytes, audioModelData.lengthInBytes));
+    await audioModel.loadModelFromFile(
+      audioTempFile.path,
       inputName: config.onnx.inputName,
       predictionsName: config.onnx.predictionsName,
       embeddingsName: config.onnx.embeddingsName,
@@ -79,15 +81,15 @@ void main() {
     );
   });
 
-  tearDownAll(() {
-    audioModel.dispose();
-    geoModel.dispose();
+  tearDownAll(() async {
+    await audioModel.dispose();
+    await geoModel.dispose();
   });
 
   testWidgets('Geo-model inference (Berlin, week 26) yields sensible results',
       (tester) async {
     // Berlin: 52.52°N, 13.40°E
-    final probabilities = geoModel.predict(
+    final probabilities = await geoModel.predict(
       latitude: 52.52,
       longitude: 13.40,
       week: 26,
