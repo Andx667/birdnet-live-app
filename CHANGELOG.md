@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-04-30
+
+### Added
+
+- **Combined sort & filter overlay on Explore.** The AppBar's filter button now opens a bottom sheet (matching the pattern used in the session library) that combines three independent controls: a **sort mode** (Likelihood here / A–Z / Z–A), a **detection-status filter** (All species / Already detected / Not yet detected), and the existing **multi-select taxonomic group filter** (Birds, Mammals, Amphibians, Insects). Group filtering is now multi-select rather than a single chip, and the AppBar shows a small primary-color dot whenever any non-default option is active.
+- **Help screen — narrative reorganization.** The Help screen has been restructured to follow a top-to-bottom usage narrative with three new section headers: **What you can do** (Live → Point Count → Survey → File Analysis), **Discover & revisit** (Explore, Sessions), and **Common Controls** (Settings, Help, About). The previous duplicate listing of Explore and Sessions as both control-cards and full sections has been removed.
+
+### Changed
+
+- **Explore: help and refresh icon positions swapped.** The AppBar now exposes the **help** action (where refresh used to live), since the Explore screen has the most context-specific help content of any screen in the app. The **refresh** action moved into the location header, immediately next to the location indicator — that is what it actually re-queries (the user's GPS fix and derived geo-model species list), so co-locating the two is more discoverable.
+
+### Fixed
+
+- **Audio trim no longer drops detections that span trim boundaries.** Previously, applying a trim in Session Review removed any detection whose `timestamp` fell outside the trim window — so a 3-second detection that started 1 second before the trim end would disappear entirely. The trim logic now keeps any detection whose `[start, end]` interval overlaps the trim window and clamps partial-overlap intervals to the visible range, preserving detections that span the cut points.
+- **Session library file size now reflects the active trim.** The size chip on session cards used to always report the raw audio file's on-disk bytes, which was misleading after the user trimmed a long recording down to a few seconds. The displayed size is now scaled by the trim ratio `(trimEnd − trimStart) / fullDuration` so it reflects what would actually be exported. The audio file itself is left untouched on disk so the trim remains fully reversible.
+
+### Removed
+
+- **"Developer preview" labels.** The "(Developer preview)" subtitle on the Home screen, the warning card on the About screen, and the equivalent note in the README have been removed now that the app is stable enough for general use. The note in the README now points users toward the issue tracker for any rough edges they encounter.
+
+### Internal
+
+- **Verified the Play Asset Delivery refactor is iOS / desktop safe.** `AssetPackService` short-circuits the Android-only platform-channel path on every other platform and falls through to the existing `rootBundle.load` extraction, so Xcode iOS / macOS builds and the desktop sideload paths bundle the ONNX models from `assets/models/` exactly as before. The Play Asset Delivery split only affects Android Play Store builds.
+
 ## [0.7.15] - 2026-04-29
 
 ### Changed

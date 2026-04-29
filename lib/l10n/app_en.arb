@@ -304,14 +304,6 @@
   "@aboutVersion": {
     "description": "Version label in about screen"
   },
-  "homeDeveloperPreview": "(Developer preview)",
-  "@homeDeveloperPreview": {
-    "description": "Developer preview label shown on home screen next to version"
-  },
-  "aboutDeveloperPreviewWarning": "This is a developer preview release. You may experience bugs or suboptimal performance while we continue testing and refining the models and features.",
-  "@aboutDeveloperPreviewWarning": {
-    "description": "Warning shown on about screen explaining it is a developer preview"
-  },
   "aboutModelVersion": "Audio Model",
   "@aboutModelVersion": {
     "description": "Audio model section title in about screen"
@@ -458,9 +450,33 @@
   "@exploreSearchTooltip": {
     "description": "Tooltip for the AppBar search toggle button"
   },
-  "exploreFilterTooltip": "Filter by group",
+  "exploreFilterTooltip": "Sort & filter",
   "@exploreFilterTooltip": {
-    "description": "Tooltip for the AppBar taxonomic group filter toggle button"
+    "description": "Tooltip for the AppBar button that opens the explore sort/filter sheet"
+  },
+  "exploreSortTooltip": "Sort by",
+  "@exploreSortTooltip": {
+    "description": "Section header in the explore sort/filter sheet for sort mode"
+  },
+  "exploreSortGeo": "Likelihood here",
+  "@exploreSortGeo": {
+    "description": "Sort mode that orders species by geographic likelihood at the user's location"
+  },
+  "exploreDetectionFilterTooltip": "Detection status",
+  "@exploreDetectionFilterTooltip": {
+    "description": "Section header in the explore sort/filter sheet for detection-state filter"
+  },
+  "exploreDetectionFilterAll": "All species",
+  "@exploreDetectionFilterAll": {
+    "description": "Detection-state filter showing every species"
+  },
+  "exploreDetectionFilterDetected": "Already detected",
+  "@exploreDetectionFilterDetected": {
+    "description": "Detection-state filter showing only species the user has previously detected"
+  },
+  "exploreDetectionFilterUndetected": "Not yet detected",
+  "@exploreDetectionFilterUndetected": {
+    "description": "Detection-state filter showing only species the user has never detected"
   },
   "exploreFilterAll": "All",
   "@exploreFilterAll": {
@@ -2120,6 +2136,14 @@
   "helpControlsTitle": "Common Controls",
   "@helpControlsTitle": {
     "description": "Section title for common controls on the help screen"
+  },
+  "helpModesTitle": "What you can do",
+  "@helpModesTitle": {
+    "description": "Section title introducing the four core capture modes on the help screen"
+  },
+  "helpToolsTitle": "Discover & revisit",
+  "@helpToolsTitle": {
+    "description": "Section title introducing the Explore and Sessions tools on the help screen"
   },
   "helpControlSettings": "Open the settings filtered for the current workflow.",
   "@helpControlSettings": {
