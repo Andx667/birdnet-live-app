@@ -62,8 +62,8 @@ void main() {
     );
     final tempDir = Directory.systemTemp;
     final tempModel = File('${tempDir.path}/model_output_test.onnx');
-    await tempModel.writeAsBytes(modelData.buffer.asUint8List(
-        modelData.offsetInBytes, modelData.lengthInBytes));
+    await tempModel.writeAsBytes(modelData.buffer
+        .asUint8List(modelData.offsetInBytes, modelData.lengthInBytes));
     await model.loadModelFromFile(
       tempModel.path,
       inputName: config.onnx.inputName,

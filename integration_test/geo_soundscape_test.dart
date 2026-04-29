@@ -43,8 +43,7 @@ void main() {
     final audioModelData =
         await rootBundle.load('assets/models/${config.onnx.modelFile}');
     final audioTempDir = Directory.systemTemp;
-    final audioTempFile =
-        File('${audioTempDir.path}/audio_model_test.onnx');
+    final audioTempFile = File('${audioTempDir.path}/audio_model_test.onnx');
     await audioTempFile.writeAsBytes(audioModelData.buffer.asUint8List(
         audioModelData.offsetInBytes, audioModelData.lengthInBytes));
     await audioModel.loadModelFromFile(
