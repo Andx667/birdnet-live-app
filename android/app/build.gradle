@@ -7,8 +7,20 @@ plugins {
 
 def keystoreProperties = new Properties()
 def keystorePropertiesFile = rootProject.file('key.properties')
+
+// hasKeystore is true only when key.properties exists AND the referenced
+// storeFile is present on disk. Release builds use signingConfigs.release
+// when this is true (CI with secrets, local developer with keystore) and
+// fall back to signingConfigs.debug otherwise (CI without secrets, local
+// developer without keystore) so that validateSigningRelease never fails
+// against a missing file.
+def hasKeystore = false
 if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+    def storeFilePath = keystoreProperties['storeFile']
+    if (storeFilePath) {
+        hasKeystore = file(storeFilePath).exists()
+    }
 }
 
 android {
@@ -84,17 +96,19 @@ android {
     assetPacks = [":models_pack"]
 
     signingConfigs {
-        release {
-            keyAlias keystoreProperties['keyAlias']
-            keyPassword keystoreProperties['keyPassword']
-            storeFile keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
-            storePassword keystoreProperties['storePassword']
+        if (hasKeystore) {
+            release {
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+                storeFile file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+            }
         }
     }
 
     buildTypes {
         release {
-            signingConfig = keystorePropertiesFile.exists() ? signingConfigs.release : signingConfigs.debug
+            signingConfig = hasKeystore ? signingConfigs.release : signingConfigs.debug
             shrinkResources true
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
