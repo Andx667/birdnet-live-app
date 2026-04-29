@@ -15,7 +15,7 @@ Create these repository secrets in GitHub:
 - `ANDROID_KEY_ALIAS`
 - `ANDROID_KEY_PASSWORD`
 
-These names must match [build.yml](build.yml) exactly.
+These names must match [release.yml](release.yml) exactly.
 
 ### 1) Create a Keystore (one-time)
 

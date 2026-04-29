@@ -102,6 +102,7 @@ jobs:
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
 
       - name: Create Android key.properties
+        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' && secrets.ANDROID_STORE_PASSWORD != '' && secrets.ANDROID_KEY_ALIAS != '' && secrets.ANDROID_KEY_PASSWORD != '' }}
         shell: bash
         run: |
           cat > android/key.properties <<EOF
@@ -118,8 +119,8 @@ jobs:
           PUBSPEC_VERSION_NAME=${PUBSPEC_VERSION%%+*}
           PUBSPEC_BUILD_NUMBER=${PUBSPEC_VERSION#*+}
 
-          echo "APP_VERSION=$APP_VERSION" >> "$GITHUB_ENV"
-          echo "APP_BUILD_NUMBER=$APP_BUILD_NUMBER" >> "$GITHUB_ENV"
+          echo "APP_VERSION=$PUBSPEC_VERSION_NAME" >> "$GITHUB_ENV"
+          echo "APP_BUILD_NUMBER=$PUBSPEC_BUILD_NUMBER" >> "$GITHUB_ENV"
 
       - name: Build release APK
         run: flutter build apk --release
