@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.1] - 2026-04-30
+
+### Fixed
+
+- **Consistent spacing between dark and light themes.** The light theme was missing several component-level theme overrides (`ListTileThemeData`, `DialogThemeData`, `SwitchThemeData`, `SliderThemeData`, `TextButtonThemeData`, `DividerThemeData`, `SnackBarThemeData`) that the dark theme defined, so toggling brightness caused those widgets to fall back to Material 3 defaults with different padding — most visibly on Settings, Session Library, and Session Review where ListTile rows changed height. The structural (non-color) `ListTile` theme is now factored into a shared helper applied by both themes, and the remaining missing component themes have been mirrored into the light theme with light-appropriate colors.
+
 ## [0.8.0] - 2026-04-30
 
 ### Added

@@ -115,13 +115,7 @@ abstract final class AppTheme {
       ),
 
       // ── List Tiles ──
-      listTileTheme: ListTileThemeData(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-        minVerticalPadding: 8,
-      ),
+      listTileTheme: _sharedListTileTheme(),
 
       // ── Dialogs ──
       dialogTheme: DialogThemeData(
@@ -252,6 +246,43 @@ abstract final class AppTheme {
         ),
       ),
 
+      // ── List Tiles ──
+      // (Mirrors the dark theme so spacing/padding stay identical when
+      // toggling brightness.)
+      listTileTheme: _sharedListTileTheme(),
+
+      // ── Dialogs ──
+      dialogTheme: DialogThemeData(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+      ),
+
+      // ── Switches ──
+      switchTheme: SwitchThemeData(
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return colorScheme.primary;
+          }
+          return colorScheme.outline;
+        }),
+        trackColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return colorScheme.primaryContainer;
+          }
+          return colorScheme.surfaceContainerHighest;
+        }),
+      ),
+
+      // ── Sliders ──
+      sliderTheme: SliderThemeData(
+        activeTrackColor: colorScheme.primary,
+        inactiveTrackColor: colorScheme.surfaceContainerHighest,
+        thumbColor: colorScheme.primary,
+        overlayColor: colorScheme.primary.withAlpha(30),
+      ),
+
       // ── Elevated Buttons ──
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -263,6 +294,52 @@ abstract final class AppTheme {
           ),
         ),
       ),
+
+      // ── Text Buttons ──
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: colorScheme.primary,
+          minimumSize: const Size(48, 48),
+        ),
+      ),
+
+      // ── Dividers ──
+      dividerTheme: const DividerThemeData(
+        color: Color(0xFFE0E0E0),
+        thickness: 1,
+      ),
+
+      // ── Snack Bars ──
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: const Color(0xFF323232),
+        contentTextStyle: const TextStyle(color: Colors.white),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Shared component themes
+  // ---------------------------------------------------------------------------
+  //
+  // These structural themes (padding, shape, density) are deliberately
+  // factored out so the dark and light themes apply *identical* spacing.
+  // Previously only the dark theme set a custom [ListTileThemeData], so
+  // toggling to light caused tile padding to fall back to Material 3
+  // defaults — visibly shifting layout on the Settings, Session Library,
+  // and Session Review screens. Anything that affects layout (not color)
+  // belongs here.
+
+  static ListTileThemeData _sharedListTileTheme() {
+    return ListTileThemeData(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+      ),
+      minVerticalPadding: 8,
     );
   }
 }
