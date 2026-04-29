@@ -912,13 +912,58 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
     ));
     _redoStack.clear();
 
+    // Walk the detection list and either drop, keep, or clamp each
+    // record. A detection survives the trim as long as any part of its
+    // [timestamp, endTimestamp] interval overlaps [start, end] — that
+    // way a long-running call that began before the trim window or
+    // continued past it remains visible, with its visible extent
+    // clamped to the new clip boundaries.
+    final sessionStart = widget.session.startTime;
+    final windowSec = widget.session.settings.windowDuration;
+    final trimStartWall = sessionStart.add(
+      Duration(microseconds: (start * 1e6).round()),
+    );
+    final trimEndWall = sessionStart.add(
+      Duration(microseconds: (end * 1e6).round()),
+    );
+    final clamped = <DetectionRecord>[];
+    for (final d in _detections) {
+      final detStart = d.timestamp;
+      // Treat a missing endTimestamp (legacy records, manual annotations)
+      // as a single inference window starting at the detection time.
+      final detEnd =
+          d.endTimestamp ?? detStart.add(Duration(seconds: windowSec));
+      // No overlap → drop.
+      if (detEnd.isBefore(trimStartWall) || detStart.isAfter(trimEndWall)) {
+        continue;
+      }
+      // Fully inside → keep as-is to preserve the original endTimestamp
+      // (including its null-ness for legacy / manual records).
+      if (!detStart.isBefore(trimStartWall) &&
+          !detEnd.isAfter(trimEndWall)) {
+        clamped.add(d);
+        continue;
+      }
+      // Partial overlap → rebuild with clamped timestamps so the
+      // detection's visible extent matches the new clip.
+      final newStart = detStart.isBefore(trimStartWall) ? trimStartWall : detStart;
+      final newEnd = detEnd.isAfter(trimEndWall) ? trimEndWall : detEnd;
+      clamped.add(DetectionRecord(
+        scientificName: d.scientificName,
+        commonName: d.commonName,
+        confidence: d.confidence,
+        timestamp: newStart,
+        endTimestamp: newEnd,
+        audioClipPath: d.audioClipPath,
+        source: d.source,
+        latitude: d.latitude,
+        longitude: d.longitude,
+      ));
+    }
     setState(() {
-      _detections.removeWhere((d) {
-        final offsetSec =
-            d.timestamp.difference(widget.session.startTime).inMicroseconds /
-                1000000.0;
-        return offsetSec < start || offsetSec > end;
-      });
+      _detections
+        ..clear()
+        ..addAll(clamped);
       _speciesGroups = _buildSpeciesGroups(
         _detections,
         widget.session.settings.windowDuration,

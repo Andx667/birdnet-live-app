@@ -1166,11 +1166,20 @@ class _SessionSizeChip extends StatelessWidget {
   Future<int> _computeSize() async {
     var total = 0;
     // 1) Continuous session recording (live, point count, file analysis).
+    //    When the user trimmed the recording in session review the file
+    //    on disk is intentionally left untouched (so trim is reversible),
+    //    but the *effective* on-disk usage from the user's point of view
+    //    is the trimmed extent — that's what they hear back, share, and
+    //    export. Scale the raw file length by the trim ratio so the
+    //    library chip reflects the trim immediately.
     final rec = session.recordingPath;
     if (rec != null) {
       try {
         final f = File(rec);
-        if (await f.exists()) total += await f.length();
+        if (await f.exists()) {
+          final raw = await f.length();
+          total += _scaleForTrim(raw);
+        }
       } catch (_) {/* ignore */}
     }
     // 2) Per-detection clips (survey, or any session that kept clips
@@ -1185,6 +1194,22 @@ class _SessionSizeChip extends StatelessWidget {
       } catch (_) {/* ignore */}
     }
     return total;
+  }
+
+  /// Scale a raw recording byte-count by the trim ratio so the displayed
+  /// size matches the trimmed extent. Returns [raw] unchanged when the
+  /// session has no trim or when the full duration is unknown.
+  int _scaleForTrim(int raw) {
+    final fullDuration = session.duration.inSeconds.toDouble();
+    if (fullDuration <= 0) return raw;
+    final start = session.trimStartSec ?? 0.0;
+    final end = session.trimEndSec ?? fullDuration;
+    final clipped = (end - start).clamp(0.0, fullDuration);
+    if (clipped >= fullDuration) return raw;
+    // PCM WAV size scales linearly with sample count; the 44-byte header
+    // is negligible compared to the audio payload, so a simple ratio is
+    // accurate enough for a UI chip.
+    return (raw * (clipped / fullDuration)).round();
   }
 
   String _format(int bytes) {
