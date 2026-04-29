@@ -57,6 +57,7 @@ jobs:
           cp -R prepared-assets/assets/species_images assets/species_images
           cp prepared-assets/assets/models/taxonomy.csv assets/models/taxonomy.csv
 
+
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
@@ -82,7 +83,6 @@ jobs:
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
 
       - name: Create Android key.properties
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' && secrets.ANDROID_STORE_PASSWORD != '' && secrets.ANDROID_KEY_ALIAS != '' && secrets.ANDROID_KEY_PASSWORD != '' }}
         shell: bash
         run: |
           cat > android/key.properties <<EOF
@@ -91,6 +91,16 @@ jobs:
           keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
           keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
           EOF
+
+      - name: Resolve app version metadata
+        shell: bash
+        run: |
+          PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //')
+          PUBSPEC_VERSION_NAME=${PUBSPEC_VERSION%%+*}
+          PUBSPEC_BUILD_NUMBER=${PUBSPEC_VERSION#*+}
+
+          echo "APP_VERSION=$APP_VERSION" >> "$GITHUB_ENV"
+          echo "APP_BUILD_NUMBER=$APP_BUILD_NUMBER" >> "$GITHUB_ENV"
 
       - name: Build release APK
         run: flutter build apk --release
@@ -101,67 +111,14 @@ jobs:
           mv build/app/outputs/flutter-apk/app-release.apk \
              build/app/outputs/flutter-apk/BirdNET_Live_v${{ env.APP_VERSION }}.apk
 
-      - name: Upload Android artifact
-        uses: actions/upload-artifact@v4
+      - name: Attach APK to GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: android-apk
-          path: build/app/outputs/flutter-apk/BirdNET_Live_v${{ env.APP_VERSION }}.apk
-          if-no-files-found: error
+          files: build/app/outputs/flutter-apk/BirdNET_Live_v${{ env.APP_VERSION }}.apk
 
       - name: Clean up Android signing files
         if: always()
         shell: bash
         run: |
           rm -f android/key.properties android/app/upload-keystore.jks
-
-  build_ios:
-    name: Build iOS App (No Codesign)
-    runs-on: macos-latest
-    needs: prepare_assets
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Download prepared species assets
-        uses: actions/download-artifact@v4
-        with:
-          name: prepared-species-assets
-          path: prepared-assets
-
-      - name: Restore prepared assets into workspace
-        shell: bash
-        run: |
-          rm -rf assets/species_data assets/species_images
-          mkdir -p assets/models
-          cp -R prepared-assets/assets/species_data assets/species_data
-          cp -R prepared-assets/assets/species_images assets/species_images
-          cp prepared-assets/assets/models/taxonomy.csv assets/models/taxonomy.csv
-
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: 3.29.3
-          channel: stable
-
-      - name: Install Dart and Flutter packages
-        run: flutter pub get
-
-      - name: Generate localization files
-        run: flutter gen-l10n
-
-
-      - name: Build iOS app (no code signing)
-        run: flutter build ios --release --no-codesign
-
-      - name: Archive Runner.app
-        shell: bash
-        run: |
-          cd build/ios/iphoneos
-          zip -r Runner.app.zip Runner.app
-
-      - name: Upload iOS artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ios-runner-app
-          path: build/ios/iphoneos/Runner.app.zip
-          if-no-files-found: error
-
+          
