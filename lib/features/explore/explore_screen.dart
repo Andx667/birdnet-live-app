@@ -171,28 +171,35 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                       _ExploreSheetChoiceChips<_DetectionFilter>(
                         current: _detectionFilter,
                         options: [
-                          (_DetectionFilter.all,
-                              l10n.exploreDetectionFilterAll),
-                          (_DetectionFilter.detected,
-                              l10n.exploreDetectionFilterDetected),
-                          (_DetectionFilter.undetected,
-                              l10n.exploreDetectionFilterUndetected),
+                          (
+                            _DetectionFilter.all,
+                            l10n.exploreDetectionFilterAll
+                          ),
+                          (
+                            _DetectionFilter.detected,
+                            l10n.exploreDetectionFilterDetected
+                          ),
+                          (
+                            _DetectionFilter.undetected,
+                            l10n.exploreDetectionFilterUndetected
+                          ),
                         ],
-                        onSelected: (m) =>
-                            update(() => _detectionFilter = m),
+                        onSelected: (m) => update(() => _detectionFilter = m),
                       ),
                       const SizedBox(height: 16),
                       _ExploreSheetHeader(label: l10n.exploreFilterTooltip),
                       _ExploreSheetMultiChips<_TaxonGroup>(
                         current: _groups,
                         options: [
-                          for (final g in _TaxonGroup.values) (g, g.label(l10n)),
+                          for (final g in _TaxonGroup.values)
+                            (g, g.label(l10n)),
                         ],
                         onToggle: (g) => update(() {
                           if (!_groups.add(g)) _groups.remove(g);
                         }),
-                        onClear:
-                            _groups.isEmpty ? null : () => update(_groups.clear),
+                        onClear: _groups.isEmpty
+                            ? null
+                            : () => update(_groups.clear),
                         clearLabel: l10n.exploreFilterAll,
                       ),
                     ],
@@ -497,11 +504,11 @@ class _GeoList extends ConsumerWidget {
       case _SortMode.geo:
         filtered.sort((a, b) => b.geoScore.compareTo(a.geoScore));
       case _SortMode.nameAsc:
-        filtered.sort(
-            (a, b) => a.commonName.toLowerCase().compareTo(b.commonName.toLowerCase()));
+        filtered.sort((a, b) =>
+            a.commonName.toLowerCase().compareTo(b.commonName.toLowerCase()));
       case _SortMode.nameDesc:
-        filtered.sort(
-            (a, b) => b.commonName.toLowerCase().compareTo(a.commonName.toLowerCase()));
+        filtered.sort((a, b) =>
+            b.commonName.toLowerCase().compareTo(a.commonName.toLowerCase()));
     }
 
     if (filtered.isEmpty) {

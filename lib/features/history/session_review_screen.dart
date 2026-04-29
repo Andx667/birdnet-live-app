@@ -939,14 +939,14 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
       }
       // Fully inside → keep as-is to preserve the original endTimestamp
       // (including its null-ness for legacy / manual records).
-      if (!detStart.isBefore(trimStartWall) &&
-          !detEnd.isAfter(trimEndWall)) {
+      if (!detStart.isBefore(trimStartWall) && !detEnd.isAfter(trimEndWall)) {
         clamped.add(d);
         continue;
       }
       // Partial overlap → rebuild with clamped timestamps so the
       // detection's visible extent matches the new clip.
-      final newStart = detStart.isBefore(trimStartWall) ? trimStartWall : detStart;
+      final newStart =
+          detStart.isBefore(trimStartWall) ? trimStartWall : detStart;
       final newEnd = detEnd.isAfter(trimEndWall) ? trimEndWall : detEnd;
       clamped.add(DetectionRecord(
         scientificName: d.scientificName,
