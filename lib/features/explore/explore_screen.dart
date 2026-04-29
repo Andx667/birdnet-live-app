@@ -194,12 +194,22 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                           for (final g in _TaxonGroup.values)
                             (g, g.label(l10n)),
                         ],
-                        onToggle: (g) => update(() {
+                        // Mutate the shared `_groups` set ONCE, then trigger
+                        // both rebuilds with an empty `update(() {})`.
+                        // Previously the mutation lived inside the closure
+                        // passed to `update`, so it ran twice (once for the
+                        // sheet's StatefulBuilder, once for the screen state)
+                        // and the toggle silently no-op'd: add then remove.
+                        onToggle: (g) {
                           if (!_groups.add(g)) _groups.remove(g);
-                        }),
+                          update(() {});
+                        },
                         onClear: _groups.isEmpty
                             ? null
-                            : () => update(_groups.clear),
+                            : () {
+                                _groups.clear();
+                                update(() {});
+                              },
                         clearLabel: l10n.exploreFilterAll,
                       ),
                     ],

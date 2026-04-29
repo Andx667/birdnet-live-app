@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.2] - 2026-04-30
+
+### Fixed
+
+- **Explore taxonomic group filter (Birds / Mammals / Amphibians / Insects) was a silent no-op.** The chips in the combined sort & filter bottom sheet appeared to do nothing when toggled. Root cause was a closure-reuse bug in the sheet's local `update(fn)` helper, which invoked the same mutation closure twice (once on the sheet's `setState` and once on the host screen's `setState`) — for a toggle pattern like `if (!_groups.add(g)) _groups.remove(g)`, the first call added the value and the second immediately removed it, leaving the set unchanged. The toggle and clear actions now mutate the set exactly once and trigger both rebuilds via an empty `update(() {})` call.
+
+### Changed
+
+- **Onboarding screens — better screen-space distribution.** The 5-page first-run wizard now follows established onboarding-UX patterns instead of stretching content edge-to-edge:
+  - **Reading width is capped at 520 dp** on every page via `ContentWidthConstraint`, so paragraphs stay scannable on tablets and in landscape rather than spanning the full screen width.
+  - **Hero icons are larger and more prominent.** The Welcome page's app icon grew from 72 → 112 dp; "How It Works", "Features", "Permissions", and "Terms" pages now use an 88 dp hero icon container (up from 44 dp) with the icon scaled proportionally.
+  - **Type scale bumped one step.** Page titles use `headlineSmall` / `headlineMedium` (was `titleLarge` / `headlineSmall`) and body copy uses `bodyLarge` with `height: 1.5` line spacing (was `bodyMedium`), making the text noticeably easier to read on phones and tablets alike.
+  - **More generous vertical rhythm** between hero, title, body, and lists; the Welcome page is vertically centered with weighted spacers so it doesn't feel top-heavy.
+  - The bottom controls bar now uses a 50 dp primary button with slightly larger page-indicator dots and is also constrained to the same reading width, so the call-to-action doesn't stretch across the full width on tablets.
+
 ## [0.8.1] - 2026-04-30
 
 ### Fixed

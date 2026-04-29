@@ -29,6 +29,24 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../shared/providers/app_providers.dart';
+import '../../shared/widgets/content_width_constraint.dart';
+
+// ---------------------------------------------------------------------------
+// Layout constants
+//
+// The onboarding flow follows the conventions seen in well-designed first-run
+// experiences (Material 3 onboarding, iOS welcome flows, Duolingo, etc.):
+//   * Content is capped at a comfortable reading width on tablets/landscape
+//     so lines of body text don't stretch edge-to-edge.
+//   * Generous vertical breathing room around hero icons and titles.
+//   * Body text is the visual anchor, not the icon — icons are accents,
+//     not the entire screen.
+// ---------------------------------------------------------------------------
+const double _kOnboardingMaxWidth = 520;
+const double _kPageHorizontalPadding = 28;
+const double _kPageTopPadding = 12;
+const double _kHeroIconSize = 64;
+const double _kHeroIconBoxSize = 88;
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -142,21 +160,26 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       body: SafeArea(
         child: Column(
           children: [
+            // Top bar: just the Skip action, right-aligned. Kept compact so
+            // the page content gets the lion's share of vertical space.
             SizedBox(
-              height: 36,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  AnimatedOpacity(
-                    duration: const Duration(milliseconds: 200),
-                    opacity: _page < _termsPageIndex ? 1 : 0,
-                    child: TextButton(
-                      onPressed: _page < _termsPageIndex ? _skipToTerms : null,
-                      child: Text(l10n.skip),
+              height: 44,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    AnimatedOpacity(
+                      duration: const Duration(milliseconds: 200),
+                      opacity: _page < _termsPageIndex ? 1 : 0,
+                      child: TextButton(
+                        onPressed:
+                            _page < _termsPageIndex ? _skipToTerms : null,
+                        child: Text(l10n.skip),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 4),
-                ],
+                  ],
+                ),
               ),
             ),
             Expanded(
@@ -244,46 +267,56 @@ class _ControlsBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Bottom controls live in their own ContentWidthConstraint so the
+    // primary action button stays a comfortable tap-target width on tablets
+    // (rather than spanning the entire screen).
     return Padding(
       padding: EdgeInsets.fromLTRB(
-        24,
-        4,
-        24,
-        8 + MediaQuery.of(context).viewPadding.bottom,
+        16,
+        12,
+        16,
+        12 + MediaQuery.of(context).viewPadding.bottom,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              for (var i = 0; i < total; i++)
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  margin: const EdgeInsets.symmetric(horizontal: 3),
-                  width: i == page ? 16 : 7,
-                  height: 7,
-                  decoration: BoxDecoration(
-                    color: i == page
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.outlineVariant,
-                    borderRadius: BorderRadius.circular(4),
+      child: ContentWidthConstraint(
+        maxWidth: _kOnboardingMaxWidth,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                for (var i = 0; i < total; i++)
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    width: i == page ? 18 : 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: i == page
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.outlineVariant,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 50,
+              child: FilledButton(
+                onPressed:
+                    isFinalPage ? (canFinish ? onFinish : null) : onNext,
+                child: Text(
+                  isFinalPage ? l10n.getStarted : l10n.next,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
                   ),
                 ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          SizedBox(
-            height: 46,
-            child: FilledButton(
-              onPressed: isFinalPage ? (canFinish ? onFinish : null) : onNext,
-              child: Text(
-                isFinalPage ? l10n.getStarted : l10n.next,
-                style: const TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -301,43 +334,56 @@ class _WelcomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: Image.asset(
-              'assets/images/app-icon.png',
-              width: 72,
-              height: 72,
-              fit: BoxFit.cover,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            l10n.onboardingWelcomeTitle,
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 12),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Text(
-                l10n.onboardingWelcomeBody,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withAlpha(210),
-                  height: 1.45,
-                ),
-                textAlign: TextAlign.center,
+    // Welcome page is visually centered — the typical pattern for the very
+    // first onboarding card. Larger app-icon hero + centered title and body,
+    // wrapped in a ContentWidthConstraint so it doesn't stretch on tablets.
+    return ContentWidthConstraint(
+      maxWidth: _kOnboardingMaxWidth,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          _kPageHorizontalPadding,
+          _kPageTopPadding,
+          _kPageHorizontalPadding,
+          16,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const Spacer(flex: 2),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(28),
+              child: Image.asset(
+                'assets/images/app-icon.png',
+                width: 112,
+                height: 112,
+                fit: BoxFit.cover,
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: 28),
+            Text(
+              l10n.onboardingWelcomeTitle,
+              style: theme.textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            Flexible(
+              flex: 5,
+              child: SingleChildScrollView(
+                child: Text(
+                  l10n.onboardingWelcomeBody,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: theme.colorScheme.onSurface.withAlpha(220),
+                    height: 1.5,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+            const Spacer(flex: 1),
+          ],
+        ),
       ),
     );
   }
@@ -362,44 +408,56 @@ class _InfoPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primaryContainer,
-              borderRadius: BorderRadius.circular(12),
+    // Generic info pages: hero icon (sized for visual weight, not just decoration),
+    // big title, comfortable body text. Capped width keeps lines readable on
+    // tablets and landscape.
+    return ContentWidthConstraint(
+      maxWidth: _kOnboardingMaxWidth,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          _kPageHorizontalPadding,
+          _kPageTopPadding,
+          _kPageHorizontalPadding,
+          16,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 16),
+            Container(
+              width: _kHeroIconBoxSize,
+              height: _kHeroIconBoxSize,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Icon(
+                icon,
+                size: _kHeroIconSize * 0.6,
+                color: theme.colorScheme.onPrimaryContainer,
+              ),
             ),
-            child: Icon(
-              icon,
-              size: 24,
-              color: theme.colorScheme.onPrimaryContainer,
+            const SizedBox(height: 24),
+            Text(
+              title,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            title,
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Text(
-                body,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withAlpha(210),
-                  height: 1.45,
+            const SizedBox(height: 14),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Text(
+                  body,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: theme.colorScheme.onSurface.withAlpha(220),
+                    height: 1.5,
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -432,69 +490,78 @@ class _PermissionsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primaryContainer,
-              borderRadius: BorderRadius.circular(12),
+    return ContentWidthConstraint(
+      maxWidth: _kOnboardingMaxWidth,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          _kPageHorizontalPadding,
+          _kPageTopPadding,
+          _kPageHorizontalPadding,
+          16,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 16),
+            Container(
+              width: _kHeroIconBoxSize,
+              height: _kHeroIconBoxSize,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Icon(
+                Icons.security_rounded,
+                size: _kHeroIconSize * 0.6,
+                color: theme.colorScheme.onPrimaryContainer,
+              ),
             ),
-            child: Icon(
-              Icons.security_rounded,
-              size: 24,
-              color: theme.colorScheme.onPrimaryContainer,
+            const SizedBox(height: 24),
+            Text(
+              l10n.onboardingPermissionsTitle,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            l10n.onboardingPermissionsTitle,
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
+            const SizedBox(height: 12),
+            Text(
+              l10n.onboardingPermissionsBody,
+              style: theme.textTheme.bodyLarge?.copyWith(
+                color: theme.colorScheme.onSurface.withAlpha(210),
+                height: 1.5,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            l10n.onboardingPermissionsBody,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withAlpha(200),
-              height: 1.4,
+            const SizedBox(height: 20),
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                    _PermissionTile(
+                    icon: Icons.mic_rounded,
+                    title: l10n.permissionMicrophoneTitle,
+                    description: l10n.permissionMicrophoneDescription,
+                    granted: micGranted,
+                    busy: requestingMic,
+                    onGrant: onRequestMic,
+                    theme: theme,
+                    l10n: l10n,
+                  ),
+                  const SizedBox(height: 14),
+                  _PermissionTile(
+                    icon: Icons.location_on_rounded,
+                    title: l10n.permissionLocationTitle,
+                    description: l10n.permissionLocationDescription,
+                    granted: locGranted,
+                    busy: requestingLoc,
+                    onGrant: onRequestLocation,
+                    theme: theme,
+                    l10n: l10n,
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 14),
-          Expanded(
-            child: ListView(
-              padding: EdgeInsets.zero,
-              children: [
-                _PermissionTile(
-                  icon: Icons.mic_rounded,
-                  title: l10n.permissionMicrophoneTitle,
-                  description: l10n.permissionMicrophoneDescription,
-                  granted: micGranted,
-                  busy: requestingMic,
-                  onGrant: onRequestMic,
-                  theme: theme,
-                  l10n: l10n,
-                ),
-                const SizedBox(height: 12),
-                _PermissionTile(
-                  icon: Icons.location_on_rounded,
-                  title: l10n.permissionLocationTitle,
-                  description: l10n.permissionLocationDescription,
-                  granted: locGranted,
-                  busy: requestingLoc,
-                  onGrant: onRequestLocation,
-                  theme: theme,
-                  l10n: l10n,
-                ),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -622,84 +689,93 @@ class _TermsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primaryContainer,
-              borderRadius: BorderRadius.circular(12),
+    return ContentWidthConstraint(
+      maxWidth: _kOnboardingMaxWidth,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          _kPageHorizontalPadding,
+          _kPageTopPadding,
+          _kPageHorizontalPadding,
+          16,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 16),
+            Container(
+              width: _kHeroIconBoxSize,
+              height: _kHeroIconBoxSize,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Icon(
+                Icons.gavel_rounded,
+                size: _kHeroIconSize * 0.6,
+                color: theme.colorScheme.onPrimaryContainer,
+              ),
             ),
-            child: Icon(
-              Icons.gavel_rounded,
-              size: 24,
-              color: theme.colorScheme.onPrimaryContainer,
+            const SizedBox(height: 24),
+            Text(
+              l10n.onboardingTermsTitle,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            l10n.onboardingTermsTitle,
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Text(
-                l10n.onboardingTermsBody,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withAlpha(210),
-                  height: 1.45,
+            const SizedBox(height: 12),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Text(
+                  l10n.onboardingTermsBody,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: theme.colorScheme.onSurface.withAlpha(220),
+                    height: 1.5,
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: 4),
-          Wrap(
-            spacing: 4,
-            children: [
-              TextButton.icon(
-                onPressed: () => _open(context, '/terms/'),
-                icon: const Icon(Icons.gavel_rounded, size: 18),
-                label: Text(l10n.onboardingTermsLink),
-              ),
-              TextButton.icon(
-                onPressed: () => _open(context, '/privacy/'),
-                icon: const Icon(Icons.privacy_tip_outlined, size: 18),
-                label: Text(l10n.onboardingPrivacyLink),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          InkWell(
-            onTap: () => onAgreedChanged(!agreed),
-            borderRadius: BorderRadius.circular(10),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Row(
-                children: [
-                  Checkbox(
-                    value: agreed,
-                    onChanged: onAgreedChanged,
-                  ),
-                  Expanded(
-                    child: Text(
-                      l10n.onboardingTermsAccept,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w500,
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 4,
+              children: [
+                TextButton.icon(
+                  onPressed: () => _open(context, '/terms/'),
+                  icon: const Icon(Icons.gavel_rounded, size: 18),
+                  label: Text(l10n.onboardingTermsLink),
+                ),
+                TextButton.icon(
+                  onPressed: () => _open(context, '/privacy/'),
+                  icon: const Icon(Icons.privacy_tip_outlined, size: 18),
+                  label: Text(l10n.onboardingPrivacyLink),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            InkWell(
+              onTap: () => onAgreedChanged(!agreed),
+              borderRadius: BorderRadius.circular(10),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Row(
+                  children: [
+                    Checkbox(
+                      value: agreed,
+                      onChanged: onAgreedChanged,
+                    ),
+                    Expanded(
+                      child: Text(
+                        l10n.onboardingTermsAccept,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
