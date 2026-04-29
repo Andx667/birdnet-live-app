@@ -1,0 +1,5 @@
+# The pack's assets directory is populated at build time by the
+# `syncOnnxModels` task in `build.gradle` from the workspace's
+# `assets/models/*.onnx`. Keep the large model files out of source control.
+src/main/assets/
+build/

@@ -25,15 +25,14 @@
 // =============================================================================
 
 import 'dart:convert';
-import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../../core/constants/app_constants.dart';
+import '../../core/services/asset_pack_service.dart';
 import '../../shared/models/taxonomy_species.dart';
 import '../../shared/providers/settings_providers.dart';
 import '../../shared/services/species_description_service.dart';
@@ -156,28 +155,19 @@ final geoModelProvider = FutureProvider<GeoModel>((ref) async {
     '${AppConstants.modelAssetsDir}/$labelsFile',
   );
 
-  // Ensure ONNX file is on disk (same pattern as the audio model).
-  // Use modelVersion from config to detect when asset has been updated.
+  // Resolve the geo-model ONNX file via the install-time asset pack
+  // (Play Store AAB) or fall back to extracting from rootBundle (sideload
+  // APK). Use modelVersion from config to detect when the asset has been
+  // updated so a fresh extraction kicks in.
   final modelVersion = geoConfig['version'] as String? ?? '0';
-  final appDir = await getApplicationDocumentsDirectory();
-  final versionedName = '${modelFile}_v$modelVersion';
-  final onnxFile = File('${appDir.path}/$versionedName');
-
-  if (!onnxFile.existsSync()) {
-    debugPrint('[geoModelProvider] extracting geo model v$modelVersion '
-        'to ${onnxFile.path}');
-    final data = await rootBundle.load(
-      '${AppConstants.modelAssetsDir}/$modelFile',
-    );
-    await onnxFile.writeAsBytes(
-      data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
-      flush: true,
-    );
-  }
+  final onnxPath = await AssetPackService.resolveModelPath(
+    fileName: modelFile,
+    version: modelVersion,
+  );
 
   final geoModel = GeoModel();
   geoModel.loadLabels(labelsText);
-  await geoModel.loadModel(onnxFile.path);
+  await geoModel.loadModel(onnxPath);
 
   debugPrint('[geoModelProvider] geo model ready '
       '(${geoModel.labels.length} species)');

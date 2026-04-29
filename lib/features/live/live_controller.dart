@@ -33,14 +33,13 @@
 
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:just_audio/just_audio.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../../core/constants/app_constants.dart';
+import '../../core/services/asset_pack_service.dart';
 import '../../core/services/memory_monitor.dart';
 import '../audio/ring_buffer.dart';
 import '../inference/inference_isolate.dart';
@@ -220,10 +219,11 @@ class LiveController {
       );
       debugPrint('[LiveController] config loaded: ${_config!.onnx.modelFile}');
 
-      // Ensure model file exists on the filesystem.
-      final modelFilePath = await _ensureModelOnDisk(
-        _config!.onnx.modelFile,
-        _config!.version,
+      // Resolve the model path: install-time asset pack (Play Store AAB)
+      // or fallback to extracting from rootBundle (sideload APK).
+      final modelFilePath = await AssetPackService.resolveModelPath(
+        fileName: _config!.onnx.modelFile,
+        version: _config!.version,
       );
       debugPrint('[LiveController] model on disk: $modelFilePath');
 
@@ -249,31 +249,6 @@ class LiveController {
     }
 
     _notifyListeners();
-  }
-
-  /// Copy the model asset to the app's documents directory if it doesn't
-  /// already exist on disk, and return the absolute file path.
-  Future<String> _ensureModelOnDisk(String fileName, String version) async {
-    final appDir = await getApplicationDocumentsDirectory();
-    final versionedName = '${fileName}_v$version';
-    final modelFile = File('${appDir.path}/$versionedName');
-
-    if (!modelFile.existsSync()) {
-      debugPrint('[LiveController] extracting model to ${modelFile.path} …');
-      final assetPath = '${AppConstants.modelAssetsDir}/$fileName';
-      final data = await rootBundle.load(assetPath);
-      await modelFile.writeAsBytes(
-        data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
-        flush: true,
-      );
-      debugPrint('[LiveController] extraction complete '
-          '(${modelFile.lengthSync()} bytes)');
-    } else {
-      debugPrint('[LiveController] model already on disk '
-          '(${modelFile.lengthSync()} bytes)');
-    }
-
-    return modelFile.path;
   }
 
   // ── Session lifecycle ─────────────────────────────────────────────────

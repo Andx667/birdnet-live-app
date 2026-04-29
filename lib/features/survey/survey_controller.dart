@@ -38,6 +38,7 @@ import 'survey_notification.dart';
 import 'survey_alert_coordinator.dart';
 
 import '../../core/constants/app_constants.dart';
+import '../../core/services/asset_pack_service.dart';
 import '../../core/services/memory_monitor.dart';
 import '../audio/ring_buffer.dart';
 import '../inference/inference_isolate.dart';
@@ -253,9 +254,11 @@ class SurveyController {
         fullConfig['audioModel'] as Map<String, dynamic>,
       );
 
-      final modelFilePath = await _ensureModelOnDisk(
-        _config!.onnx.modelFile,
-        _config!.version,
+      // Resolve via install-time asset pack (Play Store AAB) or fall
+      // back to extracting from rootBundle (sideload APK).
+      final modelFilePath = await AssetPackService.resolveModelPath(
+        fileName: _config!.onnx.modelFile,
+        version: _config!.version,
       );
 
       final labelsAssetPath =
@@ -278,23 +281,7 @@ class SurveyController {
     _notifyListeners();
   }
 
-  Future<String> _ensureModelOnDisk(String fileName, String version) async {
-    final appDir = await getApplicationDocumentsDirectory();
-    final versionedName = '${fileName}_v$version';
-    final modelFile = File('${appDir.path}/$versionedName');
-
-    if (!modelFile.existsSync()) {
-      final assetPath = '${AppConstants.modelAssetsDir}/$fileName';
-      final data = await rootBundle.load(assetPath);
-      await modelFile.writeAsBytes(
-        data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
-        flush: true,
-      );
-    }
-    return modelFile.path;
-  }
-
-  // ── Session lifecycle ───────────────────────────────────────────────────
+  // ── Session lifecycle ─────────────────────────────────────────────────
 
   /// Start a new survey session.
   Future<void> startSurvey({

@@ -35,9 +35,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
-import 'package:path_provider/path_provider.dart';
 
 import '../../core/constants/app_constants.dart';
+import '../../core/services/asset_pack_service.dart';
 import '../inference/inference_isolate.dart';
 import '../inference/model_config.dart';
 import '../inference/species_filter.dart';
@@ -193,9 +193,11 @@ class FileAnalysisController {
         fullConfig['audioModel'] as Map<String, dynamic>,
       );
 
-      final modelFilePath = await _ensureModelOnDisk(
-        _config!.onnx.modelFile,
-        _config!.version,
+      // Resolve via install-time asset pack (Play Store AAB) or fall
+      // back to extracting from rootBundle (sideload APK).
+      final modelFilePath = await AssetPackService.resolveModelPath(
+        fileName: _config!.onnx.modelFile,
+        version: _config!.version,
       );
 
       final labelsAssetPath =
@@ -216,23 +218,6 @@ class FileAnalysisController {
     }
 
     _notifyListeners();
-  }
-
-  Future<String> _ensureModelOnDisk(String fileName, String version) async {
-    final appDir = await getApplicationDocumentsDirectory();
-    final versionedName = '${fileName}_v$version';
-    final modelFile = File('${appDir.path}/$versionedName');
-
-    if (!modelFile.existsSync()) {
-      final assetPath = '${AppConstants.modelAssetsDir}/$fileName';
-      final data = await rootBundle.load(assetPath);
-      await modelFile.writeAsBytes(
-        data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
-        flush: true,
-      );
-    }
-
-    return modelFile.path;
   }
 
   // ── File inspection ───────────────────────────────────────────────────
