@@ -92,30 +92,8 @@ jobs:
           keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
           EOF
 
-      - name: Resolve app version metadata
-        shell: bash
-        run: |
-          PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //')
-          PUBSPEC_VERSION_NAME=${PUBSPEC_VERSION%%+*}
-          PUBSPEC_BUILD_NUMBER=${PUBSPEC_VERSION#*+}
-
-          if [[ "${{ github.event_name }}" == "release" && "${{ github.event.release.tag_name }}" =~ ^v?([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
-            APP_VERSION="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.${BASH_REMATCH[3]}"
-            APP_BUILD_NUMBER="${BASH_REMATCH[3]}"
-          else
-            APP_VERSION="$PUBSPEC_VERSION_NAME"
-            if [[ "$PUBSPEC_VERSION" == *+* ]]; then
-              APP_BUILD_NUMBER="$PUBSPEC_BUILD_NUMBER"
-            else
-              APP_BUILD_NUMBER="${PUBSPEC_VERSION_NAME##*.}"
-            fi
-          fi
-
-          echo "APP_VERSION=$APP_VERSION" >> "$GITHUB_ENV"
-          echo "APP_BUILD_NUMBER=$APP_BUILD_NUMBER" >> "$GITHUB_ENV"
-
       - name: Build release APK
-        run: flutter build apk --release --build-name=${{ env.APP_VERSION }} --build-number=${{ env.APP_BUILD_NUMBER }}
+        run: flutter build apk --release
 
       - name: Rename APK with version
         shell: bash
@@ -170,30 +148,9 @@ jobs:
       - name: Generate localization files
         run: flutter gen-l10n
 
-      - name: Resolve app version metadata
-        shell: bash
-        run: |
-          PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //')
-          PUBSPEC_VERSION_NAME=${PUBSPEC_VERSION%%+*}
-          PUBSPEC_BUILD_NUMBER=${PUBSPEC_VERSION#*+}
-
-          if [[ "${{ github.event_name }}" == "release" && "${{ github.event.release.tag_name }}" =~ ^v?([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
-            APP_VERSION="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.${BASH_REMATCH[3]}"
-            APP_BUILD_NUMBER="${BASH_REMATCH[3]}"
-          else
-            APP_VERSION="$PUBSPEC_VERSION_NAME"
-            if [[ "$PUBSPEC_VERSION" == *+* ]]; then
-              APP_BUILD_NUMBER="$PUBSPEC_BUILD_NUMBER"
-            else
-              APP_BUILD_NUMBER="${PUBSPEC_VERSION_NAME##*.}"
-            fi
-          fi
-
-          echo "APP_VERSION=$APP_VERSION" >> "$GITHUB_ENV"
-          echo "APP_BUILD_NUMBER=$APP_BUILD_NUMBER" >> "$GITHUB_ENV"
 
       - name: Build iOS app (no code signing)
-        run: flutter build ios --release --no-codesign --build-name=${{ env.APP_VERSION }} --build-number=${{ env.APP_BUILD_NUMBER }}
+        run: flutter build ios --release --no-codesign
 
       - name: Archive Runner.app
         shell: bash
