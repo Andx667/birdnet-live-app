@@ -1528,6 +1528,10 @@
   "@surveyManualGpsWarning": {
     "description": "Warning about manual GPS mode limitations"
   },
+  "surveyBackgroundGpsNotice": "During the survey, your GPS location is tracked in the background to map species detections along your path. No location data is shared — everything stays on your device.",
+  "@surveyBackgroundGpsNotice": {
+    "description": "Privacy notice shown when GPS mode is selected and background location permission has been granted"
+  },
   "surveyLatitude": "Latitude",
   "@surveyLatitude": {
     "description": "Latitude label"

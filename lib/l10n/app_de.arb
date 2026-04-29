@@ -390,6 +390,7 @@
   "surveyLocationSkip": "Überspringen",
   "surveyLocationUnavailable": "Standortberechtigung nicht erteilt",
   "surveyManualGpsWarning": "Im manuellen Modus wird GPS nur beim Öffnen der App erfasst. Detektionsstandorte werden zwischen den GPS-Messungen interpoliert.",
+  "surveyBackgroundGpsNotice": "Während der Erfassung wird dein GPS-Standort im Hintergrund verfolgt, um Artnachweise entlang deiner Route zu kartieren. Es werden keine Standortdaten geteilt – alles bleibt auf deinem Gerät.",
   "surveyLatitude": "Breitengrad",
   "surveyLongitude": "Längengrad",
   "surveyPickOnMap": "Auf Karte wählen",

@@ -390,6 +390,7 @@
   "surveyLocationSkip": "Omitir",
   "surveyLocationUnavailable": "Permiso de ubicación no concedido",
   "surveyManualGpsWarning": "En modo manual, el GPS solo se obtiene al abrir la aplicación. Las ubicaciones de detección se interpolan entre las lecturas GPS.",
+  "surveyBackgroundGpsNotice": "Durante el muestreo, tu ubicación GPS se rastrea en segundo plano para mapear las detecciones de especies a lo largo de tu recorrido. No se comparten datos de ubicación: todo permanece en tu dispositivo.",
   "surveyLatitude": "Latitud",
   "surveyLongitude": "Longitud",
   "surveyPickOnMap": "Elegir en el mapa",

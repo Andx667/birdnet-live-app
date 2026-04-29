@@ -488,6 +488,37 @@ class _DetailsStep extends StatelessWidget {
               ),
             ),
           ],
+          if (hasBackgroundGps) ...[
+            const SizedBox(height: 8),
+            // Green privacy notice — Play Store-required disclosure that
+            // the app tracks GPS in the background during a survey, paired
+            // with an on-device-only reassurance. Only shown in GPS mode
+            // and only after the background-location permission has been
+            // granted.
+            Card(
+              color: const Color(0xFFD7F0DA),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.lock_outline,
+                      color: Color(0xFF1B5E20),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        l10n.surveyBackgroundGpsNotice,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: const Color(0xFF1B5E20),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ],
 
         if (locationChoice == _LocationChoice.manual) ...[

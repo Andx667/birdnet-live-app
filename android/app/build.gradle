@@ -22,6 +22,22 @@ android {
         noCompress 'onnx'
     }
 
+    // ── 16 KB memory page size support ────────────────────────────────
+    //
+    // Required by Google Play for apps targeting Android 15+ devices that
+    // boot with 16 KB pages (current and future ARM64 hardware). When
+    // native libraries are packaged COMPRESSED, the loader has to copy
+    // them into RAM and the page-size constraint doesn't apply — but the
+    // resulting app can't be memory-mapped efficiently. Setting
+    // `useLegacyPackaging = false` keeps .so files uncompressed inside
+    // the APK/AAB; combined with AGP 8.5.1+'s 16 KB ELF alignment, the
+    // bundle satisfies the Play Console "16 KB page size" requirement.
+    packaging {
+        jniLibs {
+            useLegacyPackaging = false
+        }
+    }
+
     compileOptions {
         coreLibraryDesugaringEnabled true
         sourceCompatibility = JavaVersion.VERSION_1_8

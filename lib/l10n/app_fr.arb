@@ -390,6 +390,7 @@
   "surveyLocationSkip": "Passer",
   "surveyLocationUnavailable": "Autorisation de localisation non accordée",
   "surveyManualGpsWarning": "En mode manuel, le GPS n'est relevé qu'à l'ouverture de l'application. Les positions des détections sont interpolées entre les relevés GPS.",
+  "surveyBackgroundGpsNotice": "Pendant le relevé, votre position GPS est suivie en arrière-plan afin de cartographier les détections d'espèces le long de votre parcours. Aucune donnée de localisation n'est partagée — tout reste sur votre appareil.",
   "surveyLatitude": "Latitude",
   "surveyLongitude": "Longitude",
   "surveyPickOnMap": "Choisir sur la carte",
