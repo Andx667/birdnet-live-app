@@ -42,7 +42,7 @@ You are responsible for:
 You must NOT use the Software, its models, or any derivative:
 1. For POACHING, wildlife tracking intended to facilitate illegal capture, harm, trade, or exploitation of species.
 2. For ANY MILITARY purpose, including surveillance, targeting, or integration into defense systems.
-3. To Re-release, redistribute, or publish the Software — or any derivative — under the same app name ("BirdNET Live"), package name (`de.tu_chemnitz.mi.kahst.birdnet_live` / `com.birdnet.birdnetLive`), or branding without explicit written permission from the maintainers.
+3. Re-release, redistribute, or publish the Software — or any derivative — under the same app name ("BirdNET Live"), package name (`de.tu_chemnitz.mi.kahst.birdnet_live` / `com.birdnet.birdnetLive`), or branding without explicit written permission from the maintainers.
 
 If you cannot comply, do not use the Software.
 
