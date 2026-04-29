@@ -73,9 +73,9 @@ jobs:
         run: |
           rm -rf assets/species_data assets/species_images
           mkdir -p assets/models
-          cp -R prepared-assets/assets/species_data assets/species_data
-          cp -R prepared-assets/assets/species_images assets/species_images
-          cp prepared-assets/assets/models/taxonomy.csv assets/models/taxonomy.csv
+          cp -R prepared-assets/species_data assets/species_data
+          cp -R prepared-assets/species_images assets/species_images
+          cp prepared-assets/models/taxonomy.csv assets/models/taxonomy.csv
 
 
       - name: Set up Java
