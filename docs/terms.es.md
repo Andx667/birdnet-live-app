@@ -16,6 +16,7 @@ El usuario asume la responsabilidad del cumplimiento normativo y ético de conse
 Usted NO debe usar el Software para:
 1. **CAZA FURTIVA** o explotación ilegal de la fauna.
 2. **PROPÓSITOS MILITARES** de ninguna índole.
+3. Reeditar, redistribuir o publicar el Software — o cualquier derivado — bajo el mismo nombre de la app ("BirdNET Live"), nombre de paquete (`de.tu_chemnitz.mi.kahst.birdnet_live` / `com.birdnet.birdnetLive`) o marca sin permiso escrito explícito de los mantenedores.
 
 ## 6. Reconocimiento y Limitación de Responsabilidad
 Se debe citar debidamente ("Powered by BirdNET") y las instituciones colaboradoras no asumen responsabilidad de daños.

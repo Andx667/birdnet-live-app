@@ -46,6 +46,7 @@ Sie dürfen die Software, ihre Modelle oder Ableitungen daraus unter keinen Umst
 
 1. Für **WILDEREI**, die Verfolgung von Wildtieren in der Absicht illegalen Fangs, Schadens, Handels oder der Ausbeutung von Arten zu unterstützen.
 2. Für **JEGLICHEN MILITÄRISCHEN** Zweck, einschließlich Überwachung, Zielerfassung oder Integration in Verteidigungssysteme.
+3. Die Software – oder ein Ableitungswerk – unter demselben App-Namen ("BirdNET Live"), Paketnamen (`de.tu_chemnitz.mi.kahst.birdnet_live` / `com.birdnet.birdnetLive`) oder Branding ohne ausdrückliche schriftliche Genehmigung der Maintainer wiederzuveröffentlichen, weiterzugeben oder zu verbreiten.
 
 Wenn Sie diesen Bedingungen nicht entsprechen können, dürfen Sie die Software nicht nutzen.
 

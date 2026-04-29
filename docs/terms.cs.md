@@ -21,6 +21,7 @@ Zodpovídáte za legálnost zvuku, uvědomění si chyb modelů a dodržování 
 Software NESMÍTE použít pro:
 1. **PYTLÁCTVÍ** (škody, odchyt, lov).
 2. **VOJENSKÉ ÚČELY**.
+3. Opětovné vydání, redistribuci nebo šíření softwaru – nebo jakéhokoli odvozeného díla – pod stejným názvem aplikace ("BirdNET Live"), názvem balíčku (`de.tu_chemnitz.mi.kahst.birdnet_live` / `com.birdnet.birdnetLive`) nebo brandingem bez výslovného písemného souhlasu správců.
 
 ## 6. Uvedení zdroje
 Použití modelů publikacích musí být řádně ocitováno ("Powered by BirdNET").
