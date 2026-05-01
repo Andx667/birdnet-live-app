@@ -55,9 +55,12 @@ enum CaptureState {
 /// UI level metering and an [onWindowReady] callback for downstream
 /// consumers (inference, spectrogram).
 class AudioCaptureService {
-  AudioCaptureService({
-    RingBuffer? ringBuffer,
-  }) : _ringBuffer = ringBuffer ?? RingBuffer();
+  AudioCaptureService({RingBuffer? ringBuffer})
+    : _ringBuffer = ringBuffer ?? RingBuffer() {
+    _watchdogTimer = Timer.periodic(const Duration(seconds: 2), (_) {
+      _checkWatchdog();
+    });
+  }
 
   // ---------------------------------------------------------------------------
   // Dependencies
@@ -99,6 +102,43 @@ class AudioCaptureService {
 
   StreamSubscription<Uint8List>? _streamSub;
   Timer? _levelTimer;
+  Timer? _watchdogTimer;
+
+  bool _shouldBeCapturing = false;
+  String? _currentDeviceId;
+  DateTime _lastDataTime = DateTime.now();
+
+  bool _isRestarting = false;
+
+  void _checkWatchdog() {
+    if (!_shouldBeCapturing || _isRestarting) return;
+
+    final isStalled =
+        _state == CaptureState.capturing &&
+        DateTime.now().difference(_lastDataTime) > const Duration(seconds: 2);
+    final isFailed =
+        _state == CaptureState.error || _state == CaptureState.stopped;
+
+    if (isFailed || isStalled) {
+      debugPrint(
+        'Watchdog: Audio stream stall/failure detected (stalled: $isStalled, failed: $isFailed). Restarting...',
+      );
+      _restart();
+    }
+  }
+
+  Future<void> _restart() async {
+    if (_isRestarting) return;
+    _isRestarting = true;
+    try {
+      await stop();
+      _shouldBeCapturing = true; // stop sets this to false
+      await start(deviceId: _currentDeviceId);
+    } catch (_) {
+    } finally {
+      _isRestarting = false;
+    }
+  }
 
   // ---------------------------------------------------------------------------
   // Device enumeration
@@ -122,6 +162,10 @@ class AudioCaptureService {
   ///
   /// [deviceId] — optional specific input device.
   Future<void> start({String? deviceId}) async {
+    _shouldBeCapturing = true;
+    _currentDeviceId = deviceId;
+    _lastDataTime = DateTime.now();
+
     if (_state == CaptureState.capturing) return;
 
     try {
@@ -169,6 +213,8 @@ class AudioCaptureService {
 
   /// Stop capturing audio.
   Future<void> stop() async {
+    _shouldBeCapturing = false;
+
     _levelTimer?.cancel();
     _levelTimer = null;
 
@@ -187,6 +233,7 @@ class AudioCaptureService {
 
   /// Release all resources.  Call when the service is no longer needed.
   Future<void> dispose() async {
+    _watchdogTimer?.cancel();
     await stop();
     await _levelController.close();
     await _dataController.close();
@@ -201,6 +248,8 @@ class AudioCaptureService {
 
   /// Process incoming PCM16 audio data.
   void _onAudioData(Uint8List bytes) {
+    _lastDataTime = DateTime.now();
+
     // Convert signed 16-bit PCM (little-endian) → float32 [-1.0, 1.0].
     final samples = _pcm16ToFloat32(bytes);
     _ringBuffer.write(samples);
@@ -208,9 +257,11 @@ class AudioCaptureService {
 
     _audioChunkCount++;
     if (_audioChunkCount % 50 == 1) {
-      debugPrint('[AudioCapture] chunk #$_audioChunkCount: '
-          '${samples.length} samples, '
-          'totalWritten=${_ringBuffer.totalWritten}');
+      debugPrint(
+        '[AudioCapture] chunk #$_audioChunkCount: '
+        '${samples.length} samples, '
+        'totalWritten=${_ringBuffer.totalWritten}',
+      );
     }
   }
 

@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.1] - 2026-05-01
+
+### Added
+
+- **CI/CD Workflow Improvements.** Added build workflow, including manual triggers, non-fatal info reporting, and specifying the `l10n` output path to improve CI stability.
+
+### Changed
+
+- **Survey map species filter floor lowered.** The minimum confidence slider in the fullscreen survey trace map now starts at 10% instead of 50%. The map again renders all detections by default when set to "All species".
+- **Compact session review header.** Survey track ID is now displayed on the same row as distance and observer name to free up vertical screen space.
+- Unspecified Flutter version constraints to improve compatibility and updated Gradle configurations.
+
+### Fixed
+
+- **Audio recording freezes.** Implemented a watchdog timer to detect audio stream stalls (e.g., when an external app takes microphone focus on Android) and automatically restarts the microphone, fixing silent audio and spectrogram freezes (fixes #29).
+- **Species filter hidden by keyboard.** The fullscreen survey map filter sheet now safely pads itself from the bottom so the search bar and species suggestions are not concealed by the on-screen keyboard.
+- Various build and CI fixes including Android signing config guard for release builds, GitHub actions paths, secrets checks, and deprecated API usages.
+- Radio buttons fix and test configuration refactoring.
+
 ## [0.9.0] - 2026-04-29
 
 ### Changed

@@ -31,10 +31,11 @@ The fullscreen map's app bar has a :material-filter-list-outlined: **filter** bu
 
 - **All detections** (default).
 - **With audio clip** — only detections whose clip is still on disk and playable.
-- **High confidence** — only detections at or above 80 % confidence.
 - **Manual additions** — only detections you added in Session Review (excludes auto-detected ones).
 
-Below the mode picker is a **Limit to species** picker that lets you collapse the map to a single species — useful for asking "where exactly along the route did I hear the wood thrush?". An *All species* entry clears the species restriction. The two filters combine: e.g. *With audio clip* + *Wood Thrush* shows only the playable Wood Thrush markers.
+You can also restrict the detections by confidence level. The slider configures the confidence floor (starts at 10%).
+
+Below the confidence slider is a **Limit to species** picker that lets you collapse the map to a single species — useful for asking "where exactly along the route did I hear the wood thrush?". An *All species* entry clears the species restriction. The filters combine: e.g. *With audio clip* + *Wood Thrush* + *> 80%* shows only the playable Wood Thrush markers that scored above 80%.
 
 When a filter is active, the app-bar title gains a match-count subtitle (e.g. *"7 detections"*) and the filter button shows a small dot. *Reset* in the sheet returns to the default.
 
