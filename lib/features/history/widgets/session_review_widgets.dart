@@ -37,8 +37,8 @@ class _DetectionCluster {
 
   /// Whether any record in this cluster has an existing audio clip file.
   bool get hasAudioClip => records.any(
-        (r) => r.audioClipPath != null && File(r.audioClipPath!).existsSync(),
-      );
+    (r) => r.audioClipPath != null && File(r.audioClipPath!).existsSync(),
+  );
 }
 
 /// All detections of one species, subdivided into time-span clusters.
@@ -130,8 +130,11 @@ class _SummaryHeader extends StatelessWidget {
               borderRadius: BorderRadius.circular(4),
               child: Row(
                 children: [
-                  Icon(Icons.location_on_outlined,
-                      size: 18, color: theme.colorScheme.primary),
+                  Icon(
+                    Icons.location_on_outlined,
+                    size: 18,
+                    color: theme.colorScheme.primary,
+                  ),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
@@ -145,18 +148,22 @@ class _SummaryHeader extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  Icon(Icons.map_outlined,
-                      size: 18,
-                      color: theme.colorScheme.primary.withAlpha(178)),
+                  Icon(
+                    Icons.map_outlined,
+                    size: 18,
+                    color: theme.colorScheme.primary.withAlpha(178),
+                  ),
                 ],
               ),
             )
           else
             Row(
               children: [
-                Icon(Icons.location_off_outlined,
-                    size: 18,
-                    color: theme.colorScheme.onSurface.withAlpha(120)),
+                Icon(
+                  Icons.location_off_outlined,
+                  size: 18,
+                  color: theme.colorScheme.onSurface.withAlpha(120),
+                ),
                 const SizedBox(width: 4),
                 Text(
                   l10n.sessionNoLocation,
@@ -181,9 +188,10 @@ class _SummaryHeader extends StatelessWidget {
                       session.distanceMeters! > 0) ...[
                     StatChip(
                       icon: Icons.straighten_outlined,
-                      value: session.distanceMeters! >= 1000
-                          ? '${(session.distanceMeters! / 1000).toStringAsFixed(1)} km'
-                          : '${session.distanceMeters!.round()} m',
+                      value:
+                          session.distanceMeters! >= 1000
+                              ? '${(session.distanceMeters! / 1000).toStringAsFixed(1)} km'
+                              : '${session.distanceMeters!.round()} m',
                     ),
                     const SizedBox(width: 16),
                   ],
@@ -388,15 +396,16 @@ class _SpectrogramStripState extends State<_SpectrogramStrip>
       return Container(
         height: 150,
         color: Colors.black,
-        child: widget.decoding
-            ? const Center(
-                child: SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              )
-            : null,
+        child:
+            widget.decoding
+                ? const Center(
+                  child: SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                )
+                : null,
       );
     }
 
@@ -426,8 +435,10 @@ class _SpectrogramStripState extends State<_SpectrogramStrip>
     final startSec = _viewCenterSec - viewSeconds / 2;
     final fraction = details.localPosition.dx / box.size.width;
     final targetSec = startSec + fraction * viewSeconds;
-    final clampedMs =
-        (targetSec * 1000).round().clamp(0, widget.duration.inMilliseconds);
+    final clampedMs = (targetSec * 1000).round().clamp(
+      0,
+      widget.duration.inMilliseconds,
+    );
     widget.onSeek(Duration(milliseconds: clampedMs));
     setState(() => _pannedCenterSec = null);
   }
@@ -495,9 +506,10 @@ class _ReviewSpectrogramPainter extends CustomPainter {
 
     // Destination x: offset when the view extends before/after the image.
     final dstX1 = startSec < 0 ? (-startSec / _viewSeconds * size.width) : 0.0;
-    final dstX2 = endSec > durationSec
-        ? size.width - ((endSec - durationSec) / _viewSeconds * size.width)
-        : size.width;
+    final dstX2 =
+        endSec > durationSec
+            ? size.width - ((endSec - durationSec) / _viewSeconds * size.width)
+            : size.width;
 
     if (srcX2 > srcX1 && dstX2 > dstX1) {
       canvas.drawImageRect(
@@ -560,10 +572,7 @@ class _ReviewSpectrogramPainter extends CustomPainter {
 
 /// Semi-transparent play/pause button overlaid on the spectrogram strip.
 class _PlayPauseButton extends StatelessWidget {
-  const _PlayPauseButton({
-    required this.isPlaying,
-    required this.onToggle,
-  });
+  const _PlayPauseButton({required this.isPlaying, required this.onToggle});
 
   final bool isPlaying;
   final VoidCallback onToggle;
@@ -659,7 +668,8 @@ class _SpeciesTile extends ConsumerWidget {
     final taxonomyAsync = ref.watch(taxonomyServiceProvider);
     final showSciNames = ref.watch(showSciNamesProvider);
 
-    final displayName = taxonomyAsync.valueOrNull
+    final displayName =
+        taxonomyAsync.valueOrNull
             ?.lookup(group.scientificName)
             ?.commonNameForLocale(speciesLocale) ??
         group.commonName;
@@ -668,7 +678,8 @@ class _SpeciesTile extends ConsumerWidget {
     // session start) so that the spectrogram playhead, the player
     // position, and the detection labels all share the same time axis
     // after the audio has been cropped.
-    final offset = group.firstTimestamp.difference(sessionStart) -
+    final offset =
+        group.firstTimestamp.difference(sessionStart) -
         Duration(microseconds: (clipOffsetSec * 1e6).round());
     final offsetStr = _fmtOffset(offset);
 
@@ -676,17 +687,16 @@ class _SpeciesTile extends ConsumerWidget {
       duration: const Duration(milliseconds: 400),
       curve: Curves.easeInOut,
       decoration: BoxDecoration(
-        color: isActive
-            ? theme.colorScheme.primaryContainer.withAlpha(90)
-            : Colors.transparent,
-        border: isActive
-            ? Border(
-                left: BorderSide(
-                  color: theme.colorScheme.primary,
-                  width: 3,
-                ),
-              )
-            : null,
+        color:
+            isActive
+                ? theme.colorScheme.primaryContainer.withAlpha(90)
+                : Colors.transparent,
+        border:
+            isActive
+                ? Border(
+                  left: BorderSide(color: theme.colorScheme.primary, width: 3),
+                )
+                : null,
       ),
       child: Column(
         children: [
@@ -704,9 +714,11 @@ class _SpeciesTile extends ConsumerWidget {
                   // pause control so users can cancel playback.
                   if (audioAvailable || group.clusters.first.hasAudioClip)
                     InkWell(
-                      onTap: () => isActive && onPause != null
-                          ? onPause!()
-                          : onSeekCluster(group.clusters.first),
+                      onTap:
+                          () =>
+                              isActive && onPause != null
+                                  ? onPause!()
+                                  : onSeekCluster(group.clusters.first),
                       borderRadius: BorderRadius.circular(16),
                       child: Container(
                         width: 48,
@@ -760,14 +772,16 @@ class _SpeciesTile extends ConsumerWidget {
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(6),
                         child: Image.asset(
-                          taxonomyAsync.valueOrNull
-                                  ?.assetImagePath(group.scientificName) ??
+                          taxonomyAsync.valueOrNull?.assetImagePath(
+                                group.scientificName,
+                              ) ??
                               'assets/images/dummy_species.png',
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Image.asset(
-                            'assets/images/dummy_species.png',
-                            fit: BoxFit.cover,
-                          ),
+                          errorBuilder:
+                              (_, __, ___) => Image.asset(
+                                'assets/images/dummy_species.png',
+                                fit: BoxFit.cover,
+                              ),
                         ),
                       ),
                     ),
@@ -881,16 +895,18 @@ class _SpeciesTile extends ConsumerWidget {
                       onReplace: () => onReplaceCluster(cluster),
                       isSurvey: isSurvey,
                       audioAvailable: audioAvailable,
-                      onShowOnMap: onShowOnMap != null
-                          ? () => onShowOnMap!(cluster.records.first)
-                          : null,
+                      onShowOnMap:
+                          onShowOnMap != null
+                              ? () => onShowOnMap!(cluster.records.first)
+                              : null,
                     ),
                 ],
               ),
             ),
-            crossFadeState: isExpanded
-                ? CrossFadeState.showSecond
-                : CrossFadeState.showFirst,
+            crossFadeState:
+                isExpanded
+                    ? CrossFadeState.showSecond
+                    : CrossFadeState.showFirst,
             duration: const Duration(milliseconds: 200),
           ),
 
@@ -924,13 +940,14 @@ class _SpeciesTile extends ConsumerWidget {
     for (final r in cluster.records) {
       final startSec =
           r.timestamp.difference(sessionStart).inMicroseconds / 1e6 -
-              clipOffsetSec;
+          clipOffsetSec;
       // Use the recorded end of continuous detection when available;
       // otherwise fall back to a single inference window.
-      final endSec = r.endTimestamp != null
-          ? r.endTimestamp!.difference(sessionStart).inMicroseconds / 1e6 -
-              clipOffsetSec
-          : startSec + windowSec;
+      final endSec =
+          r.endTimestamp != null
+              ? r.endTimestamp!.difference(sessionStart).inMicroseconds / 1e6 -
+                  clipOffsetSec
+              : startSec + windowSec;
       if (pos >= startSec && pos <= endSec) return true;
     }
     return false;
@@ -988,7 +1005,8 @@ class _ClusterRow extends StatelessWidget {
     // last record's analysis-window end when [endTimestamp] is missing
     // (legacy sessions or in-progress records).
     final lastRecord = cluster.records.last;
-    final lastEnd = lastRecord.endTimestamp ??
+    final lastEnd =
+        lastRecord.endTimestamp ??
         lastRecord.timestamp.add(Duration(seconds: windowSec));
     final end = lastEnd.difference(sessionStart) - clipOffsetDur;
     // Always show the full span (start – end) so users can see the
@@ -1003,9 +1021,10 @@ class _ClusterRow extends StatelessWidget {
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
       decoration: BoxDecoration(
-        color: isActive
-            ? theme.colorScheme.primary.withAlpha(28)
-            : Colors.transparent,
+        color:
+            isActive
+                ? theme.colorScheme.primary.withAlpha(28)
+                : Colors.transparent,
         borderRadius: BorderRadius.circular(8),
       ),
       margin: const EdgeInsets.symmetric(vertical: 1, horizontal: 4),
@@ -1037,9 +1056,10 @@ class _ClusterRow extends StatelessWidget {
               child: Text(
                 timeStr,
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: isActive
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.onSurface.withAlpha(180),
+                  color:
+                      isActive
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.onSurface.withAlpha(180),
                   fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
                 ),
               ),
@@ -1248,9 +1268,11 @@ class _AddSpeciesOverlayState extends ConsumerState<_AddSpeciesOverlay> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isLockedReplace
-            ? l10n.sessionReplaceDetection
-            : l10n.sessionAddSpecies),
+        title: Text(
+          _isLockedReplace
+              ? l10n.sessionReplaceDetection
+              : l10n.sessionAddSpecies,
+        ),
         leading: IconButton(
           icon: const Icon(Icons.close),
           tooltip: l10n.tooltipClose,
@@ -1305,16 +1327,17 @@ class _AddSpeciesOverlayState extends ConsumerState<_AddSpeciesOverlay> {
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        tooltip: l10n.tooltipClearSearch,
-                        onPressed: () {
-                          _searchController.clear();
-                          _onSearchChanged('');
-                        },
-                      )
-                    : null,
+                suffixIcon:
+                    _searchController.text.isNotEmpty
+                        ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          tooltip: l10n.tooltipClearSearch,
+                          onPressed: () {
+                            _searchController.clear();
+                            _onSearchChanged('');
+                          },
+                        )
+                        : null,
               ),
               onChanged: _onSearchChanged,
             ),
@@ -1322,32 +1345,36 @@ class _AddSpeciesOverlayState extends ConsumerState<_AddSpeciesOverlay> {
 
           // ── Results / empty state ─────────────────────────
           Expanded(
-            child: _searchController.text.trim().isEmpty
-                ? _SearchEmptyState(
-                    onPickUnknown: () => _selectSpecies(
-                      DetectionRecord.unknownSpeciesName,
-                      DetectionRecord.unknownCommonName,
-                    ),
-                  )
-                : _results.isEmpty
+            child:
+                _searchController.text.trim().isEmpty
+                    ? _SearchEmptyState(
+                      onPickUnknown:
+                          () => _selectSpecies(
+                            DetectionRecord.unknownSpeciesName,
+                            DetectionRecord.unknownCommonName,
+                          ),
+                    )
+                    : _results.isEmpty
                     ? _NoResultsState(query: _searchController.text.trim())
                     : ListView.separated(
-                        itemCount: _results.length,
-                        separatorBuilder: (_, __) =>
-                            Divider(height: 1, color: theme.dividerColor),
-                        itemBuilder: (context, index) {
-                          final sp = _results[index];
-                          final locName = sp.commonNameForLocale(speciesLocale);
-                          return _SpeciesResultTile(
-                            species: sp,
-                            displayName: locName,
-                            onTap: () => _selectSpecies(
-                              sp.scientificName,
-                              sp.commonName,
-                            ),
-                          );
-                        },
-                      ),
+                      itemCount: _results.length,
+                      separatorBuilder:
+                          (_, __) =>
+                              Divider(height: 1, color: theme.dividerColor),
+                      itemBuilder: (context, index) {
+                        final sp = _results[index];
+                        final locName = sp.commonNameForLocale(speciesLocale);
+                        return _SpeciesResultTile(
+                          species: sp,
+                          displayName: locName,
+                          onTap:
+                              () => _selectSpecies(
+                                sp.scientificName,
+                                sp.commonName,
+                              ),
+                        );
+                      },
+                    ),
           ),
         ],
       ),
@@ -1391,11 +1418,12 @@ class _ReplaceTargetBanner extends ConsumerWidget {
               width: 56,
               height: 56,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
-                width: 56,
-                height: 56,
-                color: theme.colorScheme.surfaceContainerHigh,
-              ),
+              errorBuilder:
+                  (_, __, ___) => Container(
+                    width: 56,
+                    height: 56,
+                    color: theme.colorScheme.surfaceContainerHigh,
+                  ),
             ),
           ),
           const SizedBox(width: 12),
@@ -1412,8 +1440,9 @@ class _ReplaceTargetBanner extends ConsumerWidget {
                 const SizedBox(height: 2),
                 Text(
                   locName,
-                  style: theme.textTheme.titleSmall
-                      ?.copyWith(fontWeight: FontWeight.w600),
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                   overflow: TextOverflow.ellipsis,
                 ),
                 if (showSciNames)
@@ -1428,10 +1457,7 @@ class _ReplaceTargetBanner extends ConsumerWidget {
               ],
             ),
           ),
-          Icon(
-            Icons.arrow_downward,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
+          Icon(Icons.arrow_downward, color: theme.colorScheme.onSurfaceVariant),
         ],
       ),
     );
@@ -1463,28 +1489,30 @@ class _SpeciesResultTile extends ConsumerWidget {
           width: 48,
           height: 48,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => Container(
-            width: 48,
-            height: 48,
-            color: theme.colorScheme.surfaceContainerHighest,
-            child: Icon(
-              Icons.image_not_supported_outlined,
-              size: 20,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
+          errorBuilder:
+              (_, __, ___) => Container(
+                width: 48,
+                height: 48,
+                color: theme.colorScheme.surfaceContainerHighest,
+                child: Icon(
+                  Icons.image_not_supported_outlined,
+                  size: 20,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
         ),
       ),
       title: Text(displayName, overflow: TextOverflow.ellipsis),
-      subtitle: showSciNames
-          ? Text(
-              species.scientificName,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontStyle: FontStyle.italic,
-              ),
-            )
-          : null,
+      subtitle:
+          showSciNames
+              ? Text(
+                species.scientificName,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontStyle: FontStyle.italic,
+                ),
+              )
+              : null,
       onTap: onTap,
     );
   }
@@ -1517,10 +1545,7 @@ class _SearchEmptyState extends StatelessWidget {
         const SizedBox(height: 12),
         const Divider(height: 1),
         ListTile(
-          leading: Icon(
-            Icons.help_outline,
-            color: theme.colorScheme.tertiary,
-          ),
+          leading: Icon(Icons.help_outline, color: theme.colorScheme.tertiary),
           title: Text(l10n.sessionUnknownSpecies),
           subtitle: Text(
             DetectionRecord.unknownSpeciesName,
@@ -1606,11 +1631,13 @@ class _AnnotationsSectionState extends State<_AnnotationsSection> {
   void _submit() {
     final text = _textController.text.trim();
     if (text.isEmpty) return;
-    widget.onAdd(SessionAnnotation(
-      text: text,
-      createdAt: DateTime.now(),
-      offsetInRecording: _atTimestamp ? widget.positionSec : null,
-    ));
+    widget.onAdd(
+      SessionAnnotation(
+        text: text,
+        createdAt: DateTime.now(),
+        offsetInRecording: _atTimestamp ? widget.positionSec : null,
+      ),
+    );
     _textController.clear();
     setState(() => _atTimestamp = false);
   }
@@ -1674,15 +1701,17 @@ class _AnnotationsSectionState extends State<_AnnotationsSection> {
                     icon: Icon(
                       _atTimestamp ? Icons.schedule : Icons.public,
                       size: 20,
-                      color: _atTimestamp
-                          ? theme.colorScheme.primary
-                          : theme.colorScheme.onSurface.withAlpha(120),
+                      color:
+                          _atTimestamp
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.onSurface.withAlpha(120),
                     ),
-                    tooltip: _atTimestamp
-                        ? l10n.sessionInsertAtTimestamp
-                        : l10n.sessionAnnotationGlobal,
-                    onPressed: () =>
-                        setState(() => _atTimestamp = !_atTimestamp),
+                    tooltip:
+                        _atTimestamp
+                            ? l10n.sessionInsertAtTimestamp
+                            : l10n.sessionAnnotationGlobal,
+                    onPressed:
+                        () => setState(() => _atTimestamp = !_atTimestamp),
                     constraints: const BoxConstraints(
                       minWidth: 36,
                       minHeight: 36,
@@ -1714,10 +1743,7 @@ class _AnnotationsSectionState extends State<_AnnotationsSection> {
 }
 
 class _AnnotationRow extends StatelessWidget {
-  const _AnnotationRow({
-    required this.annotation,
-    required this.onDelete,
-  });
+  const _AnnotationRow({required this.annotation, required this.onDelete});
 
   final SessionAnnotation annotation;
   final VoidCallback onDelete;
@@ -1758,10 +1784,7 @@ class _AnnotationRow extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              annotation.text,
-              style: theme.textTheme.bodySmall,
-            ),
+            child: Text(annotation.text, style: theme.textTheme.bodySmall),
           ),
           InkWell(
             onTap: onDelete,
@@ -1815,12 +1838,14 @@ class _TrimOverlayState extends State<_TrimOverlay> {
   @override
   void initState() {
     super.initState();
-    _startFrac = widget.durationSec > 0
-        ? (widget.initialStartSec / widget.durationSec).clamp(0.0, 1.0)
-        : 0.0;
-    _endFrac = widget.durationSec > 0
-        ? (widget.initialEndSec / widget.durationSec).clamp(0.0, 1.0)
-        : 1.0;
+    _startFrac =
+        widget.durationSec > 0
+            ? (widget.initialStartSec / widget.durationSec).clamp(0.0, 1.0)
+            : 0.0;
+    _endFrac =
+        widget.durationSec > 0
+            ? (widget.initialEndSec / widget.durationSec).clamp(0.0, 1.0)
+            : 1.0;
   }
 
   void _reportChange() {
@@ -1896,9 +1921,10 @@ class _TrimOverlayPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final dimPaint = Paint()..color = Colors.black.withAlpha(140);
-    final handlePaint = Paint()
-      ..color = accentColor
-      ..style = PaintingStyle.fill;
+    final handlePaint =
+        Paint()
+          ..color = accentColor
+          ..style = PaintingStyle.fill;
 
     // Dimmed regions outside the trim.
     canvas.drawRect(
@@ -1911,10 +1937,11 @@ class _TrimOverlayPainter extends CustomPainter {
     );
 
     // Top/bottom borders of the selected region.
-    final borderPaint = Paint()
-      ..color = accentColor
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke;
+    final borderPaint =
+        Paint()
+          ..color = accentColor
+          ..strokeWidth = 2
+          ..style = PaintingStyle.stroke;
     canvas.drawRect(
       Rect.fromLTRB(
         startFrac * size.width,
@@ -1937,9 +1964,10 @@ class _TrimOverlayPainter extends CustomPainter {
       handlePaint,
     );
     // Grip lines on left handle.
-    final gripPaint = Paint()
-      ..color = Colors.white.withAlpha(200)
-      ..strokeWidth = 1.5;
+    final gripPaint =
+        Paint()
+          ..color = Colors.white.withAlpha(200)
+          ..strokeWidth = 1.5;
     for (var i = -1; i <= 1; i++) {
       final cx = startFrac * size.width;
       final cy = size.height / 2 + i * 5.0;
@@ -2053,8 +2081,10 @@ class _TrimSpectrogramViewState extends State<_TrimSpectrogramView> {
     final w = box.size.width;
 
     if (_activeDrag != null) {
-      final sec =
-          _xToSec(details.localFocalPoint.dx, w).clamp(0.0, widget.durationSec);
+      final sec = _xToSec(
+        details.localFocalPoint.dx,
+        w,
+      ).clamp(0.0, widget.durationSec);
       setState(() {
         if (_activeDrag == 'start') {
           _startSec = math.min(sec, _endSec - 0.5);
@@ -2065,7 +2095,8 @@ class _TrimSpectrogramViewState extends State<_TrimSpectrogramView> {
     } else {
       setState(() {
         _zoom = (_baseZoom * details.scale).clamp(1.0, 20.0);
-        final dx = details.localFocalPoint.dx -
+        final dx =
+            details.localFocalPoint.dx -
             (_lastFocalPoint?.dx ?? details.localFocalPoint.dx);
         final secPerPx = _viewDurationSec / w;
         _scrollSec -= dx * secPerPx;
@@ -2163,16 +2194,21 @@ class _TrimSpectrogramPainter extends CustomPainter {
     if (trimEndX < size.width) {
       canvas.drawRect(
         Rect.fromLTRB(
-            trimEndX.clamp(0, size.width), 0, size.width, size.height),
+          trimEndX.clamp(0, size.width),
+          0,
+          size.width,
+          size.height,
+        ),
         dimPaint,
       );
     }
 
     // Border around the selected region.
-    final borderPaint = Paint()
-      ..color = accentColor
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke;
+    final borderPaint =
+        Paint()
+          ..color = accentColor
+          ..strokeWidth = 2
+          ..style = PaintingStyle.stroke;
     canvas.drawRect(
       Rect.fromLTRB(
         trimStartX.clamp(0, size.width),
@@ -2186,12 +2222,14 @@ class _TrimSpectrogramPainter extends CustomPainter {
     // ── Trim handles ──────────────────────────────────────────────
     const hw = 14.0;
     const hh = 32.0;
-    final handlePaint = Paint()
-      ..color = accentColor
-      ..style = PaintingStyle.fill;
-    final gripPaint = Paint()
-      ..color = Colors.white.withAlpha(200)
-      ..strokeWidth = 1.5;
+    final handlePaint =
+        Paint()
+          ..color = accentColor
+          ..style = PaintingStyle.fill;
+    final gripPaint =
+        Paint()
+          ..color = Colors.white.withAlpha(200)
+          ..strokeWidth = 1.5;
     for (final hx in [trimStartX, trimEndX]) {
       if (hx < -hw || hx > size.width + hw) continue;
       final ly = (size.height - hh) / 2;
@@ -2253,9 +2291,7 @@ class _TrimSpectrogramPainter extends CustomPainter {
 
 /// Bottom sheet displaying help documentation for the session review screen.
 class _SessionHelpSheet extends StatelessWidget {
-  const _SessionHelpSheet({
-    required this.showContinueSurvey,
-  });
+  const _SessionHelpSheet({required this.showContinueSurvey});
 
   final bool showContinueSurvey;
 
@@ -2271,26 +2307,14 @@ class _SessionHelpSheet extends StatelessWidget {
           icon: Icons.info_outline,
           body: l10n.sessionHelpOverview,
         ),
-        AppHelpSection(
-          icon: Icons.close,
-          body: l10n.sessionHelpTopBar,
-        ),
+        AppHelpSection(icon: Icons.close, body: l10n.sessionHelpTopBar),
         AppHelpSection(
           icon: Icons.add_circle_outline,
           body: l10n.sessionHelpAddSpecies,
         ),
-        AppHelpSection(
-          icon: Icons.undo,
-          body: l10n.sessionHelpUndoRedo,
-        ),
-        AppHelpSection(
-          icon: Icons.content_cut,
-          body: l10n.sessionHelpTrimming,
-        ),
-        AppHelpSection(
-          icon: Icons.save,
-          body: l10n.sessionHelpSaveDiscard,
-        ),
+        AppHelpSection(icon: Icons.undo, body: l10n.sessionHelpUndoRedo),
+        AppHelpSection(icon: Icons.content_cut, body: l10n.sessionHelpTrimming),
+        AppHelpSection(icon: Icons.save, body: l10n.sessionHelpSaveDiscard),
         if (showContinueSurvey)
           AppHelpSection(
             icon: Icons.play_arrow_rounded,
