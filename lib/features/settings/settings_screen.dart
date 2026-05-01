@@ -1081,40 +1081,37 @@ class _MicInputTile extends ConsumerWidget {
       context: context,
       builder: (context) {
         return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: Text(
-                  AppLocalizations.of(context)!.settingsSelectMicrophone,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w600, fontSize: 16),
+          child: RadioGroup<String?>(
+            groupValue: selected,
+            onChanged: (v) {
+              ref.read(selectedDeviceProvider.notifier).state = v;
+              Navigator.of(context).pop();
+            },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  child: Text(
+                    AppLocalizations.of(context)!.settingsSelectMicrophone,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 16),
+                  ),
                 ),
-              ),
-              RadioListTile<String?>(
-                title:
-                    Text(AppLocalizations.of(context)!.settingsSystemDefault),
-                value: null,
-                groupValue: selected,
-                onChanged: (v) {
-                  ref.read(selectedDeviceProvider.notifier).state = v;
-                  Navigator.of(context).pop();
-                },
-              ),
-              ...devices.map(
-                (d) => RadioListTile<String?>(
-                  title: Text(d.label.isEmpty ? d.id : d.label),
-                  value: d.id,
-                  groupValue: selected,
-                  onChanged: (v) {
-                    ref.read(selectedDeviceProvider.notifier).state = v;
-                    Navigator.of(context).pop();
-                  },
+                RadioListTile<String?>(
+                  title:
+                      Text(AppLocalizations.of(context)!.settingsSystemDefault),
+                  value: null,
                 ),
-              ),
-              const SizedBox(height: 8),
-            ],
+                ...devices.map(
+                  (d) => RadioListTile<String?>(
+                    title: Text(d.label.isEmpty ? d.id : d.label),
+                    value: d.id,
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
           ),
         );
       },

@@ -815,39 +815,36 @@ class _ParametersStep extends ConsumerWidget {
     showModalBottomSheet<void>(
       context: context,
       builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Text(
-                l10n.surveyMicSelect,
-                style:
-                    const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+        child: RadioGroup<String?>(
+          groupValue: selected,
+          onChanged: (v) {
+            ref.read(selectedDeviceProvider.notifier).state = v;
+            Navigator.of(ctx).pop();
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Text(
+                  l10n.surveyMicSelect,
+                  style:
+                      const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                ),
               ),
-            ),
-            RadioListTile<String?>(
-              title: Text(l10n.surveyMicSystemDefault),
-              value: null,
-              groupValue: selected,
-              onChanged: (v) {
-                ref.read(selectedDeviceProvider.notifier).state = v;
-                Navigator.of(ctx).pop();
-              },
-            ),
-            ...devices.map(
-              (d) => RadioListTile<String?>(
-                title: Text(d.label.isEmpty ? d.id : d.label),
-                value: d.id,
-                groupValue: selected,
-                onChanged: (v) {
-                  ref.read(selectedDeviceProvider.notifier).state = v;
-                  Navigator.of(ctx).pop();
-                },
+              RadioListTile<String?>(
+                title: Text(l10n.surveyMicSystemDefault),
+                value: null,
               ),
-            ),
-            const SizedBox(height: 8),
-          ],
+              ...devices.map(
+                (d) => RadioListTile<String?>(
+                  title: Text(d.label.isEmpty ? d.id : d.label),
+                  value: d.id,
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
         ),
       ),
     );
@@ -1021,22 +1018,28 @@ class _AlertsStepState extends ConsumerState<_AlertsStep> {
           ],
         ),
         const SizedBox(height: 8),
-        for (final entry in modes)
-          RadioListTile<AlertMode>(
-            value: entry.$1,
-            groupValue: mode,
-            onChanged: (v) {
-              if (v != null) {
-                ref.read(surveyAlertModeProvider.notifier).set(v.prefValue);
-                if (v != AlertMode.off) {
-                  _ensureNotificationPermission();
-                }
+        RadioGroup<AlertMode>(
+          groupValue: mode,
+          onChanged: (v) {
+            if (v != null) {
+              ref.read(surveyAlertModeProvider.notifier).set(v.prefValue);
+              if (v != AlertMode.off) {
+                _ensureNotificationPermission();
               }
-            },
-            title: Text(_l10nMode(l10n, entry.$2)),
-            subtitle: Text(_l10nMode(l10n, entry.$3)),
-            dense: true,
+            }
+          },
+          child: Column(
+            children: [
+              for (final entry in modes)
+                RadioListTile<AlertMode>(
+                  value: entry.$1,
+                  title: Text(_l10nMode(l10n, entry.$2)),
+                  subtitle: Text(_l10nMode(l10n, entry.$3)),
+                  dense: true,
+                ),
+            ],
           ),
+        ),
         if (mode == AlertMode.rare) ...[
           const Divider(height: 32),
           _RareThresholdControl(),
@@ -1394,20 +1397,22 @@ class _WatchlistTile extends StatelessWidget {
       future: CustomSpeciesList.load(name),
       builder: (context, snap) {
         final count = snap.data?.length ?? 0;
-        return RadioListTile<bool>(
-          value: true,
+        return RadioGroup<bool?>(
           groupValue: selected ? true : null,
           onChanged: (_) => onSelect(),
-          title: Text(name),
-          subtitle: snap.connectionState == ConnectionState.done
-              ? Text(l10n.surveyAlertSpeciesCount(count))
-              : const Text('…'),
-          secondary: IconButton(
-            icon: const Icon(Icons.delete_outline_rounded),
-            onPressed: onDelete,
-            tooltip: l10n.sessionRemove,
+          child: RadioListTile<bool?>(
+            value: true,
+            title: Text(name),
+            subtitle: snap.connectionState == ConnectionState.done
+                ? Text(l10n.surveyAlertSpeciesCount(count))
+                : const Text('…'),
+            secondary: IconButton(
+              icon: const Icon(Icons.delete_outline_rounded),
+              onPressed: onDelete,
+              tooltip: l10n.sessionRemove,
+            ),
+            dense: true,
           ),
-          dense: true,
         );
       },
     );
