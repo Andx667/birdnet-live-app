@@ -64,10 +64,7 @@ enum SurveyState { idle, loading, starting, active, stopping, finalized, error }
 /// Orchestrates a long-running survey with GPS tracking, inference, recording,
 /// and incremental persistence.
 class SurveyController {
-  SurveyController({
-    required this.ringBuffer,
-    required this.recordingService,
-  });
+  SurveyController({required this.ringBuffer, required this.recordingService});
 
   final RingBuffer ringBuffer;
   final RecordingService recordingService;
@@ -121,6 +118,22 @@ class SurveyController {
   /// Localized strings for the foreground notification's recent-detections
   /// list. `null` keeps the previous (stats-only) layout.
   _NotificationStrings? _notificationStrings;
+
+  /// Whether the microphone is currently held by another app. When `true`,
+  /// the foreground notification surfaces a status line so users know
+  /// why audio appears frozen (e.g. an audiobook is playing). Updated
+  /// from [setMicContested] which is wired to the audio capture
+  /// service's contention stream by the survey screen.
+  bool _micContested = false;
+
+  /// Update the microphone-contested flag and refresh the notification
+  /// so the user immediately sees the status change.
+  void setMicContested(bool contested) {
+    if (_micContested == contested) return;
+    _micContested = contested;
+    // Best-effort notification refresh; safe to await elsewhere.
+    _updateNotification();
+  }
 
   static const int _maxInMemoryDetections = 10000;
 
@@ -223,7 +236,9 @@ class SurveyController {
       int detections,
       int species,
       String distanceKm,
-    ) stats,
+    )
+    stats,
+    String? micContested,
   }) {
     _notificationStrings = _NotificationStrings(
       title: title,
@@ -232,6 +247,7 @@ class SurveyController {
       minutesAgo: minutesAgo,
       hoursAgo: hoursAgo,
       stats: stats,
+      micContested: micContested,
     );
   }
 
@@ -326,7 +342,8 @@ class SurveyController {
         id: sessionId,
         startTime: DateTime.now(),
         type: SessionType.survey,
-        settings: settingsSnapshot ??
+        settings:
+            settingsSnapshot ??
             SessionSettings(
               windowDuration: windowDuration,
               confidenceThreshold: confidenceThreshold,
@@ -369,10 +386,7 @@ class SurveyController {
       };
 
       // Detection sampling.
-      _sampler = DetectionSampler(
-        mode: samplingMode,
-        topN: topNPerSpecies,
-      );
+      _sampler = DetectionSampler(mode: samplingMode, topN: topNPerSpecies);
 
       // Recording: respect the user’s choice (full / clips / off).
       _saveDetectionClips = recordingMode == RecordingMode.detectionsOnly;
@@ -386,9 +400,7 @@ class SurveyController {
       }
 
       // GPS tracking.
-      _gpsTracker = SurveyGpsTracker(
-        intervalSeconds: gpsIntervalSeconds,
-      );
+      _gpsTracker = SurveyGpsTracker(intervalSeconds: gpsIntervalSeconds);
       _gpsTracker!.onPoint = _onGpsPoint;
       if (backgroundGps) {
         await _gpsTracker!.startTracking();
@@ -439,9 +451,11 @@ class SurveyController {
       _state = SurveyState.active;
       _notifyListeners();
 
-      debugPrint('[SurveyController] survey started '
-          '(rate=${inferenceRate}Hz, gps=${gpsIntervalSeconds}s, '
-          'sampling=${samplingMode.name})');
+      debugPrint(
+        '[SurveyController] survey started '
+        '(rate=${inferenceRate}Hz, gps=${gpsIntervalSeconds}s, '
+        'sampling=${samplingMode.name})',
+      );
     } catch (e, st) {
       debugPrint('[SurveyController] startSurvey error: $e\n$st');
       await _cleanupFailedStart();
@@ -512,10 +526,7 @@ class SurveyController {
         _ => SpeciesFilterMode.off,
       };
 
-      _sampler = DetectionSampler(
-        mode: samplingMode,
-        topN: topNPerSpecies,
-      );
+      _sampler = DetectionSampler(mode: samplingMode, topN: topNPerSpecies);
 
       // Recording: respect the user’s choice (full / clips / off).
       _saveDetectionClips = recordingMode == RecordingMode.detectionsOnly;
@@ -529,9 +540,7 @@ class SurveyController {
       }
 
       // GPS tracking: seed with existing track data.
-      _gpsTracker = SurveyGpsTracker(
-        intervalSeconds: gpsIntervalSeconds,
-      );
+      _gpsTracker = SurveyGpsTracker(intervalSeconds: gpsIntervalSeconds);
       _gpsTracker!.onPoint = _onGpsPoint;
       _gpsTracker!.seedTrack(existingSession.gpsTrack);
       if (backgroundGps) {
@@ -577,9 +586,11 @@ class SurveyController {
       _state = SurveyState.active;
       _notifyListeners();
 
-      debugPrint('[SurveyController] survey resumed '
-          '(${existingSession.detections.length} existing detections, '
-          '${existingSession.gpsTrack.length} GPS points)');
+      debugPrint(
+        '[SurveyController] survey resumed '
+        '(${existingSession.detections.length} existing detections, '
+        '${existingSession.gpsTrack.length} GPS points)',
+      );
     } catch (e, st) {
       debugPrint('[SurveyController] resumeSurvey error: $e\n$st');
       await _cleanupFailedStart();
@@ -779,9 +790,10 @@ class SurveyController {
       _triggerAutoStop(
         'Maximum survey duration reached',
         reasonCode: SessionStopReason.maxDuration,
-        value: _maxEndTime!
-            .difference(_session?.startTime ?? _maxEndTime!)
-            .inHours,
+        value:
+            _maxEndTime!
+                .difference(_session?.startTime ?? _maxEndTime!)
+                .inHours,
       );
       return;
     }
@@ -815,11 +827,12 @@ class SurveyController {
       );
 
       final geoNames = _geoModelSpeciesNames;
-      final filteredDetections = geoNames == null
-          ? speciesFiltered
-          : speciesFiltered
-              .where((d) => geoNames.contains(d.species.scientificName))
-              .toList();
+      final filteredDetections =
+          geoNames == null
+              ? speciesFiltered
+              : speciesFiltered
+                  .where((d) => geoNames.contains(d.species.scientificName))
+                  .toList();
 
       // Update live detection list.
       _currentLiveDetections = [
@@ -832,13 +845,15 @@ class SurveyController {
           for (final d in filteredDetections) d.species.scientificName,
         };
 
-        final appeared =
-            currentNames.difference(_activeCardSpecies.keys.toSet());
+        final appeared = currentNames.difference(
+          _activeCardSpecies.keys.toSet(),
+        );
         // Species that disappeared → close their detection window so
         // the review screen can highlight the full duration during
         // which they were continuously above threshold.
-        final disappeared =
-            _activeCardSpecies.keys.toSet().difference(currentNames);
+        final disappeared = _activeCardSpecies.keys.toSet().difference(
+          currentNames,
+        );
         final closingNow = DateTime.now();
         for (final name in disappeared) {
           final existing = _activeCardSpecies.remove(name);
@@ -972,8 +987,9 @@ class SurveyController {
       }
 
       final sessionFile = File('${sessionsDir.path}/${_session!.id}.json');
-      final recoveryFile =
-          File('${sessionsDir.path}/${_session!.id}.recovery.json');
+      final recoveryFile = File(
+        '${sessionsDir.path}/${_session!.id}.recovery.json',
+      );
 
       // Write-ahead: rename current → recovery, write new, delete recovery.
       if (await sessionFile.exists()) {
@@ -981,16 +997,19 @@ class SurveyController {
       }
 
       final jsonStr = json.encode(_session!.toJson());
-      await File('${sessionsDir.path}/${_session!.id}.json')
-          .writeAsString(jsonStr, flush: true);
+      await File(
+        '${sessionsDir.path}/${_session!.id}.json',
+      ).writeAsString(jsonStr, flush: true);
 
       if (await recoveryFile.exists()) {
         await recoveryFile.delete();
       }
 
-      debugPrint('[SurveyController] session persisted '
-          '(${_session!.detections.length} detections, '
-          '${_session!.gpsTrack.length} GPS points)');
+      debugPrint(
+        '[SurveyController] session persisted '
+        '(${_session!.detections.length} detections, '
+        '${_session!.gpsTrack.length} GPS points)',
+      );
     } catch (e) {
       debugPrint('[SurveyController] persist error: $e');
     }
@@ -1000,8 +1019,9 @@ class SurveyController {
     if (_session == null) return;
     try {
       final appDir = await getApplicationDocumentsDirectory();
-      final recoveryFile =
-          File('${appDir.path}/sessions/${_session!.id}.recovery.json');
+      final recoveryFile = File(
+        '${appDir.path}/sessions/${_session!.id}.recovery.json',
+      );
       if (await recoveryFile.exists()) {
         await recoveryFile.delete();
       }
@@ -1027,14 +1047,24 @@ class SurveyController {
     final s = _notificationStrings;
     // Localized stats footer (falls back to English when no strings have
     // been wired). The localizer takes care of plural / unit ordering.
-    final stats = s?.stats(elapsedStr, det, spp, km) ??
+    final stats =
+        s?.stats(elapsedStr, det, spp, km) ??
         '\u23F1 $elapsedStr   \uD83D\uDC26 $det det · $spp spp   '
             '\uD83D\uDCCD $km km';
+
+    // Heads-up status when the microphone is held by another app.
+    final micWarning =
+        _micContested
+            ? (s?.micContested ??
+                '\u26A0 Microphone in use by another app — audio paused')
+            : null;
 
     // _sessionDetections is newest-first. Take up to 3 most recent
     // *unique* species (so a chatty bird doesn't fill the whole list)
     // and render them with confidence percentage and a relative time.
-    if (_sessionDetections.isEmpty) return stats;
+    if (_sessionDetections.isEmpty) {
+      return micWarning == null ? stats : '$micWarning\n$stats';
+    }
     final now = DateTime.now();
     final seen = <String>{};
     final recent = <DetectionRecord>[];
@@ -1045,6 +1075,10 @@ class SurveyController {
       }
     }
     final lines = <String>[];
+    if (micWarning != null) {
+      lines.add(micWarning);
+      lines.add('');
+    }
     for (final r in recent) {
       final name =
           _nameLocalizer?.call(r.scientificName, r.commonName) ?? r.commonName;
@@ -1131,6 +1165,7 @@ class _NotificationStrings {
     required this.minutesAgo,
     required this.hoursAgo,
     required this.stats,
+    this.micContested,
   });
 
   final String? title;
@@ -1143,5 +1178,7 @@ class _NotificationStrings {
     int detections,
     int species,
     String distanceKm,
-  ) stats;
+  )
+  stats;
+  final String? micContested;
 }

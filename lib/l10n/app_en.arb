@@ -2433,6 +2433,10 @@
   "@notificationOpen": {
     "description": "Foreground notification action label to open the app"
   },
+  "surveyNotificationMicContested": "⚠ Microphone in use by another app — audio paused",
+  "@surveyNotificationMicContested": {
+    "description": "Status line shown in the survey foreground notification when another app (e.g. an audiobook player or voice recorder) is holding the microphone, so the user understands why audio appears to be paused."
+  },
   "monthJanShort": "Jan",
   "@monthJanShort": {
     "description": "Short month label for January"
