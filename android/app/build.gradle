@@ -47,6 +47,17 @@ android {
     packaging {
         jniLibs {
             useLegacyPackaging = false
+            // Drop x86/x86_64/armeabi-v7a copies of third-party native
+            // libraries (e.g. libonnxruntime.so from flutter_onnxruntime).
+            // `ndk.abiFilters` only filters Flutter's own libs, so without
+            // this exclude the standalone APK ships ~34 MB of unused .so
+            // files. The App Bundle (`bundleRelease`) still gets all
+            // architectures because Play splits per-device automatically.
+            excludes += [
+                'lib/x86/**',
+                'lib/x86_64/**',
+                'lib/armeabi-v7a/**',
+            ]
         }
     }
 
