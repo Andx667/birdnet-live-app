@@ -145,7 +145,7 @@ jobs:
           echo "APP_BUILD_NUMBER=$PUBSPEC_BUILD_NUMBER" >> "$GITHUB_ENV"
 
       - name: Build release APK
-        run: flutter build apk --release
+        run: flutter build apk --release --target-platform android-arm64
 
       - name: Rename APK with version
         shell: bash
