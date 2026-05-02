@@ -628,6 +628,8 @@
   "surveyNotificationStats": "⏱ {elapsed}   🐦 {detections} Det. · {species} Arten   📍 {distanceKm} km",
   "notificationStop": "Stopp",
   "notificationOpen": "Öffnen",
+  "surveyNotificationMicContested": "⚠ Mikrofon wird von einer anderen App verwendet – Audio pausiert",
+
   "monthJanShort": "Jan",
   "monthAprShort": "Apr",
   "monthJulShort": "Jul",

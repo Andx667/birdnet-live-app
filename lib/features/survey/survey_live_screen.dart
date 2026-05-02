@@ -85,7 +85,9 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
     with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   bool _started = false;
   bool _finalizing = false;
+  bool _stopDialogShowing = false;
   Timer? _uiUpdateTimer;
+  StreamSubscription<bool>? _micContestedSub;
   late final TabController _tabController;
   late final SurveyController _surveyController;
 
@@ -101,6 +103,17 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
 
     // Listen for "Stop" button pressed in the foreground notification.
     FlutterForegroundTask.addTaskDataCallback(_onNotificationData);
+
+    // Forward microphone-contention status from the audio capture
+    // service to the survey controller so the foreground notification
+    // can show "Microphone in use by another app — audio paused"
+    // (issue #29 — keeps users from thinking the app has frozen when
+    // an audiobook or voice recorder grabs the mic).
+    final captureService = ref.read(audioCaptureServiceProvider);
+    _micContestedSub = captureService.micContestedStream.listen((contested) {
+      if (!mounted) return;
+      ref.read(surveyControllerProvider).setMicContested(contested);
+    });
 
     SchedulerBinding.instance.addPostFrameCallback((_) {
       if (mounted) _startSurvey();
@@ -162,8 +175,9 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
       rareBody: l10n.surveyAlertBodyRare('{pct}'),
       watchlistBody: l10n.surveyAlertBodyWatchlist,
       summaryTitle: l10n.surveyAlertSummaryTitle(0).replaceAll('0', '{count}'),
-      summaryBody:
-          l10n.surveyAlertSummaryBody(0, '{names}').replaceAll('0', '{count}'),
+      summaryBody: l10n
+          .surveyAlertSummaryBody(0, '{names}')
+          .replaceAll('0', '{count}'),
     );
     await notifier.init(strings: strings, sound: sound, vibrate: vibrate);
 
@@ -202,14 +216,15 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
   }
 
   /// Build a closure that maps a scientific name to the user's preferred
-  /// localized common name (honoring the species locale and the
-  /// "show scientific names" toggle). Reads the taxonomy lazily on each
-  /// call so names start translating as soon as the taxonomy service
-  /// finishes loading (which can happen *after* survey start).
+  /// localized common name. Used by the foreground notification, which
+  /// always shows common names (in the user's species locale) regardless
+  /// of the in-app "show scientific names" toggle — Latin binomials are
+  /// hard to read on a lock screen and don't help users at-a-glance.
+  /// Reads the taxonomy lazily on each call so names start translating
+  /// as soon as the taxonomy service finishes loading (which can happen
+  /// *after* survey start).
   String Function(String, String) _buildNameLocalizer() {
     return (sciName, fallback) {
-      final showSci = ref.read(showSciNamesProvider);
-      if (showSci) return sciName;
       final taxonomy = ref.read(taxonomyServiceProvider).valueOrNull;
       final speciesLocale = ref.read(effectiveSpeciesLocaleProvider);
       return taxonomy?.lookup(sciName)?.commonNameForLocale(speciesLocale) ??
@@ -233,8 +248,11 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
       SnackBar(
         content: Row(
           children: [
-            const Icon(Icons.notifications_active_rounded,
-                color: Colors.white, size: 18),
+            const Icon(
+              Icons.notifications_active_rounded,
+              color: Colors.white,
+              size: 18,
+            ),
             const SizedBox(width: 8),
             Expanded(child: Text(text)),
           ],
@@ -292,8 +310,10 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
       secondsAgo: (s) => l10n.surveySecondsAgo(s),
       minutesAgo: (m) => l10n.surveyMinutesAgo(m),
       hoursAgo: (h) => l10n.surveyHoursAgo(h),
-      stats: (elapsed, det, spp, km) =>
-          l10n.surveyNotificationStats(elapsed, det, spp, km),
+      stats:
+          (elapsed, det, spp, km) =>
+              l10n.surveyNotificationStats(elapsed, det, spp, km),
+      micContested: l10n.surveyNotificationMicContested,
     );
 
     if (widget.resumeSession != null) {
@@ -353,16 +373,26 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
   }
 
   Future<void> _confirmStop() async {
+    // Guard against duplicate confirmation dialogs. The notification "Stop"
+    // button can be tapped multiple times while the app is in the
+    // background; without this guard each tap pushes another dialog
+    // onto the route stack ("Exit Survey" modal pile-up — issue #29).
+    if (_stopDialogShowing || _finalizing) return;
+    _stopDialogShowing = true;
     final l10n = AppLocalizations.of(context)!;
-    final confirmed = await confirmDestructive(
-      context,
-      title: l10n.surveyStopTitle,
-      body: l10n.surveyStopMessage,
-      confirmLabel: l10n.surveyStopConfirm,
-      cancelLabel: l10n.cancel,
-    );
-    if (!confirmed || !mounted) return;
-    await _finalizeAndReview();
+    try {
+      final confirmed = await confirmDestructive(
+        context,
+        title: l10n.surveyStopTitle,
+        body: l10n.surveyStopMessage,
+        confirmLabel: l10n.surveyStopConfirm,
+        cancelLabel: l10n.cancel,
+      );
+      if (!confirmed || !mounted) return;
+      await _finalizeAndReview();
+    } finally {
+      _stopDialogShowing = false;
+    }
   }
 
   Future<void> _finalizeAndReview() async {
@@ -441,6 +471,7 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
     }
     WidgetsBinding.instance.removeObserver(this);
     FlutterForegroundTask.removeTaskDataCallback(_onNotificationData);
+    _micContestedSub?.cancel();
     _uiUpdateTimer?.cancel();
     _tabController.dispose();
     super.dispose();
@@ -573,11 +604,7 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
                 Expanded(
                   flex: 1,
                   child: Column(
-                    children: [
-                      tabBar,
-                      Expanded(child: tabContent),
-                      statsBar,
-                    ],
+                    children: [tabBar, Expanded(child: tabContent), statsBar],
                   ),
                 ),
                 // Right: detection list
@@ -708,9 +735,10 @@ class _SurveyStatusBar extends StatelessWidget {
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute<void>(
-                  builder: (_) => const SettingsScreen(
-                    settingsContext: SettingsContext.survey,
-                  ),
+                  builder:
+                      (_) => const SettingsScreen(
+                        settingsContext: SettingsContext.survey,
+                      ),
                 ),
               );
             },
@@ -727,10 +755,7 @@ class _SurveyStatusBar extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _SurveySpectrogram extends ConsumerWidget {
-  const _SurveySpectrogram({
-    required this.ringBuffer,
-    required this.isActive,
-  });
+  const _SurveySpectrogram({required this.ringBuffer, required this.isActive});
 
   final RingBuffer ringBuffer;
   final bool isActive;
@@ -814,18 +839,19 @@ class _SurveySummaryTab extends ConsumerWidget {
       }
     }
 
-    final sorted = speciesCounts.values.toList()
-      ..sort((a, b) {
-        final cmp = b.count.compareTo(a.count);
-        if (cmp != 0) return cmp;
-        return b.bestConfidence.compareTo(a.bestConfidence);
-      });
+    final sorted =
+        speciesCounts.values.toList()..sort((a, b) {
+          final cmp = b.count.compareTo(a.count);
+          if (cmp != 0) return cmp;
+          return b.bestConfidence.compareTo(a.bestConfidence);
+        });
 
     final elapsed = DateTime.now().difference(session!.startTime);
-    final rate = elapsed.inSeconds > 0
-        ? (detections.length / (elapsed.inMinutes.clamp(1, 999999)))
-            .toStringAsFixed(1)
-        : '0';
+    final rate =
+        elapsed.inSeconds > 0
+            ? (detections.length / (elapsed.inMinutes.clamp(1, 999999)))
+                .toStringAsFixed(1)
+            : '0';
 
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -1011,14 +1037,8 @@ class _SurveyLiveHelpSheet extends StatelessWidget {
           icon: Icons.help_outline_rounded,
           body: l10n.surveyLiveHelpTopBar,
         ),
-        AppHelpSection(
-          icon: Icons.map_outlined,
-          body: l10n.surveyLiveHelpTabs,
-        ),
-        AppHelpSection(
-          icon: Icons.mic,
-          body: l10n.surveyLiveHelpSignal,
-        ),
+        AppHelpSection(icon: Icons.map_outlined, body: l10n.surveyLiveHelpTabs),
+        AppHelpSection(icon: Icons.mic, body: l10n.surveyLiveHelpSignal),
         AppHelpSection(
           icon: MdiIcons.feather,
           body: l10n.surveyLiveHelpDetections,

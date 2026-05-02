@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.3] - 2026-05-02
+
+### Fixed
+
+- **Play Store installs failed to load the audio model.** The 0.9.2 AAB published to Google Play shipped the ONNX models in an install-time Play Asset Delivery pack (`models_pack`) and the runtime resolver looked them up via `AssetPackManager.getPackLocation()`. That API returns `null` for install-time packs by design — install-time packs are merged into the app's standard `AssetManager` namespace instead. The base module had its `.onnx` files stripped to keep the upload under Play's 200 MB limit, so the rootBundle fallback also failed and Live Mode showed "Model loading failed. Check assets." Resolution now extracts the model bytes via the platform `AssetManager` (which surfaces install-time pack files) and only falls back to `rootBundle` for true sideload APK installs. Sideload APK behavior is unchanged.
+
+## [0.9.2] - 2026-05-02
+
+### Fixed
+
+- **Survey notifications now show common names.** The foreground notification's recent-detections list previously rendered scientific binomials (e.g. *Turdus merula*); it now always shows localized common names in the user's species locale, regardless of the in-app "show scientific names" toggle. Latin names are hard to read at-a-glance on a lock screen.
+- **Audio watchdog no longer fights other apps for the microphone.** When another app (e.g. an audiobook player or voice recorder) holds the mic, the watchdog used to restart capture every 2 seconds, interrupting the other app's audio. After three failed restart attempts the watchdog now backs off for 30 seconds and surfaces a "⚠ Microphone in use by another app — audio paused" status line in the survey foreground notification, so users understand why audio appears frozen (fixes #29).
+- **Exit Survey modal pile-up.** Tapping the foreground-notification "Stop" button multiple times while the app was in the background pushed a new "Exit Survey" confirmation dialog onto the route stack each time. The screen now guards against duplicate dialogs (fixes #29).
+
 ## [0.9.1] - 2026-05-01
 
 ### Added

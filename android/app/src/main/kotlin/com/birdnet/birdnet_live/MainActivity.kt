@@ -6,6 +6,8 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import kotlinx.coroutines.*
+import java.io.File
+import java.io.FileNotFoundException
 
 class MainActivity: FlutterActivity() {
     private val WAKELOCK_CHANNEL = "com.birdnet/wakelock"
@@ -80,6 +82,87 @@ class MainActivity: FlutterActivity() {
                         // pack not installed, or any other failure: report
                         // null so the Dart side falls back to rootBundle.
                         result.success(null)
+                    }
+                }
+                // Extract a file from the APK's AssetManager (which includes
+                // install-time asset packs merged into the app namespace) to
+                // a real on-disk path. ONNX Runtime needs a file path /
+                // mmap, not an InputStream. Idempotent: if the destination
+                // already exists with the expected size, the copy is
+                // skipped. Returns null when the asset is not present (used
+                // as the probe for "are we in a Play install with the
+                // models_pack merged into AssetManager?").
+                "extractAsset" -> {
+                    val assetPath = call.argument<String>("assetPath")
+                    val destName = call.argument<String>("destName")
+                    if (assetPath.isNullOrBlank() || destName.isNullOrBlank()) {
+                        result.error(
+                            "INVALID_ARG",
+                            "Missing 'assetPath' or 'destName'",
+                            null,
+                        )
+                        return@setMethodCallHandler
+                    }
+                    scope.launch {
+                        try {
+                            val outFile = File(applicationContext.filesDir, destName)
+                            // Open the asset to (a) probe for presence and
+                            // (b) read its uncompressed length via FileDescriptor
+                            // when possible, so we can short-circuit if the
+                            // destination already exists.
+                            val inStream = try {
+                                applicationContext.assets.open(assetPath)
+                            } catch (e: FileNotFoundException) {
+                                withContext(Dispatchers.Main) {
+                                    result.success(null)
+                                }
+                                return@launch
+                            }
+                            // Try to determine the uncompressed length cheaply
+                            // via openFd (works for noCompress assets like .onnx).
+                            var expectedSize = -1L
+                            try {
+                                applicationContext.assets.openFd(assetPath).use { afd ->
+                                    expectedSize = afd.length
+                                }
+                            } catch (_: Throwable) {
+                                // Compressed asset: fall back to comparing after copy.
+                            }
+                            if (outFile.exists() && expectedSize > 0 &&
+                                outFile.length() == expectedSize) {
+                                inStream.close()
+                                withContext(Dispatchers.Main) {
+                                    result.success(outFile.absolutePath)
+                                }
+                                return@launch
+                            }
+                            // Stream-copy to a temp file then atomically rename
+                            // so a partial copy from a previous crash never
+                            // looks like a complete file.
+                            val tmpFile = File(outFile.parentFile, "$destName.tmp")
+                            inStream.use { input ->
+                                tmpFile.outputStream().use { output ->
+                                    input.copyTo(output, bufferSize = 1 shl 20)
+                                }
+                            }
+                            if (outFile.exists()) outFile.delete()
+                            if (!tmpFile.renameTo(outFile)) {
+                                throw java.io.IOException(
+                                    "Failed to rename ${tmpFile.absolutePath} to ${outFile.absolutePath}"
+                                )
+                            }
+                            withContext(Dispatchers.Main) {
+                                result.success(outFile.absolutePath)
+                            }
+                        } catch (e: Throwable) {
+                            withContext(Dispatchers.Main) {
+                                result.error(
+                                    "EXTRACT_ERROR",
+                                    e.message ?: "extractAsset failed",
+                                    null,
+                                )
+                            }
+                        }
                     }
                 }
                 else -> result.notImplemented()

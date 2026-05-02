@@ -7,10 +7,14 @@
 //   1. **Play Store (AAB)** — the two large `.onnx` model files (~152 MB
 //      audio classifier + ~6 MB geo model) live in an *install-time*
 //      Play Asset Delivery pack named `models_pack`. The pack is
-//      downloaded together with the app at install time and unpacked
-//      into a directory on the device. The Play Console requires the
-//      base module download to stay under 200 MB compressed, which is
-//      why we split the models out.
+//      downloaded together with the app at install time. Install-time
+//      packs are **merged into the app's standard `AssetManager`
+//      namespace** (`<packName>/assets/<path>` becomes `<path>` in
+//      `Context.getAssets()`), and `AssetPackManager.getPackLocation()`
+//      returns `null` for them by design — that API only resolves
+//      fast-follow / on-demand packs. We therefore extract the model
+//      bytes via the platform `AssetManager` and write them to
+//      `filesDir` so ONNX Runtime can mmap a real file path.
 //
 //   2. **Sideload APK (GitHub release)** — there is no asset pack. The
 //      `.onnx` files are bundled inside `flutter_assets` exactly as
@@ -21,18 +25,19 @@
 // install or runtime.
 //
 // Callers should always go through [resolveModelPath] rather than
-// hand-rolling the extraction logic. The resolver picks the right source
-// transparently per file:
+// hand-rolling the extraction logic. The resolver tries sources in
+// order:
 //
-//   • If the asset pack is present and contains the file → return its
-//     on-device path directly (no copy needed; install-time pack files
-//     are already plain files on disk).
-//   • Otherwise → extract the file from `rootBundle` to the documents
-//     directory under `<fileName>_v<version>` (idempotent, mirrors the
-//     historical behavior).
+//   1. Native `extractAsset` (Android only) → reads from the merged
+//      AssetManager namespace, which surfaces files from install-time
+//      asset packs as well as the base APK's `assets/`. Returns null
+//      when the asset is not present (true sideload APK, since the
+//      `.onnx` files are stripped from the base module's `assets/` for
+//      AAB builds and live in `flutter_assets/` for APK builds).
+//   2. `rootBundle.load()` extraction → used for sideload APK builds
+//      where the `.onnx` lives in `flutter_assets`.
 //
-// On non-Android platforms (iOS, Windows, tests) the pack is always
-// absent and the bundle fallback is used.
+// On non-Android platforms (iOS, Windows, tests) only path (2) applies.
 // =============================================================================
 
 import 'dart:io';
@@ -48,72 +53,55 @@ class AssetPackService {
 
   static const MethodChannel _channel = MethodChannel('com.birdnet/asset_pack');
 
-  /// Name of the install-time pack defined in `android/models_pack/`.
-  static const String _packName = 'models_pack';
-
-  /// Cached lookup result. Pack location never changes during a process
-  /// lifetime, so we resolve once and reuse.
-  static String? _cachedPackPath;
-  static bool _resolved = false;
-
-  /// Returns the on-device path of the install-time asset pack's
-  /// `assets/` directory, or `null` if the pack is unavailable (sideload
-  /// APK, non-Android platform, or platform channel error).
-  static Future<String?> getPackPath() async {
-    if (_resolved) return _cachedPackPath;
-    if (!_isAndroid) {
-      _resolved = true;
-      return null;
-    }
-    try {
-      final result = await _channel.invokeMethod<String>(
-        'getPackPath',
-        {'packName': _packName},
-      );
-      _cachedPackPath = result;
-      if (result != null) {
-        debugPrint('[AssetPackService] models_pack at $result');
-      } else {
-        debugPrint(
-          '[AssetPackService] models_pack not present — sideload mode',
-        );
-      }
-    } catch (e) {
-      debugPrint('[AssetPackService] platform channel error: $e');
-      _cachedPackPath = null;
-    }
-    _resolved = true;
-    return _cachedPackPath;
-  }
-
   /// Resolve a model file living at `assets/models/<fileName>` to an
   /// absolute on-device path suitable for passing to ONNX Runtime.
   ///
   /// [fileName] — bare file name, e.g. `BirdNET+_V3.0-...-FP16.onnx`.
   /// [version] — model version string used to suffix the extracted
-  ///   sideload copy (`<fileName>_v<version>`), so model upgrades
-  ///   trigger a fresh extraction.
+  ///   copy (`<fileName>_v<version>`), so model upgrades trigger a
+  ///   fresh extraction.
   static Future<String> resolveModelPath({
     required String fileName,
     required String version,
   }) async {
-    final packPath = await getPackPath();
-    if (packPath != null) {
-      final candidate = File('$packPath/models/$fileName');
-      if (candidate.existsSync()) {
-        return candidate.path;
+    final destName = '${fileName}_v$version';
+
+    // Path 1 — Android AssetManager (covers Play Store install-time
+    // asset packs, since they're merged into the app namespace).
+    if (_isAndroid) {
+      try {
+        final assetPath = 'models/$fileName';
+        final extracted = await _channel.invokeMethod<String>('extractAsset', {
+          'assetPath': assetPath,
+          'destName': destName,
+        });
+        if (extracted != null && extracted.isNotEmpty) {
+          debugPrint(
+            '[AssetPackService] resolved $fileName via AssetManager: $extracted',
+          );
+          return extracted;
+        }
+        debugPrint(
+          '[AssetPackService] $fileName not in AssetManager — '
+          'falling back to rootBundle (sideload APK)',
+        );
+      } on MissingPluginException catch (e) {
+        // Old build / hot-restart against an APK without the new
+        // method handler. Fall through to the bundle path.
+        debugPrint('[AssetPackService] extractAsset unavailable: $e');
+      } catch (e) {
+        debugPrint('[AssetPackService] extractAsset error: $e');
       }
-      debugPrint(
-        '[AssetPackService] pack present but missing $fileName — '
-        'falling back to rootBundle extraction',
-      );
     }
+
+    // Path 2 — Flutter rootBundle (sideload APK / iOS / desktop).
     return _extractFromBundle(fileName, version);
   }
 
   /// Fallback path: extract the model bytes from `rootBundle` into the
   /// app's documents directory the first time the app runs (or after a
-  /// version bump). Used by sideload APK installs.
+  /// version bump). Used by sideload APK installs and non-Android
+  /// platforms.
   static Future<String> _extractFromBundle(
     String fileName,
     String version,

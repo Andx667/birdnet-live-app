@@ -628,6 +628,8 @@
   "surveyNotificationStats": "⏱ {elapsed}   🐦 {detections} det. · {species} druhů   📍 {distanceKm} km",
   "notificationStop": "Zastavit",
   "notificationOpen": "Otevřít",
+  "surveyNotificationMicContested": "⚠ Mikrofon používá jiná aplikace – zvuk pozastaven",
+
   "monthJanShort": "led",
   "monthAprShort": "dub",
   "monthJulShort": "čvc",

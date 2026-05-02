@@ -110,20 +110,80 @@ class AudioCaptureService {
 
   bool _isRestarting = false;
 
+  // ── Microphone-contention detection ────────────────────────────────────
+  //
+  // Some Android apps (audiobook / music players, voice recorders) hold
+  // exclusive control of the microphone. When the watchdog detects a
+  // stall it tries to reclaim the mic, which interrupts the other app
+  // (e.g. an audiobook stops every 2 s). To avoid that, after a few
+  // consecutive failed restarts we stop fighting for the mic and
+  // surface a "contested" signal so the foreground notification can
+  // explain to the user why audio appears frozen.
+  static const int _contestedThreshold = 3;
+  static const Duration _contestedBackoff = Duration(seconds: 30);
+  int _consecutiveStalls = 0;
+  DateTime? _backoffUntil;
+  bool _micContested = false;
+  final _micContestedController = StreamController<bool>.broadcast();
+
+  /// Whether the microphone is currently considered contested
+  /// (another app appears to hold it). Updated by the internal
+  /// watchdog after repeated restart attempts fail to deliver audio.
+  bool get isMicContested => _micContested;
+
+  /// Emits `true` when the microphone becomes contested and `false`
+  /// when normal capture resumes.
+  Stream<bool> get micContestedStream => _micContestedController.stream;
+
+  void _setMicContested(bool value) {
+    if (_micContested == value) return;
+    _micContested = value;
+    if (!_micContestedController.isClosed) {
+      _micContestedController.add(value);
+    }
+  }
+
   void _checkWatchdog() {
     if (!_shouldBeCapturing || _isRestarting) return;
 
+    // Honor the back-off window: stop hammering the mic while another
+    // app is using it. The stall check still updates `_lastDataTime`
+    // so once data starts flowing again we'll exit back-off naturally.
+    final now = DateTime.now();
+    if (_backoffUntil != null && now.isBefore(_backoffUntil!)) return;
+
     final isStalled =
         _state == CaptureState.capturing &&
-        DateTime.now().difference(_lastDataTime) > const Duration(seconds: 2);
+        now.difference(_lastDataTime) > const Duration(seconds: 2);
     final isFailed =
         _state == CaptureState.error || _state == CaptureState.stopped;
 
     if (isFailed || isStalled) {
+      _consecutiveStalls++;
       debugPrint(
-        'Watchdog: Audio stream stall/failure detected (stalled: $isStalled, failed: $isFailed). Restarting...',
+        'Watchdog: Audio stream stall/failure detected '
+        '(stalled: $isStalled, failed: $isFailed, '
+        'consecutive: $_consecutiveStalls). Restarting...',
       );
+      if (_consecutiveStalls >= _contestedThreshold) {
+        // Repeated failures — assume another app owns the mic. Back
+        // off so we don't keep interrupting it.
+        _backoffUntil = now.add(_contestedBackoff);
+        _setMicContested(true);
+        debugPrint(
+          'Watchdog: microphone contested — backing off for '
+          '${_contestedBackoff.inSeconds}s',
+        );
+        return;
+      }
       _restart();
+    } else {
+      // Audio is flowing normally — clear contested state.
+      if (_consecutiveStalls != 0 || _micContested) {
+        _consecutiveStalls = 0;
+        _backoffUntil = null;
+        _setMicContested(false);
+      }
     }
   }
 
@@ -237,6 +297,7 @@ class AudioCaptureService {
     await stop();
     await _levelController.close();
     await _dataController.close();
+    await _micContestedController.close();
     _recorder?.dispose();
   }
 
@@ -249,6 +310,13 @@ class AudioCaptureService {
   /// Process incoming PCM16 audio data.
   void _onAudioData(Uint8List bytes) {
     _lastDataTime = DateTime.now();
+    // Audio is flowing — clear any pending mic-contention back-off so
+    // the foreground notification reflects the recovered state.
+    if (_consecutiveStalls != 0 || _micContested) {
+      _consecutiveStalls = 0;
+      _backoffUntil = null;
+      _setMicContested(false);
+    }
 
     // Convert signed 16-bit PCM (little-endian) → float32 [-1.0, 1.0].
     final samples = _pcm16ToFloat32(bytes);
