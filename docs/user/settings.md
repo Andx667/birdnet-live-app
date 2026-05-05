@@ -25,6 +25,10 @@ Controls the language used for species names. **Follow app language** uses the s
 
 Shows scientific names below common names across the app.
 
+### Absolute timestamps
+
+Displays times as wall-clock time (`HH:MM:SS`) instead of elapsed time (`MM:SS`) relative to the start of the recording or session. Turn this on when you need to match detections against notes, other recorders, or events that happened at a known time of day. Leave it off when relative timing is easier for reviewing how detections unfolded within one session.
+
 ## Audio
 
 These controls appear in audio-driven live workflows.

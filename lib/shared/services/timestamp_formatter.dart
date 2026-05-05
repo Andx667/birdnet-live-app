@@ -2,9 +2,8 @@
 // Timestamp Formatter Service
 // =============================================================================
 //
-// Utility functions for formatting timestamps in both absolute (wall-clock)
-// and relative (session-start) formats. Used across Live, Point Count, Survey,
-// and File Analysis views.
+ // Shared utility functions for formatting timestamps in both absolute
+ // (wall-clock) and relative (session-start) formats.
 //
 // • Absolute format: "HH:MM:SS" (24-hour time)
 // • Relative format: "MM:SS" (elapsed time since session start)

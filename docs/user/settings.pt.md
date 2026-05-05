@@ -25,6 +25,10 @@ Controla o idioma usado para nomes de espécies. **Seguir idioma do aplicativo**
 
 Mostra nomes científicos abaixo dos nomes comuns no aplicativo.
 
+### Timestamps absolutos
+
+Exibe os horários como hora real do relógio (`HH:MM:SS`) em vez de tempo decorrido (`MM:SS`) relativo ao início da gravação ou da sessão. Ative isso quando precisar comparar as detecções com anotações, outros gravadores ou eventos que aconteceram em um horário conhecido do dia. Deixe desativado quando o tempo relativo for mais útil para revisar como as detecções evoluíram dentro de uma única sessão.
+
 ## Áudio
 
 Esses controles aparecem em fluxos de trabalho ao vivo orientados por áudio.

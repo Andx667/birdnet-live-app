@@ -25,6 +25,10 @@ Nastaví jazyk rozhraní.
 
 Zobrazuje vědecká jména pod běžnými názvy v celé aplikaci.
 
+### Absolutní časové značky
+
+Zobrazuje časy jako skutečný denní čas (`HH:MM:SS`) místo uplynulého času (`MM:SS`) relativně k začátku nahrávání nebo relace. Zapněte tuto volbu, když potřebujete porovnat detekce s poznámkami, jinými rekordéry nebo událostmi, které nastaly v konkrétní denní době. Nechte ji vypnutou, pokud je pro vyhodnocení průběhu jedné relace přehlednější relativní čas.
+
 ## Zvuk
 
 Tyto ovládací prvky se objevují v živých pracovních postupech řízených zvukem.

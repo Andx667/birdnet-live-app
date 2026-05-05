@@ -85,6 +85,10 @@ void main() {
       expect(container.read(useGpsProvider), true);
     });
 
+    test('absoluteTimestamps defaults to false', () {
+      expect(container.read(absoluteTimestampsProvider), false);
+    });
+
     test('geoThreshold defaults to 0.03', () {
       expect(container.read(geoThresholdProvider), 0.03);
     });
@@ -158,6 +162,21 @@ void main() {
       expect(container.read(includeAudioProvider), true);
       expect(prefs.getBool('include_audio'), true);
     });
+
+    test('absoluteTimestampsProvider persists', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(absoluteTimestampsProvider.notifier).set(true);
+      expect(container.read(absoluteTimestampsProvider), true);
+      expect(prefs.getBool('absolute_timestamps'), true);
+    });
   });
 
   group('Settings load persisted values', () {
@@ -167,6 +186,7 @@ void main() {
         'window_duration': 10,
         'color_map': 'magma',
         'include_audio': true,
+        'absolute_timestamps': true,
         'confidence_threshold': 50,
       });
       final prefs = await SharedPreferences.getInstance();
@@ -181,6 +201,7 @@ void main() {
       expect(container.read(windowDurationProvider), 10);
       expect(container.read(colorMapProvider), 'magma');
       expect(container.read(includeAudioProvider), true);
+      expect(container.read(absoluteTimestampsProvider), true);
       expect(container.read(confidenceThresholdProvider), 50);
     });
   });

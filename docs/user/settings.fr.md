@@ -25,6 +25,10 @@ Contrôle la langue utilisée pour les noms d'espèces. **Suivez la langue de l'
 
 Affiche les noms scientifiques sous les noms communs dans l'application.
 
+### Horodatages absolus
+
+Affiche les heures sous forme d'heure réelle (`HH:MM:SS`) au lieu d'un temps écoulé (`MM:SS`) relatif au début de l'enregistrement ou de la session. Activez cette option si vous devez recouper les détections avec des notes, d'autres enregistreurs ou des événements survenus à une heure connue de la journée. Laissez-la désactivée si un temps relatif est plus pratique pour revoir le déroulement des détections au sein d'une seule session.
+
 ## Audio
 
 Ces contrôles apparaissent dans les flux de travail en direct pilotés par l'audio.

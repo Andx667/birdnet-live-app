@@ -25,6 +25,10 @@ Steuert die Sprache, die für Artennamen verwendet wird. **App-Sprache folgen** 
 
 Zeigt wissenschaftliche Namen unterhalb gebräuchlicher Namen in der App an.
 
+### Absolute Zeitstempel
+
+Zeigt Zeiten als tatsächliche Uhrzeit (`HH:MM:SS`) statt als verstrichene Zeit (`MM:SS`) relativ zum Beginn der Aufnahme oder Sitzung an. Aktivieren Sie dies, wenn Sie Erkennungen mit Notizen, anderen Aufnahmegeräten oder Ereignissen zu einer bekannten Tageszeit abgleichen möchten. Lassen Sie es deaktiviert, wenn die relative Zeit für die Auswertung innerhalb einer einzelnen Sitzung hilfreicher ist.
+
 ## Audio
 
 Diese Steuerelemente werden in audiogesteuerten Live-Workflows angezeigt.
