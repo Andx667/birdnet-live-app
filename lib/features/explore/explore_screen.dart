@@ -21,11 +21,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:birdnet_live/l10n/app_localizations.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/services/reverse_geocoding_service.dart';
 import '../../shared/models/taxonomy_species.dart';
 import '../../shared/providers/settings_providers.dart';
+import '../../shared/services/link_launcher.dart';
 import '../../shared/widgets/app_help_bottom_sheet.dart';
 import '../../shared/widgets/content_width_constraint.dart';
 import '../../shared/widgets/empty_view.dart';
@@ -921,12 +921,10 @@ class _ExploreHelpLink extends StatelessWidget {
     final theme = Theme.of(context);
 
     return InkWell(
-      onTap: () async {
-        final uri = Uri.parse('https://birdnet-team.github.io/geomodel/');
-        if (await canLaunchUrl(uri)) {
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-        }
-      },
+      onTap: () => openExternalUrl(
+        context,
+        'https://birdnet-team.github.io/geomodel/',
+      ),
       child: Row(
         children: [
           Icon(

@@ -685,5 +685,6 @@
   "sessionHelpTopBar": "La barre supérieure utilise fermer pour quitter Révision de session et réglages pour ouvrir l'écran complet des réglages. La session en cours reste chargée pendant que vous examinez lecture, détections et notes.",
   "sessionHelpUndoRedo": "Annuler et rétablir reviennent en arrière ou avancent d'une étape dans les modifications effectuées pendant la révision en cours.",
   "sessionHelpSaveDiscard": "Enregistrer écrit vos modifications, partager exporte l'ensemble de session, abandonner supprime la session enregistrée, et le bouton d'aide rouvre ce panneau.",
-  "sessionHelpContinueSurvey": "Pour les sessions de relevé, le bouton lecture poursuit l'enregistrement dans le même relevé au lieu d'en démarrer un nouveau."
+  "sessionHelpContinueSurvey": "Pour les sessions de relevé, le bouton lecture poursuit l'enregistrement dans le même relevé au lieu d'en démarrer un nouveau.",
+  "linkOpenFailedCopied": "Impossible d'ouvrir le lien. URL copiée dans le presse-papiers."
 }

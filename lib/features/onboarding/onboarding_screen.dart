@@ -25,10 +25,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:birdnet_live/l10n/app_localizations.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:record/record.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../shared/providers/app_providers.dart';
+import '../../shared/services/link_launcher.dart';
 import '../../shared/widgets/content_width_constraint.dart';
 
 // ---------------------------------------------------------------------------
@@ -682,8 +682,7 @@ class _TermsPage extends StatelessWidget {
   Future<void> _open(BuildContext context, String path) async {
     final localeCode = Localizations.localeOf(context).languageCode;
     final basePath = localeCode == 'en' ? '' : '/$localeCode';
-    final uri = Uri.parse('${AppConstants.docsUrl}$basePath$path');
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
+    await openExternalUrl(context, '${AppConstants.docsUrl}$basePath$path');
   }
 
   @override

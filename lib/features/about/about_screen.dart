@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:birdnet_live/l10n/app_localizations.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/app_constants.dart';
+import '../../shared/services/link_launcher.dart';
 import '../../shared/widgets/content_width_constraint.dart';
 
 /// Provider for app package info.
@@ -170,46 +170,45 @@ class AboutScreen extends ConsumerWidget {
             ),
             title: Text(l10n.aboutWebsite),
             trailing: const Icon(Icons.open_in_new),
-            onTap: () => _launchUrl(AppConstants.birdnetUrl),
+            onTap: () => openExternalUrl(context, AppConstants.birdnetUrl),
           ),
           ListTile(
             leading: const Icon(Icons.code),
             title: Text(l10n.aboutGitHub),
             trailing: const Icon(Icons.open_in_new),
-            onTap: () => _launchUrl(AppConstants.githubUrl),
+            onTap: () => openExternalUrl(context, AppConstants.githubUrl),
           ),
           ListTile(
             leading: const Icon(Icons.privacy_tip_outlined),
             title: Text(l10n.aboutPrivacyPolicy),
             trailing: const Icon(Icons.open_in_new),
-            onTap: () => _launchUrl(
-                '${AppConstants.docsUrl}${Localizations.localeOf(context).languageCode == 'en' ? '' : '/${Localizations.localeOf(context).languageCode}'}/privacy/'),
+            onTap: () => openExternalUrl(
+              context,
+              '${AppConstants.docsUrl}${Localizations.localeOf(context).languageCode == 'en' ? '' : '/${Localizations.localeOf(context).languageCode}'}/privacy/',
+            ),
           ),
           ListTile(
             leading: const Icon(Icons.gavel),
             title: Text(l10n.aboutTermsOfUse),
             trailing: const Icon(Icons.open_in_new),
-            onTap: () => _launchUrl(
-                '${AppConstants.docsUrl}${Localizations.localeOf(context).languageCode == 'en' ? '' : '/${Localizations.localeOf(context).languageCode}'}/terms/'),
+            onTap: () => openExternalUrl(
+              context,
+              '${AppConstants.docsUrl}${Localizations.localeOf(context).languageCode == 'en' ? '' : '/${Localizations.localeOf(context).languageCode}'}/terms/',
+            ),
           ),
           ListTile(
             leading: const Icon(Icons.menu_book_outlined),
             title: Text(l10n.aboutUserGuide),
             trailing: const Icon(Icons.open_in_new),
-            onTap: () => _launchUrl(
-                '${AppConstants.docsUrl}${Localizations.localeOf(context).languageCode == 'en' ? '' : '/${Localizations.localeOf(context).languageCode}'}/user/'),
+            onTap: () => openExternalUrl(
+              context,
+              '${AppConstants.docsUrl}${Localizations.localeOf(context).languageCode == 'en' ? '' : '/${Localizations.localeOf(context).languageCode}'}/user/',
+            ),
           ),
 
           const SizedBox(height: 32),
         ],
       )),
     );
-  }
-
-  Future<void> _launchUrl(String url) async {
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
   }
 }

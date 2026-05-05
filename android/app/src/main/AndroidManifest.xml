@@ -63,5 +63,22 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        <!-- Required so url_launcher's canLaunchUrl / launchUrl can resolve
+             external https/http links (e.g. species Wikipedia/eBird/iNaturalist
+             chips, About-screen links). Without these <intent> entries Android
+             11+ package visibility hides browsers from us and url_launcher
+             reports "no activity found", even when Chrome/Firefox are installed. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="http"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="mailto"/>
+        </intent>
     </queries>
 </manifest>

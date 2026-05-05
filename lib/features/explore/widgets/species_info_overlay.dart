@@ -19,10 +19,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:birdnet_live/l10n/app_localizations.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../shared/models/taxonomy_species.dart';
 import '../../../shared/providers/settings_providers.dart';
+import '../../../shared/services/link_launcher.dart';
 import '../explore_providers.dart';
 import '../../inference/geo_model.dart';
 import '../../history/global_species_history.dart';
@@ -428,12 +428,7 @@ class _LinkChip extends StatelessWidget {
         ],
       ),
       labelStyle: theme.textTheme.bodySmall,
-      onPressed: () async {
-        final uri = Uri.parse(url);
-        if (await canLaunchUrl(uri)) {
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-        }
-      },
+      onPressed: () => openExternalUrl(context, url),
     );
   }
 }

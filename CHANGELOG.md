@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.5] - 2026-05-02
+
+### Fixed
+
+- **External link chips (eBird, iNaturalist, Wikipedia, About-screen links) now open reliably on Android 11+** (#34). Under Android 11+ package-visibility rules, `canLaunchUrl` returns `false` for an `https`/`mailto` intent unless the app's manifest declares an `<intent>` query for `ACTION_VIEW` with that scheme. The previous `if (await canLaunchUrl(uri)) launchUrl(uri)` pattern silently no-op'd on devices where Android hid the user's browser from the visibility query (reported on a Pixel 9 Pro running Android 16). The manifest now declares `ACTION_VIEW` queries for `http`, `https`, and `mailto`, and the call sites use a new `openExternalUrl` helper that drops the `canLaunchUrl` probe entirely and falls back to copying the URL to the clipboard with a SnackBar message if launching genuinely fails (no browser installed at all).
+
 ## [0.9.4] - 2026-05-02
 
 ### Fixed

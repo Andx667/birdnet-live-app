@@ -685,5 +685,6 @@
   "sessionHelpTopBar": "Die obere Leiste verwendet Schließen, um die Session-Überprüfung zu verlassen, und Einstellungen, um den vollständigen Einstellungsbildschirm zu öffnen. Ihre aktuelle Session bleibt geladen, während Sie Wiedergabe, Detektionen und Notizen prüfen.",
   "sessionHelpUndoRedo": "Rückgängig und Wiederholen gehen bei Bearbeitungen der aktuellen Überprüfung einen Schritt zurück oder vor.",
   "sessionHelpSaveDiscard": "Speichern schreibt Ihre Änderungen, Teilen exportiert das Session-Bundle, Verwerfen entfernt die gespeicherte Session, und die Hilfe-Schaltfläche öffnet dieses Overlay erneut.",
-  "sessionHelpContinueSurvey": "Bei Survey-Sessions setzt die Play-Schaltfläche die Aufnahme in derselben Survey fort, anstatt eine neue zu starten."
+  "sessionHelpContinueSurvey": "Bei Survey-Sessions setzt die Play-Schaltfläche die Aufnahme in derselben Survey fort, anstatt eine neue zu starten.",
+  "linkOpenFailedCopied": "Link konnte nicht geöffnet werden. URL in die Zwischenablage kopiert."
 }

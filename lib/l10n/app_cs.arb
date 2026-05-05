@@ -685,5 +685,6 @@
   "sessionHelpTopBar": "Horní lišta používá zavřít k opuštění Revize relace a nastavení k otevření úplné obrazovky nastavení. Aktuální relace zůstává načtena, zatímco kontrolujete přehrávání, detekce a poznámky.",
   "sessionHelpUndoRedo": "Zpět a znovu posunují úpravy provedené během aktuální revize o krok zpět nebo vpřed.",
   "sessionHelpSaveDiscard": "Uložit zapíše vaše změny, sdílet exportuje balíček relace, zahodit odstraní uloženou relaci a tlačítko nápovědy znovu otevře tento panel.",
-  "sessionHelpContinueSurvey": "U relací survey tlačítko přehrávání pokračuje v nahrávání ve stejné survey místo spuštění nové."
+  "sessionHelpContinueSurvey": "U relací survey tlačítko přehrávání pokračuje v nahrávání ve stejné survey místo spuštění nové.",
+  "linkOpenFailedCopied": "Odkaz se nepodařilo otevřít. URL byla zkopírována do schránky."
 }

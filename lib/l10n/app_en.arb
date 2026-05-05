@@ -2670,5 +2670,9 @@
   "sessionHelpContinueSurvey": "For survey sessions, the play button continues recording into the same survey instead of starting a separate one.",
   "@sessionHelpContinueSurvey": {
     "description": "Explains the continue survey action on the Session Review help overlay"
+  },
+  "linkOpenFailedCopied": "Couldn't open link. URL copied to clipboard.",
+  "@linkOpenFailedCopied": {
+    "description": "Snackbar shown when launching an external https/mailto URL fails (e.g. no browser installed). The URL is copied to the clipboard so the user can paste it elsewhere."
   }
 }

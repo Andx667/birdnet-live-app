@@ -9,9 +9,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:birdnet_live/l10n/app_localizations.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/app_constants.dart';
+import '../../shared/services/link_launcher.dart';
 import '../../shared/utils/session_type_visuals.dart';
 import '../../shared/widgets/content_width_constraint.dart';
 import '../live/live_session.dart';
@@ -386,8 +386,5 @@ class _TipRow extends StatelessWidget {
 Future<void> _launchUserGuide(BuildContext context) async {
   final localeCode = Localizations.localeOf(context).languageCode;
   final basePath = localeCode == 'en' ? '' : '/$localeCode';
-  final uri = Uri.parse('${AppConstants.docsUrl}$basePath/user/');
-  if (await canLaunchUrl(uri)) {
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
-  }
+  await openExternalUrl(context, '${AppConstants.docsUrl}$basePath/user/');
 }

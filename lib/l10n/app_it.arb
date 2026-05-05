@@ -685,5 +685,6 @@
   "sessionHelpTopBar": "La barra superiore usa chiudi per lasciare Revisione sessione e impostazioni per aprire la schermata completa delle impostazioni. La sessione corrente resta caricata mentre controlli riproduzione, rilevazioni e note.",
   "sessionHelpUndoRedo": "Annulla e ripristina spostano indietro o avanti di un passaggio nelle modifiche fatte durante la revisione corrente.",
   "sessionHelpSaveDiscard": "Salva scrive le modifiche, condividi esporta il pacchetto della sessione, scarta rimuove la sessione salvata e il pulsante di aiuto riapre questo pannello.",
-  "sessionHelpContinueSurvey": "Per le sessioni di survey, il pulsante play continua la registrazione nella stessa survey invece di iniziarne una nuova."
+  "sessionHelpContinueSurvey": "Per le sessioni di survey, il pulsante play continua la registrazione nella stessa survey invece di iniziarne una nuova.",
+  "linkOpenFailedCopied": "Impossibile aprire il link. URL copiato negli appunti."
 }

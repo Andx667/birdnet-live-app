@@ -685,5 +685,6 @@
   "sessionHelpTopBar": "A barra superior usa fechar para sair da Revisão de sessão e configurações para abrir a tela completa de configurações. A sessão atual permanece carregada enquanto você inspeciona reprodução, detecções e notas.",
   "sessionHelpUndoRedo": "Desfazer e refazer voltam ou avançam um passo nas edições feitas durante a revisão atual.",
   "sessionHelpSaveDiscard": "Salvar grava suas alterações, compartilhar exporta o pacote da sessão, descartar remove a sessão salva e o botão de ajuda reabre este painel.",
-  "sessionHelpContinueSurvey": "Para sessões de survey, o botão de play continua a gravação na mesma survey em vez de iniciar uma nova."
+  "sessionHelpContinueSurvey": "Para sessões de survey, o botão de play continua a gravação na mesma survey em vez de iniciar uma nova.",
+  "linkOpenFailedCopied": "Não foi possível abrir o link. URL copiado para a área de transferência."
 }
