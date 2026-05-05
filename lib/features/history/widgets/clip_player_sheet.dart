@@ -228,13 +228,11 @@ class _ClipPlayerSheetState extends ConsumerState<_ClipPlayerSheet> {
             ?.lookup(det.scientificName)
             ?.commonNameForLocale(speciesLocale) ??
         det.commonName;
-    final timeStr = useAbsoluteTimestamps
-        ? formatTimestamp(
-            timestamp: det.timestamp,
-            sessionStart: det.timestamp,
-            useAbsolute: true,
-          )
-        : DateFormat('yyyy-MM-dd HH:mm:ss').format(det.timestamp);
+    final timeStr = formatTimestamp(
+      timestamp: det.timestamp,
+      sessionStart: det.timestamp,
+      useAbsolute: useAbsoluteTimestamps,
+    );
     final scoreColor = det.confidence >= 0.8
         ? Colors.green
         : det.confidence >= 0.5
