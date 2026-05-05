@@ -27,6 +27,7 @@ import '../explore_providers.dart';
 import '../../inference/geo_model.dart';
 import '../../history/global_species_history.dart';
 import '../../live/live_providers.dart';
+import 'pick_wikipedia_url.dart';
 
 /// Shows a modal bottom sheet with detailed species information.
 class SpeciesInfoOverlay {
@@ -111,14 +112,14 @@ class _SpeciesInfoSheetState extends ConsumerState<_SpeciesInfoSheet> {
 
   /// Pick the best Wikipedia URL for the active locale.
   ///
-  /// Prefers the user's interface/species locale, falls back to English,
-  /// returns null if neither exists. Only locales bundled in taxonomy.csv
-  /// are considered (interface locales).
-  String? _pickWikipediaUrl(TaxonomySpecies detail) {
-    final urls = detail.wikipediaUrls;
-    if (urls == null || urls.isEmpty) return null;
+  /// Delegates to [pickWikipediaUrl] with the current effective locale.
+  String _pickWikipediaUrl(TaxonomySpecies detail) {
     final locale = ref.read(effectiveSpeciesLocaleProvider);
-    return urls[locale] ?? urls['en'];
+    return pickWikipediaUrl(
+      scientificName: widget.scientificName,
+      bundledUrls: detail.wikipediaUrls,
+      locale: locale,
+    );
   }
 
   @override
@@ -266,10 +267,7 @@ class _SpeciesInfoSheetState extends ConsumerState<_SpeciesInfoSheet> {
                 ),
 
                 // ── External links ───────────────────────────────
-                if (_detail != null &&
-                    (_detail!.ebirdUrl != null ||
-                        _detail!.inatUrl != null ||
-                        _pickWikipediaUrl(_detail!) != null)) ...[
+                if (_detail != null) ...[
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
                     child: Text(
@@ -297,12 +295,11 @@ class _SpeciesInfoSheetState extends ConsumerState<_SpeciesInfoSheet> {
                             iconAsset: 'assets/images/icon-inat.png',
                             url: _detail!.inatUrl!,
                           ),
-                        if (_pickWikipediaUrl(_detail!) != null)
-                          _LinkChip(
-                            label: 'Wikipedia',
-                            iconAsset: 'assets/images/icon-wikipedia.png',
-                            url: _pickWikipediaUrl(_detail!)!,
-                          ),
+                        _LinkChip(
+                          label: 'Wikipedia',
+                          iconAsset: 'assets/images/icon-wikipedia.png',
+                          url: _pickWikipediaUrl(_detail!),
+                        ),
                       ],
                     ),
                   ),
