@@ -103,12 +103,12 @@ void main() {
     // ─── Specific palette spot checks ──────────────────────────────────────
 
     group('spot checks', () {
-      test('grayscale starts black and ends white', () {
+      test('grayscale starts white and ends black', () {
         final table = SpectrogramColorMap.lut('grayscale');
-        // Index 0 → black.
-        expect(table[0] & 0x00FFFFFF, 0x00000000);
-        // Index 255 → white.
-        expect(table[255] & 0x00FFFFFF, 0x00FFFFFF);
+        // Index 0 → white (quiet/background).
+        expect(table[0] & 0x00FFFFFF, 0x00FFFFFF);
+        // Index 255 → black (loud).
+        expect(table[255] & 0x00FFFFFF, 0x00000000);
       });
 
       test('birdnet mid-range is near brand blue (#0D6EFD)', () {

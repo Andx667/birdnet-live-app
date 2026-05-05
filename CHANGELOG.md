@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.6] - 2026-05-02
+
+### Changed
+
+- **Grayscale spectrogram colormap inverted: white now means quiet, black means loud.** Matches Audacity, Raven, Sonic Visualiser, matplotlib's `gray_r`, and printed sonograms in field guides. Quiet background reads as paper-white instead of a black wall, so the spectrogram is legible on light themes and exports cleanly to print (#33).
+
 ## [0.9.5] - 2026-05-02
 
 ### Fixed

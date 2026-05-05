@@ -105,8 +105,12 @@ abstract final class SpectrogramColorMap {
       _GradientStop(1.00, const Color(0xFFFCFFA4)),
     ],
     'grayscale': [
-      _GradientStop(0.00, const Color(0xFF000000)),
-      _GradientStop(1.00, const Color(0xFFFFFFFF)),
+      // White = quiet, black = loud — matches Audacity, Raven, Sonic
+      // Visualiser, matplotlib's `gray_r`, and printed sonograms in field
+      // guides. Reversed from the natural black→white ramp so quiet
+      // background reads as paper-white instead of a black wall (#33).
+      _GradientStop(0.00, const Color(0xFFFFFFFF)),
+      _GradientStop(1.00, const Color(0xFF000000)),
     ],
     // Brand-themed color map: dark navy → brand blue (#0D6EFD) → white.
     'birdnet': [
