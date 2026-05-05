@@ -96,6 +96,7 @@ abstract final class PrefKeys {
 
   // Display settings
   static const String showSciNames = 'show_sci_names';
+  static const String absoluteTimestamps = 'absolute_timestamps';
 
   // Point count settings
   static const String pointCountDuration = 'point_count_duration';

@@ -28,6 +28,7 @@ import 'package:just_audio/just_audio.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../shared/providers/settings_providers.dart';
+import '../../../shared/services/timestamp_formatter.dart';
 import '../../explore/explore_providers.dart';
 import '../../live/live_session.dart';
 import '../../recording/audio_decoder.dart';
@@ -216,6 +217,7 @@ class _ClipPlayerSheetState extends ConsumerState<_ClipPlayerSheet> {
     final taxonomyAsync = ref.watch(taxonomyServiceProvider);
     final speciesLocale = ref.watch(effectiveSpeciesLocaleProvider);
     final showSciNames = ref.watch(showSciNamesProvider);
+    final useAbsoluteTimestamps = ref.watch(absoluteTimestampsProvider);
     final imagePath =
         taxonomyAsync.valueOrNull?.assetImagePath(det.scientificName) ??
             'assets/images/dummy_species.png';
@@ -226,7 +228,13 @@ class _ClipPlayerSheetState extends ConsumerState<_ClipPlayerSheet> {
             ?.lookup(det.scientificName)
             ?.commonNameForLocale(speciesLocale) ??
         det.commonName;
-    final timeStr = DateFormat('yyyy-MM-dd HH:mm:ss').format(det.timestamp);
+    final timeStr = useAbsoluteTimestamps
+        ? formatTimestamp(
+            timestamp: det.timestamp,
+            sessionStart: det.timestamp,
+            useAbsolute: true,
+          )
+        : DateFormat('yyyy-MM-dd HH:mm:ss').format(det.timestamp);
     final scoreColor = det.confidence >= 0.8
         ? Colors.green
         : det.confidence >= 0.5

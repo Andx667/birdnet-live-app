@@ -925,6 +925,18 @@
   "@settingsShowSciNamesDescription": {
     "description": "Subtitle for the show scientific names toggle"
   },
+  "settingsAbsoluteTimestamps": "Absolute timestamps",
+  "@settingsAbsoluteTimestamps": {
+    "description": "Toggle to show absolute wall-clock time instead of relative time"
+  },
+  "settingsAbsoluteTimestampsDescription": "Display times as HH:MM:SS instead of MM:SS relative to session start",
+  "@settingsAbsoluteTimestampsDescription": {
+    "description": "Subtitle for the absolute timestamps toggle"
+  },
+  "settingsHelpAbsoluteTimestamps": "When enabled, timestamps show the current wall-clock time (HH:MM:SS). When disabled, timestamps show elapsed time from the start of the recording or session (MM:SS).",
+  "@settingsHelpAbsoluteTimestamps": {
+    "description": "Help text for the absolute timestamps setting"
+  },
   "monthJ": "J",
   "monthF": "F",
   "monthM": "M",

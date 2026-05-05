@@ -217,6 +217,17 @@ final showSciNamesProvider =
   return BoolSettingNotifier(prefs, PrefKeys.showSciNames, true);
 });
 
+/// Show absolute timestamps instead of relative (default false).
+///
+/// When false, timestamps are shown relative to the session/recording start
+/// (MM:SS format). When true, timestamps show the absolute wall-clock time
+/// (HH:MM:SS format).
+final absoluteTimestampsProvider =
+    StateNotifierProvider<BoolSettingNotifier, bool>((ref) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return BoolSettingNotifier(prefs, PrefKeys.absoluteTimestamps, false);
+});
+
 /// Geo-model probability threshold (0.0 – 1.0, default 0.03).
 final geoThresholdProvider =
     StateNotifierProvider<DoubleSettingNotifier, double>((ref) {

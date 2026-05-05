@@ -139,6 +139,16 @@ class SettingsScreen extends ConsumerWidget {
               value: ref.watch(showSciNamesProvider),
               onChanged: (v) => ref.read(showSciNamesProvider.notifier).set(v),
             ),
+            SwitchListTile(
+              title: _TitleWithHelp(
+                title: l10n.settingsAbsoluteTimestamps,
+                helpBody: l10n.settingsHelpAbsoluteTimestamps,
+              ),
+              subtitle: Text(l10n.settingsAbsoluteTimestampsDescription),
+              value: ref.watch(absoluteTimestampsProvider),
+              onChanged: (v) =>
+                  ref.read(absoluteTimestampsProvider.notifier).set(v),
+            ),
             const Divider(),
           ],
 
