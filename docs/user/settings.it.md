@@ -29,7 +29,7 @@ Mostra i nomi scientifici sotto i nomi comuni nell'app.
 
 Mostra gli orari come ora reale (`HH:MM:SS`) invece che come tempo trascorso (`MM:SS`) relativo all'inizio della registrazione o della sessione. Attiva questa opzione quando devi confrontare i rilevamenti con note, altri registratori o eventi avvenuti in un'ora precisa della giornata. Lasciala disattivata quando il tempo relativo è piu utile per capire come si sono susseguiti i rilevamenti all'interno di una singola sessione.
 
-##Audio
+## Audio
 
 Questi controlli vengono visualizzati nei flussi di lavoro live basati su audio.
 

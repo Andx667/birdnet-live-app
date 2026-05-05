@@ -91,7 +91,7 @@ Applique une mise à l'échelle logarithmique au spectrogramme pour une lecture 
 
 ## Enregistrement
 
-###Mode
+### Mode
 
 - **Full** — sauvegardez tout l'enregistrement
 - **Détections uniquement** : enregistrez les clips autour des détections
@@ -101,7 +101,7 @@ Applique une mise à l'échelle logarithmique au spectrogramme pour une lecture 
 
 Lorsque **Détections uniquement** est actif, l'application affiche un seul curseur **Contexte du clip** (0 à 5 s) qui définit la quantité d'audio préservée des **deux côtés** de chaque détection. Chaque clip a une longueur de « fenêtre d'analyse + 2 × contexte de clip », donc avec une fenêtre d'analyse de 3 s et le contexte par défaut de 1 s, le clip enregistré dure 5 s. Définir le contexte sur 2 s donne un clip de 7 s (2 s de pré-roll + 3 s d'audio analysé + 2 s de post-roll). Des valeurs plus élevées vous donnent plus de place pour une inspection visuelle ou des outils de révision externes au détriment de l'espace disque ; 0 enregistre uniquement la fenêtre analysée elle-même.
 
-###Format
+### Format
 
 Choisissez **WAV** ou **FLAC**.
 
@@ -127,7 +127,7 @@ Apparaît lorsqu'un mode de filtrage basé sur l'emplacement est actif.
 
 ## Exporter et synchroniser
 
-###Format
+### Format
 
 Choisissez une cible d'exportation :
 

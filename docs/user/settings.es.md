@@ -29,7 +29,7 @@ Muestra nombres científicos debajo de nombres comunes en toda la aplicación.
 
 Muestra las horas como hora real del reloj (`HH:MM:SS`) en lugar de tiempo transcurrido (`MM:SS`) relativo al inicio de la grabación o de la sesión. Actívelo cuando necesite comparar las detecciones con notas, otras grabadoras o eventos que ocurrieron a una hora conocida del día. Déjelo desactivado cuando el tiempo relativo sea más útil para revisar cómo evolucionaron las detecciones dentro de una sola sesión.
 
-##Audio
+## Audio
 
 Estos controles aparecen en flujos de trabajo en vivo basados ​​en audio.
 
