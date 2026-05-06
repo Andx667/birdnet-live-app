@@ -564,11 +564,15 @@ class _SpeciesMarker extends ConsumerWidget {
       );
     }
 
-    // Silent (no-audio) markers render a touch smaller than audio ones so
-    // the play-badge overhang on audio markers doesn't make audio markers
-    // look visually larger inside the same bounding box. Both forms use
-    // the same highlighted size so the focused detection always pops.
-    final size = isHighlighted ? 48.0 : (hasAudio ? 36.0 : 30.0);
+    // Silent (no-audio) markers are noticeably smaller than audio ones so
+    // the visual hierarchy reads at a glance — audio detections are the
+    // primary content, silent ones are context. The highlighted size is also
+    // shrunk for silent markers so a stray rebuild can never make a silent
+    // marker visually outweigh an unhighlighted audio one.
+    final size =
+        isHighlighted
+            ? (hasAudio ? 48.0 : 36.0)
+            : (hasAudio ? 36.0 : 24.0);
 
     final taxonomyAsync = ref.watch(taxonomyServiceProvider);
     final path =
