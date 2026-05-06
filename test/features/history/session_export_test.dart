@@ -90,10 +90,20 @@ void main() {
       final session = _makeSession(
         windowDuration: 3,
         detections: [
-          _det('Turdus merula', 'Eurasian Blackbird', 0.95,
-              const Duration(seconds: 10), start),
-          _det('Erithacus rubecula', 'European Robin', 0.72,
-              const Duration(seconds: 25, milliseconds: 500), start),
+          _det(
+            'Turdus merula',
+            'Eurasian Blackbird',
+            0.95,
+            const Duration(seconds: 10),
+            start,
+          ),
+          _det(
+            'Erithacus rubecula',
+            'European Robin',
+            0.72,
+            const Duration(seconds: 25, milliseconds: 500),
+            start,
+          ),
         ],
       );
 
@@ -129,53 +139,69 @@ void main() {
     });
 
     test(
-        'clip mode: Begin/End Time are in-clip offsets and a Survey Time column is added',
-        () {
-      final start = DateTime.utc(2025, 6, 15, 8, 0, 0);
-      final session = _makeSession(
-        windowDuration: 3,
-        clipContextSeconds: 1,
-        detections: [
-          _det('Turdus merula', 'Eurasian Blackbird', 0.95,
-              const Duration(seconds: 10), start),
-          _det('Erithacus rubecula', 'European Robin', 0.72,
-              const Duration(seconds: 25), start),
-        ],
-      );
+      'clip mode: Begin/End Time are in-clip offsets and a Survey Time column is added',
+      () {
+        final start = DateTime.utc(2025, 6, 15, 8, 0, 0);
+        final session = _makeSession(
+          windowDuration: 3,
+          clipContextSeconds: 1,
+          detections: [
+            _det(
+              'Turdus merula',
+              'Eurasian Blackbird',
+              0.95,
+              const Duration(seconds: 10),
+              start,
+            ),
+            _det(
+              'Erithacus rubecula',
+              'European Robin',
+              0.72,
+              const Duration(seconds: 25),
+              start,
+            ),
+          ],
+        );
 
-      final table = buildRavenSelectionTable(
-        session,
-        clipFileMap: {
-          0: '${_prefix}_clip_001_Eurasian_Blackbird.flac',
-          1: '${_prefix}_clip_002_European_Robin.flac',
-        },
-      );
-      final lines = table.split('\n').where((l) => l.isNotEmpty).toList();
+        final table = buildRavenSelectionTable(
+          session,
+          clipFileMap: {
+            0: '${_prefix}_clip_001_Eurasian_Blackbird.flac',
+            1: '${_prefix}_clip_002_European_Robin.flac',
+          },
+        );
+        final lines = table.split('\n').where((l) => l.isNotEmpty).toList();
 
-      // Header gains 'Survey Time (s)' when any row references a clip.
-      expect(lines.first, contains('Survey Time (s)'));
+        // Header gains 'Survey Time (s)' when any row references a clip.
+        expect(lines.first, contains('Survey Time (s)'));
 
-      final cols1 = lines[1].split('\t');
-      expect(cols1[3], '${_prefix}_clip_001_Eurasian_Blackbird.flac');
-      // Detection sits at [clipContext, clipContext + window] inside the clip.
-      expect(cols1[4], '1.000');
-      expect(cols1[5], '4.000');
-      // Survey Time column carries the session-relative offset.
-      expect(cols1[11], '10.000');
+        final cols1 = lines[1].split('\t');
+        expect(cols1[3], '${_prefix}_clip_001_Eurasian_Blackbird.flac');
+        // Detection sits at [clipContext, clipContext + window] inside the clip.
+        expect(cols1[4], '1.000');
+        expect(cols1[5], '4.000');
+        // Survey Time column carries the session-relative offset.
+        expect(cols1[11], '10.000');
 
-      final cols2 = lines[2].split('\t');
-      expect(cols2[3], '${_prefix}_clip_002_European_Robin.flac');
-      expect(cols2[4], '1.000');
-      expect(cols2[5], '4.000');
-      expect(cols2[11], '25.000');
-    });
+        final cols2 = lines[2].split('\t');
+        expect(cols2[3], '${_prefix}_clip_002_European_Robin.flac');
+        expect(cols2[4], '1.000');
+        expect(cols2[5], '4.000');
+        expect(cols2[11], '25.000');
+      },
+    );
 
     test('no file refs: Begin File column is empty', () {
       final start = DateTime.utc(2025, 6, 15, 8, 0, 0);
       final session = _makeSession(
         detections: [
-          _det('Parus major', 'Great Tit', 0.80, const Duration(seconds: 7),
-              start),
+          _det(
+            'Parus major',
+            'Great Tit',
+            0.80,
+            const Duration(seconds: 7),
+            start,
+          ),
         ],
       );
 
@@ -190,8 +216,13 @@ void main() {
       final session = _makeSession(
         windowDuration: 5,
         detections: [
-          _det('Parus major', 'Great Tit', 0.80, const Duration(seconds: 7),
-              start),
+          _det(
+            'Parus major',
+            'Great Tit',
+            0.80,
+            const Duration(seconds: 7),
+            start,
+          ),
         ],
       );
 
@@ -233,8 +264,13 @@ void main() {
       final start = DateTime.utc(2025, 6, 15, 8, 0, 0);
       final session = _makeSession(
         detections: [
-          _det('Turdus merula', 'Eurasian Blackbird', 0.90,
-              const Duration(seconds: 10), start),
+          _det(
+            'Turdus merula',
+            'Eurasian Blackbird',
+            0.90,
+            const Duration(seconds: 10),
+            start,
+          ),
         ],
       );
 
@@ -247,8 +283,13 @@ void main() {
       final start = DateTime.utc(2025, 6, 15, 8, 0, 0);
       final session = _makeSession(
         detections: [
-          _det('Turdus merula', 'Eurasian Blackbird', 0.95,
-              const Duration(seconds: 10), start),
+          _det(
+            'Turdus merula',
+            'Eurasian Blackbird',
+            0.95,
+            const Duration(seconds: 10),
+            start,
+          ),
         ],
       );
 
@@ -265,8 +306,13 @@ void main() {
       final start = DateTime.utc(2025, 6, 15, 8, 0, 0);
       final session = _makeSession(
         detections: [
-          _det('Turdus merula', 'Eurasian Blackbird', 0.95,
-              const Duration(seconds: 10), start),
+          _det(
+            'Turdus merula',
+            'Eurasian Blackbird',
+            0.95,
+            const Duration(seconds: 10),
+            start,
+          ),
         ],
       );
 
@@ -290,8 +336,13 @@ void main() {
       final start = DateTime.utc(2025, 6, 15, 8, 0, 0);
       final session = _makeSession(
         detections: [
-          _det('Turdus merula', 'Eurasian Blackbird', 0.91,
-              const Duration(seconds: 5), start),
+          _det(
+            'Turdus merula',
+            'Eurasian Blackbird',
+            0.91,
+            const Duration(seconds: 5),
+            start,
+          ),
         ],
       );
 
@@ -315,8 +366,13 @@ void main() {
       final start = DateTime.utc(2025, 6, 15, 8, 0, 0);
       final session = _makeSession(
         detections: [
-          _det('Turdus merula', 'Eurasian Blackbird', 0.91,
-              const Duration(seconds: 5), start),
+          _det(
+            'Turdus merula',
+            'Eurasian Blackbird',
+            0.91,
+            const Duration(seconds: 5),
+            start,
+          ),
         ],
       );
       final csv = buildCsvExport(session);
@@ -330,8 +386,13 @@ void main() {
       final start = DateTime.utc(2025, 6, 15, 8, 0, 0);
       final session = _makeSession(
         detections: [
-          _det('Turdus merula', 'Eurasian Blackbird', 0.91,
-              const Duration(seconds: 5), start),
+          _det(
+            'Turdus merula',
+            'Eurasian Blackbird',
+            0.91,
+            const Duration(seconds: 5),
+            start,
+          ),
         ],
       );
       final csv = buildCsvExport(session, useAbsoluteSurveyTime: true);
@@ -358,58 +419,79 @@ void main() {
 
     test('returns file without ZIP when recording path is null', () async {
       final session = _makeSession(recordingPath: null);
-      final result = await buildSessionExport(session,
-          format: 'raven', includeAudio: true);
+      final result = await buildSessionExport(
+        session,
+        format: 'raven',
+        includeAudio: true,
+      );
       expect(result, isNotNull);
       expect(result!.endsWith('.txt'), isTrue);
       expect(p.basename(result), startsWith('BirdNET_Live_'));
     });
 
-    test('returns file without ZIP when recording file does not exist',
-        () async {
-      final session = _makeSession(
-        recordingPath: '${tempDir.path}/nonexistent.wav',
-      );
-      final result = await buildSessionExport(session,
-          format: 'raven', includeAudio: true);
-      expect(result, isNotNull);
-      expect(result!.endsWith('.txt'), isTrue);
-    });
+    test(
+      'returns file without ZIP when recording file does not exist',
+      () async {
+        final session = _makeSession(
+          recordingPath: '${tempDir.path}/nonexistent.wav',
+        );
+        final result = await buildSessionExport(
+          session,
+          format: 'raven',
+          includeAudio: true,
+        );
+        expect(result, isNotNull);
+        expect(result!.endsWith('.txt'), isTrue);
+      },
+    );
 
-    test('creates a ZIP with wav and selection table (full recording)',
-        () async {
-      final wavPath = '${tempDir.path}/full.wav';
-      File(wavPath).writeAsBytesSync([0x52, 0x49, 0x46, 0x46]); // "RIFF"
+    test(
+      'creates a ZIP with wav and selection table (full recording)',
+      () async {
+        final wavPath = '${tempDir.path}/full.wav';
+        File(wavPath).writeAsBytesSync([0x52, 0x49, 0x46, 0x46]); // "RIFF"
 
-      final start = DateTime.utc(2025, 6, 15, 8, 0, 0);
-      final session = _makeSession(
-        recordingPath: wavPath,
-        detections: [
-          _det('Turdus merula', 'Eurasian Blackbird', 0.91,
-              const Duration(seconds: 5), start),
-        ],
-      );
+        final start = DateTime.utc(2025, 6, 15, 8, 0, 0);
+        final session = _makeSession(
+          recordingPath: wavPath,
+          detections: [
+            _det(
+              'Turdus merula',
+              'Eurasian Blackbird',
+              0.91,
+              const Duration(seconds: 5),
+              start,
+            ),
+          ],
+        );
 
-      final zipPath = await buildSessionExport(session,
-          format: 'raven', includeAudio: true);
-      expect(zipPath, isNotNull);
-      expect(File(zipPath!).existsSync(), isTrue);
+        final zipPath = await buildSessionExport(
+          session,
+          format: 'raven',
+          includeAudio: true,
+        );
+        expect(zipPath, isNotNull);
+        expect(File(zipPath!).existsSync(), isTrue);
 
-      final zipBytes = File(zipPath).readAsBytesSync();
-      final archive = ZipDecoder().decodeBytes(zipBytes);
+        final zipBytes = File(zipPath).readAsBytesSync();
+        final archive = ZipDecoder().decodeBytes(zipBytes);
 
-      final names = archive.map((f) => f.name).toList();
-      expect(names, contains('$_prefix.wav'));
-      expect(names, contains('$_prefix.selections.txt'));
+        final names = archive.map((f) => f.name).toList();
+        expect(names, contains('$_prefix.wav'));
+        expect(names, contains('$_prefix.selections.txt'));
 
-      // Selection table inside ZIP references the audio file.
-      final tableFile =
-          archive.firstWhere((f) => f.name.endsWith('.selections.txt'));
-      final tableContent = String.fromCharCodes(tableFile.content as List<int>);
-      expect(tableContent, contains('Begin File'));
-      expect(tableContent, contains('$_prefix.wav'));
-      expect(tableContent, contains('Turdus merula'));
-    });
+        // Selection table inside ZIP references the audio file.
+        final tableFile = archive.firstWhere(
+          (f) => f.name.endsWith('.selections.txt'),
+        );
+        final tableContent = String.fromCharCodes(
+          tableFile.content as List<int>,
+        );
+        expect(tableContent, contains('Begin File'));
+        expect(tableContent, contains('$_prefix.wav'));
+        expect(tableContent, contains('Turdus merula'));
+      },
+    );
 
     test('creates a ZIP with detection clips (clips mode)', () async {
       // Create clip files on disk.
@@ -425,17 +507,30 @@ void main() {
         // recordingPath is a directory (detectionsOnly mode).
         recordingPath: clipDir,
         detections: [
-          _det('Turdus merula', 'Eurasian Blackbird', 0.91,
-              const Duration(seconds: 5), start,
-              audioClipPath: clip1Path),
-          _det('Erithacus rubecula', 'European Robin', 0.72,
-              const Duration(seconds: 25), start,
-              audioClipPath: clip2Path),
+          _det(
+            'Turdus merula',
+            'Eurasian Blackbird',
+            0.91,
+            const Duration(seconds: 5),
+            start,
+            audioClipPath: clip1Path,
+          ),
+          _det(
+            'Erithacus rubecula',
+            'European Robin',
+            0.72,
+            const Duration(seconds: 25),
+            start,
+            audioClipPath: clip2Path,
+          ),
         ],
       );
 
-      final zipPath = await buildSessionExport(session,
-          format: 'raven', includeAudio: true);
+      final zipPath = await buildSessionExport(
+        session,
+        format: 'raven',
+        includeAudio: true,
+      );
       expect(zipPath, isNotNull);
       expect(File(zipPath!).existsSync(), isTrue);
 
@@ -449,8 +544,9 @@ void main() {
       expect(names, contains('$_prefix.selections.txt'));
 
       // Selection table references clip filenames.
-      final tableFile =
-          archive.firstWhere((f) => f.name.endsWith('.selections.txt'));
+      final tableFile = archive.firstWhere(
+        (f) => f.name.endsWith('.selections.txt'),
+      );
       final tableContent = String.fromCharCodes(tableFile.content as List<int>);
       expect(tableContent, contains('_clip_001_Eurasian_Blackbird.flac'));
       expect(tableContent, contains('_clip_002_European_Robin.flac'));
@@ -464,14 +560,22 @@ void main() {
       final session = _makeSession(
         recordingPath: wavPath,
         detections: [
-          _det('Turdus merula', 'Eurasian Blackbird', 0.91,
-              const Duration(seconds: 5), start),
+          _det(
+            'Turdus merula',
+            'Eurasian Blackbird',
+            0.91,
+            const Duration(seconds: 5),
+            start,
+          ),
         ],
       );
       session.customName = 'Morning walk';
 
-      final zipPath = await buildSessionExport(session,
-          format: 'raven', includeAudio: true);
+      final zipPath = await buildSessionExport(
+        session,
+        format: 'raven',
+        includeAudio: true,
+      );
       expect(zipPath, isNotNull);
 
       final zipBytes = File(zipPath!).readAsBytesSync();
@@ -486,7 +590,8 @@ void main() {
       expect(
         names,
         contains(
-            'BirdNET_Live_2025-06-15_08-00-00_Morning_walk.selections.txt'),
+          'BirdNET_Live_2025-06-15_08-00-00_Morning_walk.selections.txt',
+        ),
       );
     });
 
@@ -510,8 +615,11 @@ void main() {
         ],
       );
 
-      final zipPath = await buildSessionExport(session,
-          format: 'raven', includeAudio: true);
+      final zipPath = await buildSessionExport(
+        session,
+        format: 'raven',
+        includeAudio: true,
+      );
       expect(zipPath, isNotNull);
 
       final zipBytes = File(zipPath!).readAsBytesSync();
@@ -536,8 +644,13 @@ void main() {
       final start = DateTime.utc(2025, 6, 15, 8, 0, 0);
       final session = _makeSession(
         detections: [
-          _det('Turdus merula', 'Eurasian Blackbird', 0.91,
-              const Duration(seconds: 5), start),
+          _det(
+            'Turdus merula',
+            'Eurasian Blackbird',
+            0.91,
+            const Duration(seconds: 5),
+            start,
+          ),
         ],
       );
       session.trimStartSec = 2.0;
@@ -585,8 +698,13 @@ void main() {
       final start = DateTime.utc(2025, 6, 15, 8, 0, 0);
       final session = _makeSession(
         detections: [
-          _det('Turdus merula', 'Eurasian Blackbird', 0.91,
-              const Duration(seconds: 5), start),
+          _det(
+            'Turdus merula',
+            'Eurasian Blackbird',
+            0.91,
+            const Duration(seconds: 5),
+            start,
+          ),
         ],
       );
 
@@ -661,8 +779,11 @@ void main() {
         ),
       ]);
 
-      final zipPath = await buildSessionExport(session,
-          format: 'raven', includeAudio: true);
+      final zipPath = await buildSessionExport(
+        session,
+        format: 'raven',
+        includeAudio: true,
+      );
       expect(zipPath, isNotNull);
 
       final zipBytes = File(zipPath!).readAsBytesSync();
@@ -671,8 +792,9 @@ void main() {
       final names = archive.map((f) => f.name).toList();
       expect(names, contains(endsWith('.annotations.txt')));
 
-      final annotFile =
-          archive.firstWhere((f) => f.name.endsWith('.annotations.txt'));
+      final annotFile = archive.firstWhere(
+        (f) => f.name.endsWith('.annotations.txt'),
+      );
       final content = String.fromCharCodes(annotFile.content as List<int>);
 
       expect(content, contains('[Global] Clear morning'));
@@ -685,8 +807,11 @@ void main() {
 
       final session = _makeSession(recordingPath: wavPath);
 
-      final zipPath = await buildSessionExport(session,
-          format: 'raven', includeAudio: true);
+      final zipPath = await buildSessionExport(
+        session,
+        format: 'raven',
+        includeAudio: true,
+      );
       expect(zipPath, isNotNull);
 
       final zipBytes = File(zipPath!).readAsBytesSync();

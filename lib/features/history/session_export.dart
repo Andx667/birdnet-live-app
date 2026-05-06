@@ -191,9 +191,10 @@ String buildRavenSelectionTable(
       speciesLocale: speciesLocale,
     );
 
-    final surveyTimeValue = useAbsoluteSurveyTime
-        ? d.timestamp.toUtc().toIso8601String()
-        : surveySec.toStringAsFixed(3);
+    final surveyTimeValue =
+        useAbsoluteSurveyTime
+            ? d.timestamp.toUtc().toIso8601String()
+            : surveySec.toStringAsFixed(3);
     final surveyTimeSuffix = '\t$surveyTimeValue';
     final coordSuffix =
         hasCoords
@@ -311,9 +312,10 @@ String buildCsvExport(
             : d.scientificName;
 
     final fileRef = hasFileRefs ? ',${clipName ?? audioFileName ?? ''}' : '';
-    final surveyTimeValue = useAbsoluteSurveyTime
-        ? d.timestamp.toUtc().toIso8601String()
-        : surveySec.toStringAsFixed(3);
+    final surveyTimeValue =
+        useAbsoluteSurveyTime
+            ? d.timestamp.toUtc().toIso8601String()
+            : surveySec.toStringAsFixed(3);
     final surveyTimeRef = ',$surveyTimeValue';
     final coordRef =
         hasCoords
