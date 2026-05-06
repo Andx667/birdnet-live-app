@@ -608,41 +608,23 @@ class _SpeciesMarker extends ConsumerWidget {
 
     if (!hasAudio) return avatar;
 
-    // Audio-bearing markers get two affordances:
-    //   • An outer accent ring around the avatar so they stand out at low
-    //     zoom even when the corner badge is hard to read.
-    //   • A larger play badge in the bottom-right corner that reads as a
-    //     tappable control on close inspection.
-    const ringWidth = 2.5;
-    final ringColor = Theme.of(context).colorScheme.primary;
+    // Audio-bearing markers get a single affordance: a play badge anchored
+    // to the avatar's bottom-right. We deliberately don't draw an outer
+    // accent ring — that ring used to mask the confidence color encoded by
+    // the avatar's own border, defeating the CVD-safe ramp. The play badge
+    // alone is enough to signal "tap to hear this".
+    final badgeColor = Theme.of(context).colorScheme.primary;
     final badgeSize = (size * 0.55).clamp(14.0, 22.0);
-    final outerSize = size + ringWidth * 2 + 2;
     final badgeOffset = badgeSize * 0.25;
 
     return SizedBox(
-      width: outerSize + badgeOffset,
-      height: outerSize + badgeOffset,
+      width: size + badgeOffset,
+      height: size + badgeOffset,
       child: Stack(
         clipBehavior: Clip.none,
         alignment: Alignment.center,
         children: [
-          // Accent ring + soft halo behind the avatar.
-          Container(
-            width: outerSize,
-            height: outerSize,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: ringColor, width: ringWidth),
-              boxShadow: [
-                BoxShadow(
-                  color: ringColor.withAlpha(70),
-                  blurRadius: 6,
-                  spreadRadius: 0.5,
-                ),
-              ],
-            ),
-            child: Center(child: avatar),
-          ),
+          Center(child: avatar),
           // Play badge anchored to the avatar's bottom-right.
           Positioned(
             right: 0,
@@ -651,7 +633,7 @@ class _SpeciesMarker extends ConsumerWidget {
               width: badgeSize,
               height: badgeSize,
               decoration: BoxDecoration(
-                color: ringColor,
+                color: badgeColor,
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.white, width: 1.5),
                 boxShadow: [

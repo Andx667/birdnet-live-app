@@ -2113,35 +2113,6 @@ class _FullscreenSurveyMapScreenState
               ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Icon(
-                  _isFilterActive
-                      ? Icons.filter_list
-                      : Icons.filter_list_outlined,
-                ),
-                if (_isFilterActive)
-                  Positioned(
-                    right: -2,
-                    top: -2,
-                    child: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            tooltip: l10n.surveyMapFilterTooltip,
-            onPressed: _openFilterSheet,
-          ),
-        ],
       ),
       body: Stack(
         children: [
