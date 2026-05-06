@@ -127,7 +127,10 @@ void main() {
       expect(roundTripped.scientificName, 'Turdus merula');
       expect(roundTripped.commonName, 'Eurasian Blackbird');
       expect(roundTripped.confidence, 0.85);
-      expect(roundTripped.timestamp, DateTime(2026, 2, 28, 14, 30, 0));
+      expect(
+          roundTripped.timestamp
+              .isAtSameMomentAs(DateTime(2026, 2, 28, 14, 30, 0)),
+          isTrue);
       expect(roundTripped.audioClipPath, '/recordings/clip.wav');
     });
 
@@ -329,8 +332,12 @@ void main() {
 
       expect(roundTripped.id, 'session-2026');
       expect(roundTripped.type, SessionType.live);
-      expect(roundTripped.startTime, DateTime(2026, 2, 28, 14, 0));
-      expect(roundTripped.endTime, DateTime(2026, 2, 28, 15, 0));
+      expect(
+          roundTripped.startTime.isAtSameMomentAs(DateTime(2026, 2, 28, 14, 0)),
+          isTrue);
+      expect(
+          roundTripped.endTime!.isAtSameMomentAs(DateTime(2026, 2, 28, 15, 0)),
+          isTrue);
       expect(roundTripped.detections.length, 1);
       expect(roundTripped.detections[0].scientificName, 'Turdus merula');
       expect(roundTripped.detections[0].audioClipPath, '/clips/clip1.wav');
@@ -542,7 +549,8 @@ void main() {
 
       final roundTripped = SessionAnnotation.fromJson(json);
       expect(roundTripped.text, annotation.text);
-      expect(roundTripped.createdAt, annotation.createdAt);
+      expect(roundTripped.createdAt.isAtSameMomentAs(annotation.createdAt),
+          isTrue);
       expect(roundTripped.offsetInRecording, isNull);
     });
 

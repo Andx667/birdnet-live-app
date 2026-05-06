@@ -25,6 +25,17 @@ Nastaví jazyk rozhraní.
 
 Zobrazuje vědecká jména pod běžnými názvy v celé aplikaci.
 
+### Zobrazení času
+
+Určuje, jak se v přehledu sezení zobrazují časy jednotlivých detekcí.
+
+- **Relativní** ukáže odstup od začátku nahrávání, např. `00:12:34`. Hodí se pro procházení jedné sezení a synchronizaci se spektrogramem.
+- **Absolutní** ukáže místní čas detekce, např. `08:42:17`. Hodí se k porovnání s terénními poznámkami, meteorologickými záznamy nebo jinými nahrávkami.
+
+Pokud detekce spadá na jiný kalendářní den než začátek sezení (např. při nočním sledování), připojí se k absolutnímu času přípona `+1d`, aby si recenzenti omylem nepletli zítřejší rozbřesk se dnešním.
+
+Ukládání i export vždy používají UTC bez ohledu na toto nastavení, takže volba nikdy neovlivní vaše data — pouze způsob jejich zobrazení.
+
 ## Zvuk
 
 Tyto ovládací prvky se objevují v živých pracovních postupech řízených zvukem.

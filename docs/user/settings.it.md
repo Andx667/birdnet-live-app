@@ -25,6 +25,17 @@ Controlla la lingua utilizzata per i nomi delle specie. **Segui la lingua dell'a
 
 Mostra i nomi scientifici sotto i nomi comuni nell'app.
 
+### Visualizzazione degli orari
+
+Controlla come compaiono gli orari delle singole rilevazioni nella revisione di sessione.
+
+- **Relativo** mostra l'offset dall'inizio della registrazione, es. `00:12:34`. Utile per esaminare una singola sessione e allinearsi allo spettrogramma.
+- **Assoluto** mostra l'orario locale di cattura della rilevazione, es. `08:42:17`. Utile per incrociare note di campo, registri meteo o registrazioni simultanee.
+
+Se una rilevazione cade in un giorno di calendario diverso da quello d'inizio sessione (es. un monitoraggio notturno), l'orario assoluto riceve il suffisso `+1d` per evitare che l'alba di domani venga scambiata per quella di oggi.
+
+Archiviazione ed esportazioni usano sempre UTC indipendentemente da questa impostazione, perciò la scelta non altera mai i dati — solo la loro presentazione.
+
 ##Audio
 
 Questi controlli vengono visualizzati nei flussi di lavoro live basati su audio.

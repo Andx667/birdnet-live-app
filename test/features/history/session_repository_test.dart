@@ -83,8 +83,10 @@ void main() {
 
       expect(loaded, isNotNull);
       expect(loaded!.id, 'test-session-1');
-      expect(loaded.startTime, DateTime(2025, 6, 15, 10, 0));
-      expect(loaded.endTime, DateTime(2025, 6, 15, 10, 30));
+      expect(loaded.startTime.isAtSameMomentAs(DateTime(2025, 6, 15, 10, 0)),
+          isTrue);
+      expect(loaded.endTime!.isAtSameMomentAs(DateTime(2025, 6, 15, 10, 30)),
+          isTrue);
       expect(loaded.detections.length, 2);
       expect(loaded.detections[0].scientificName, 'Turdus merula');
       expect(loaded.detections[1].commonName, 'Great Tit');

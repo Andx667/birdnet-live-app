@@ -25,6 +25,17 @@ Controla el idioma utilizado para los nombres de especies. **Seguir idioma de la
 
 Muestra nombres científicos debajo de nombres comunes en toda la aplicación.
 
+### Visualización de marcas de tiempo
+
+Controla cómo aparecen las horas de cada detección en la revisión de la sesión.
+
+- **Relativo** muestra el desfase desde el inicio de la grabación, p. ej. `00:12:34`. Es lo mejor para revisar una sola sesión y alinearse con el espectrograma.
+- **Absoluto** muestra la hora local en que se capturó la detección, p. ej. `08:42:17`. Es lo mejor para cruzar datos con notas de campo, registros meteorológicos o grabaciones simultáneas.
+
+Si una detección cae en un día calendario distinto al del inicio de la sesión (p. ej. un seguimiento nocturno), la hora absoluta recibe el sufijo `+1d` para que los revisores no confundan el amanecer de mañana con el de hoy.
+
+El almacenamiento y las exportaciones siempre usan instantes UTC independientemente de este ajuste, por lo que la elección nunca afecta a los datos — solo a su presentación.
+
 ##Audio
 
 Estos controles aparecen en flujos de trabajo en vivo basados ​​en audio.

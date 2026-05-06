@@ -49,9 +49,10 @@ String _exportPrefix(LiveSession session) {
   final dt = DateFormat('yyyy-MM-dd_HH-mm-ss').format(session.startTime);
   final suffix =
       session.sessionNumber != null ? '_#${session.sessionNumber}' : '';
-  final name = session.customName != null && session.customName!.isNotEmpty
-      ? '_${_sanitizeFilename(session.customName!)}'
-      : '';
+  final name =
+      session.customName != null && session.customName!.isNotEmpty
+          ? '_${_sanitizeFilename(session.customName!)}'
+          : '';
   return 'BirdNET_Live_$dt$suffix$name';
 }
 
@@ -113,8 +114,9 @@ String buildRavenSelectionTable(
   int? clipContextSecondsOverride,
 }) {
   final buf = StringBuffer();
-  final hasCoords =
-      session.detections.any((d) => d.latitude != null && d.longitude != null);
+  final hasCoords = session.detections.any(
+    (d) => d.latitude != null && d.longitude != null,
+  );
   final hasClips = clipFileMap != null && clipFileMap.isNotEmpty;
   // Prefer the per-session value, but allow callers to override (e.g. legacy
   // sessions persisted before [SessionSettings.clipContextSeconds] existed,
@@ -138,9 +140,11 @@ String buildRavenSelectionTable(
   );
 
   final windowSeconds = session.settings.windowDuration;
-  final sessionDurationSec = session.endTime != null
-      ? session.endTime!.difference(session.startTime).inMilliseconds / 1000.0
-      : 0.0;
+  final sessionDurationSec =
+      session.endTime != null
+          ? session.endTime!.difference(session.startTime).inMilliseconds /
+              1000.0
+          : 0.0;
 
   for (var i = 0; i < session.detections.length; i++) {
     final d = session.detections[i];
@@ -153,9 +157,10 @@ String buildRavenSelectionTable(
 
     // Session-relative offset (always computed; used for either Begin Time or
     // the auxiliary Survey Time column).
-    final surveySec = isGlobal
-        ? 0.0
-        : d.timestamp.difference(session.startTime).inMilliseconds / 1000.0;
+    final surveySec =
+        isGlobal
+            ? 0.0
+            : d.timestamp.difference(session.startTime).inMilliseconds / 1000.0;
 
     // Begin/End times depend on whether the row references a clip file.
     final double beginSec;
@@ -172,15 +177,19 @@ String buildRavenSelectionTable(
       endSec = surveySec + windowSeconds;
     }
 
-    final commonName =
-        _localizedCommon(d, taxonomy: taxonomy, speciesLocale: speciesLocale);
+    final commonName = _localizedCommon(
+      d,
+      taxonomy: taxonomy,
+      speciesLocale: speciesLocale,
+    );
 
     final surveyTimeSuffix =
         hasClips ? '\t${surveySec.toStringAsFixed(3)}' : '';
-    final coordSuffix = hasCoords
-        ? '\t${d.latitude?.toStringAsFixed(6) ?? ''}'
-            '\t${d.longitude?.toStringAsFixed(6) ?? ''}'
-        : '';
+    final coordSuffix =
+        hasCoords
+            ? '\t${d.latitude?.toStringAsFixed(6) ?? ''}'
+                '\t${d.longitude?.toStringAsFixed(6) ?? ''}'
+            : '';
 
     buf.writeln(
       '${i + 1}\t'
@@ -225,15 +234,16 @@ String buildCsvExport(
 }) {
   final buf = StringBuffer();
   final hasFileRefs = audioFileName != null || clipFileMap != null;
-  final hasCoords =
-      session.detections.any((d) => d.latitude != null && d.longitude != null);
+  final hasCoords = session.detections.any(
+    (d) => d.latitude != null && d.longitude != null,
+  );
   final hasClips = clipFileMap != null && clipFileMap.isNotEmpty;
   final clipContext =
       (clipContextSecondsOverride ?? session.settings.clipContextSeconds)
           .toDouble();
 
   buf.writeln(
-    'Timestamp,Begin Time (s),End Time (s),'
+    'Timestamp (UTC),Begin Time (s),End Time (s),'
     'Common Name,Scientific Name,Confidence'
     '${hasFileRefs ? ',File' : ''}'
     '${hasClips ? ',Survey Time (s)' : ''}'
@@ -241,9 +251,11 @@ String buildCsvExport(
   );
 
   final windowSeconds = session.settings.windowDuration;
-  final sessionDurationSec = session.endTime != null
-      ? session.endTime!.difference(session.startTime).inMilliseconds / 1000.0
-      : 0.0;
+  final sessionDurationSec =
+      session.endTime != null
+          ? session.endTime!.difference(session.startTime).inMilliseconds /
+              1000.0
+          : 0.0;
 
   for (var i = 0; i < session.detections.length; i++) {
     final d = session.detections[i];
@@ -253,9 +265,10 @@ String buildCsvExport(
     final referencesClip = clipName != null;
 
     // Session-relative offset.
-    final surveySec = isGlobal
-        ? 0.0
-        : d.timestamp.difference(session.startTime).inMilliseconds / 1000.0;
+    final surveySec =
+        isGlobal
+            ? 0.0
+            : d.timestamp.difference(session.startTime).inMilliseconds / 1000.0;
 
     final double beginSec;
     final double endSec;
@@ -270,23 +283,28 @@ String buildCsvExport(
       endSec = surveySec + windowSeconds;
     }
 
-    final localizedCommon =
-        _localizedCommon(d, taxonomy: taxonomy, speciesLocale: speciesLocale);
+    final localizedCommon = _localizedCommon(
+      d,
+      taxonomy: taxonomy,
+      speciesLocale: speciesLocale,
+    );
     final commonName =
         localizedCommon.contains(',') ? '"$localizedCommon"' : localizedCommon;
-    final sciName = d.scientificName.contains(',')
-        ? '"${d.scientificName}"'
-        : d.scientificName;
+    final sciName =
+        d.scientificName.contains(',')
+            ? '"${d.scientificName}"'
+            : d.scientificName;
 
     final fileRef = hasFileRefs ? ',${clipName ?? audioFileName ?? ''}' : '';
     final surveyTimeRef = hasClips ? ',${surveySec.toStringAsFixed(3)}' : '';
-    final coordRef = hasCoords
-        ? ',${d.latitude?.toStringAsFixed(6) ?? ''}'
-            ',${d.longitude?.toStringAsFixed(6) ?? ''}'
-        : '';
+    final coordRef =
+        hasCoords
+            ? ',${d.latitude?.toStringAsFixed(6) ?? ''}'
+                ',${d.longitude?.toStringAsFixed(6) ?? ''}'
+            : '';
 
     buf.writeln(
-      '${d.timestamp.toIso8601String()},'
+      '${d.timestamp.toUtc().toIso8601String()},'
       '${beginSec.toStringAsFixed(3)},'
       '${endSec.toStringAsFixed(3)},'
       '$commonName,'
@@ -339,10 +357,7 @@ Map<String, dynamic> buildExportMetadata({
 /// Generates a JSON representation of the session and its detections.
 ///
 /// When [metadata] is provided it is embedded under a top-level `meta` key.
-String buildJsonExport(
-  LiveSession session, {
-  Map<String, dynamic>? metadata,
-}) {
+String buildJsonExport(LiveSession session, {Map<String, dynamic>? metadata}) {
   final map = {
     if (metadata != null) 'meta': metadata,
     'session': session.displayName,
@@ -350,8 +365,8 @@ String buildJsonExport(
       'customName': session.customName,
     if (session.sessionNumber != null) 'sessionNumber': session.sessionNumber,
     if (session.type != SessionType.live) 'type': session.type.name,
-    'startTime': session.startTime.toIso8601String(),
-    'endTime': session.endTime?.toIso8601String(),
+    'startTime': session.startTime.toUtc().toIso8601String(),
+    'endTime': session.endTime?.toUtc().toIso8601String(),
     if (session.observerName != null && session.observerName!.isNotEmpty)
       'observerName': session.observerName,
     if (session.transectId != null && session.transectId!.isNotEmpty)
@@ -373,20 +388,21 @@ String buildJsonExport(
     },
     if (session.trimStartSec != null) 'trimStartSec': session.trimStartSec,
     if (session.trimEndSec != null) 'trimEndSec': session.trimEndSec,
-    'detections': session.detections.map((d) {
-      final beginSec =
-          d.timestamp.difference(session.startTime).inMilliseconds / 1000.0;
-      return {
-        'timestamp': d.timestamp.toIso8601String(),
-        'beginTimeSec': num.parse(beginSec.toStringAsFixed(3)),
-        'commonName': d.commonName,
-        'scientificName': d.scientificName,
-        'confidence': num.parse(d.confidence.toStringAsFixed(4)),
-        if (d.latitude != null) 'latitude': d.latitude,
-        if (d.longitude != null) 'longitude': d.longitude,
-        if (d.source != DetectionSource.auto) 'source': d.source.name,
-      };
-    }).toList(),
+    'detections':
+        session.detections.map((d) {
+          final beginSec =
+              d.timestamp.difference(session.startTime).inMilliseconds / 1000.0;
+          return {
+            'timestamp': d.timestamp.toUtc().toIso8601String(),
+            'beginTimeSec': num.parse(beginSec.toStringAsFixed(3)),
+            'commonName': d.commonName,
+            'scientificName': d.scientificName,
+            'confidence': num.parse(d.confidence.toStringAsFixed(4)),
+            if (d.latitude != null) 'latitude': d.latitude,
+            if (d.longitude != null) 'longitude': d.longitude,
+            if (d.source != DetectionSource.auto) 'source': d.source.name,
+          };
+        }).toList(),
     if (session.annotations.isNotEmpty)
       'annotations': session.annotations.map((a) => a.toJson()).toList(),
   };
@@ -431,9 +447,10 @@ Future<String?> buildSessionExport(
   final hasAnyAudio = hasFullRecording || hasClips;
 
   // ── Build export clip names (sequential, 1-indexed, zero-padded) ────
-  final audioExt = hasFullRecording
-      ? p.extension(audioPath)
-      : (hasClips ? p.extension(clipEntries.values.first.path) : '.flac');
+  final audioExt =
+      hasFullRecording
+          ? p.extension(audioPath)
+          : (hasClips ? p.extension(clipEntries.values.first.path) : '.flac');
   final audioFileName = '$prefix$audioExt';
 
   // Map detection index → export clip filename.
@@ -509,15 +526,11 @@ Future<String?> buildSessionExport(
     } else {
       for (final entry in clipExportNames.entries) {
         final clipBytes = await clipEntries[entry.key]!.readAsBytes();
-        archive.addFile(
-          ArchiveFile(entry.value, clipBytes.length, clipBytes),
-        );
+        archive.addFile(ArchiveFile(entry.value, clipBytes.length, clipBytes));
       }
     }
 
-    archive.addFile(
-      ArchiveFile('$prefix$extension', bytes.length, bytes),
-    );
+    archive.addFile(ArchiveFile('$prefix$extension', bytes.length, bytes));
 
     // Always drop a metadata side-file when the caller provided one, so
     // the provenance information travels with the bundle regardless of
@@ -545,8 +558,11 @@ Future<String?> buildSessionExport(
       final annotationsTxt = _buildAnnotationsText(session);
       final annotationsBytes = Uint8List.fromList(utf8.encode(annotationsTxt));
       archive.addFile(
-        ArchiveFile('$prefix.annotations.txt', annotationsBytes.length,
-            annotationsBytes),
+        ArchiveFile(
+          '$prefix.annotations.txt',
+          annotationsBytes.length,
+          annotationsBytes,
+        ),
       );
     }
 
@@ -554,25 +570,25 @@ Future<String?> buildSessionExport(
     if (session.type == SessionType.survey && format != 'gpx') {
       final gpxContent = buildGpxExport(session);
       final gpxBytes = Uint8List.fromList(utf8.encode(gpxContent));
-      archive.addFile(
-        ArchiveFile('$prefix.gpx', gpxBytes.length, gpxBytes),
-      );
+      archive.addFile(ArchiveFile('$prefix.gpx', gpxBytes.length, gpxBytes));
     }
 
     final zipBytes = ZipEncoder().encode(archive);
-    final zipDir = hasFullRecording
-        ? p.dirname(audioPath)
-        : p.dirname(clipEntries.values.first.path);
+    final zipDir =
+        hasFullRecording
+            ? p.dirname(audioPath)
+            : p.dirname(clipEntries.values.first.path);
     final zipPath = p.join(zipDir, '$prefix.zip');
     await File(zipPath).writeAsBytes(zipBytes);
 
     return zipPath;
   } else {
-    final dir = hasFullRecording
-        ? p.dirname(audioPath)
-        : (hasClips
-            ? p.dirname(clipEntries.values.first.path)
-            : Directory.systemTemp.path);
+    final dir =
+        hasFullRecording
+            ? p.dirname(audioPath)
+            : (hasClips
+                ? p.dirname(clipEntries.values.first.path)
+                : Directory.systemTemp.path);
     final filePath = p.join(dir, '$prefix$extension');
     await File(filePath).writeAsBytes(bytes);
 
@@ -584,7 +600,7 @@ Future<String?> buildSessionExport(
 String _buildAnnotationsText(LiveSession session) {
   final buf = StringBuffer();
   buf.writeln('# Annotations for ${session.displayName}');
-  buf.writeln('# Session: ${session.startTime.toIso8601String()}');
+  buf.writeln('# Session: ${session.startTime.toUtc().toIso8601String()}');
   buf.writeln();
 
   for (final a in session.annotations) {
@@ -592,7 +608,8 @@ String _buildAnnotationsText(LiveSession session) {
       final m = a.offsetInRecording! ~/ 60;
       final s = (a.offsetInRecording! % 60).toInt();
       buf.write(
-          '[${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}] ');
+        '[${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}] ',
+      );
     } else {
       buf.write('[Global] ');
     }
@@ -618,17 +635,21 @@ String buildGpxExport(LiveSession session) {
   buf.writeln('<gpx version="1.1" creator="BirdNET Live"');
   buf.writeln('  xmlns="http://www.topografix.com/GPX/1/1"');
   buf.writeln('  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"');
-  buf.writeln('  xsi:schemaLocation="http://www.topografix.com/GPX/1/1 '
-      'http://www.topografix.com/GPX/1/1/gpx.xsd">');
+  buf.writeln(
+    '  xsi:schemaLocation="http://www.topografix.com/GPX/1/1 '
+    'http://www.topografix.com/GPX/1/1/gpx.xsd">',
+  );
 
   // Metadata.
   buf.writeln('  <metadata>');
   buf.writeln('    <name>${_xmlEscape(session.displayName)}</name>');
   buf.writeln(
-      '    <time>${session.startTime.toUtc().toIso8601String()}</time>');
+    '    <time>${session.startTime.toUtc().toIso8601String()}</time>',
+  );
   if (session.observerName != null && session.observerName!.isNotEmpty) {
     buf.writeln(
-        '    <author><name>${_xmlEscape(session.observerName!)}</name></author>');
+      '    <author><name>${_xmlEscape(session.observerName!)}</name></author>',
+    );
   }
   buf.writeln('  </metadata>');
 
@@ -639,7 +660,8 @@ String buildGpxExport(LiveSession session) {
     buf.writeln('    <time>${d.timestamp.toUtc().toIso8601String()}</time>');
     buf.writeln('    <name>${_xmlEscape(d.commonName)}</name>');
     buf.writeln(
-        '    <desc>${_xmlEscape(d.scientificName)} (${(d.confidence * 100).toStringAsFixed(1)}%)</desc>');
+      '    <desc>${_xmlEscape(d.scientificName)} (${(d.confidence * 100).toStringAsFixed(1)}%)</desc>',
+    );
     buf.writeln('  </wpt>');
   }
 

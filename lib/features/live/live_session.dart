@@ -115,20 +115,20 @@ class SessionSettings {
 
   /// Serialize to JSON.
   Map<String, dynamic> toJson() => {
-        'windowDuration': windowDuration,
-        'confidenceThreshold': confidenceThreshold,
-        'inferenceRate': inferenceRate,
-        'speciesFilterMode': speciesFilterMode,
-        'clipContextSeconds': clipContextSeconds,
-        'alertMode': alertMode,
-        'alertRareThreshold': alertRareThreshold,
-        'alertWatchlistName': alertWatchlistName,
-        'alertMinConfidence': alertMinConfidence,
-        'alertStartupGraceSeconds': alertStartupGraceSeconds,
-        'alertMinIntervalSeconds': alertMinIntervalSeconds,
-        'alertMaxPerMinute': alertMaxPerMinute,
-        'alertCoalesce': alertCoalesce,
-      };
+    'windowDuration': windowDuration,
+    'confidenceThreshold': confidenceThreshold,
+    'inferenceRate': inferenceRate,
+    'speciesFilterMode': speciesFilterMode,
+    'clipContextSeconds': clipContextSeconds,
+    'alertMode': alertMode,
+    'alertRareThreshold': alertRareThreshold,
+    'alertWatchlistName': alertWatchlistName,
+    'alertMinConfidence': alertMinConfidence,
+    'alertStartupGraceSeconds': alertStartupGraceSeconds,
+    'alertMinIntervalSeconds': alertMinIntervalSeconds,
+    'alertMaxPerMinute': alertMaxPerMinute,
+    'alertCoalesce': alertCoalesce,
+  };
 }
 
 /// The type of session (maps to one of the four app modes).
@@ -262,9 +262,10 @@ class DetectionRecord {
       commonName: json['commonName'] as String,
       confidence: (json['confidence'] as num).toDouble(),
       timestamp: DateTime.parse(json['timestamp'] as String),
-      endTimestamp: json['endTimestamp'] != null
-          ? DateTime.parse(json['endTimestamp'] as String)
-          : null,
+      endTimestamp:
+          json['endTimestamp'] != null
+              ? DateTime.parse(json['endTimestamp'] as String)
+              : null,
       audioClipPath: json['audioClipPath'] as String?,
       source: switch (json['source'] as String?) {
         'manual' => DetectionSource.manual,
@@ -278,17 +279,17 @@ class DetectionRecord {
 
   /// Serialize to JSON.
   Map<String, dynamic> toJson() => {
-        'scientificName': scientificName,
-        'commonName': commonName,
-        'confidence': confidence,
-        'timestamp': timestamp.toIso8601String(),
-        if (endTimestamp != null)
-          'endTimestamp': endTimestamp!.toIso8601String(),
-        if (audioClipPath != null) 'audioClipPath': audioClipPath,
-        if (source != DetectionSource.auto) 'source': source.name,
-        if (latitude != null) 'detLat': latitude,
-        if (longitude != null) 'detLon': longitude,
-      };
+    'scientificName': scientificName,
+    'commonName': commonName,
+    'confidence': confidence,
+    'timestamp': timestamp.toUtc().toIso8601String(),
+    if (endTimestamp != null)
+      'endTimestamp': endTimestamp!.toUtc().toIso8601String(),
+    if (audioClipPath != null) 'audioClipPath': audioClipPath,
+    if (source != DetectionSource.auto) 'source': source.name,
+    if (latitude != null) 'detLat': latitude,
+    if (longitude != null) 'detLon': longitude,
+  };
 
   /// Confidence expressed as a percentage string, e.g. "87.3 %".
   String get confidencePercent => '${(confidence * 100).toStringAsFixed(1)} %';
@@ -339,10 +340,10 @@ class SessionAnnotation {
   }
 
   Map<String, dynamic> toJson() => {
-        'text': text,
-        'createdAt': createdAt.toIso8601String(),
-        if (offsetInRecording != null) 'offsetInRecording': offsetInRecording,
-      };
+    'text': text,
+    'createdAt': createdAt.toUtc().toIso8601String(),
+    if (offsetInRecording != null) 'offsetInRecording': offsetInRecording,
+  };
 }
 
 /// A complete live identification session.
@@ -370,10 +371,10 @@ class LiveSession {
     this.stopReason,
     this.stopReasonValue,
     int? recordedDurationSeconds,
-  })  : detections = detections ?? [],
-        annotations = annotations ?? [],
-        gpsTrack = gpsTrack ?? [],
-        _recordedDurationSeconds = recordedDurationSeconds;
+  }) : detections = detections ?? [],
+       annotations = annotations ?? [],
+       gpsTrack = gpsTrack ?? [],
+       _recordedDurationSeconds = recordedDurationSeconds;
 
   /// Unique session identifier (ISO 8601 timestamp-based).
   final String id;
@@ -562,10 +563,12 @@ class LiveSession {
       ),
       sessionNumber: json['sessionNumber'] as int?,
       startTime: DateTime.parse(json['startTime'] as String),
-      endTime: json['endTime'] != null
-          ? DateTime.parse(json['endTime'] as String)
-          : null,
-      detections: (json['detections'] as List<dynamic>?)
+      endTime:
+          json['endTime'] != null
+              ? DateTime.parse(json['endTime'] as String)
+              : null,
+      detections:
+          (json['detections'] as List<dynamic>?)
               ?.map((d) => DetectionRecord.fromJson(d as Map<String, dynamic>))
               .toList() ??
           [],
@@ -573,9 +576,11 @@ class LiveSession {
       settings: SessionSettings.fromJson(
         json['settings'] as Map<String, dynamic>? ?? {},
       ),
-      annotations: (json['annotations'] as List<dynamic>?)
+      annotations:
+          (json['annotations'] as List<dynamic>?)
               ?.map(
-                  (a) => SessionAnnotation.fromJson(a as Map<String, dynamic>))
+                (a) => SessionAnnotation.fromJson(a as Map<String, dynamic>),
+              )
               .toList() ??
           [],
       trimStartSec: (json['trimStartSec'] as num?)?.toDouble(),
@@ -584,19 +589,21 @@ class LiveSession {
       longitude: (json['longitude'] as num?)?.toDouble(),
       locationName: json['locationName'] as String?,
       customName: json['customName'] as String?,
-      gpsTrack: (json['gpsTrack'] as List<dynamic>?)
+      gpsTrack:
+          (json['gpsTrack'] as List<dynamic>?)
               ?.map((p) => GpsPoint.fromJson(p as Map<String, dynamic>))
               .toList() ??
           [],
       distanceMeters: (json['distanceMeters'] as num?)?.toDouble(),
       transectId: json['transectId'] as String?,
       observerName: json['observerName'] as String?,
-      stopReason: json['stopReason'] != null
-          ? SessionStopReason.values.firstWhere(
-              (r) => r.name == (json['stopReason'] as String),
-              orElse: () => SessionStopReason.manual,
-            )
-          : null,
+      stopReason:
+          json['stopReason'] != null
+              ? SessionStopReason.values.firstWhere(
+                (r) => r.name == (json['stopReason'] as String),
+                orElse: () => SessionStopReason.manual,
+              )
+              : null,
       stopReasonValue: json['stopReasonValue'] as num?,
       recordedDurationSeconds:
           (json['recordedDurationSeconds'] as num?)?.toInt(),
@@ -605,34 +612,35 @@ class LiveSession {
 
   /// Serialize to JSON.
   Map<String, dynamic> toJson() => {
-        'id': id,
-        if (type != SessionType.live) 'type': type.name,
-        if (sessionNumber != null) 'sessionNumber': sessionNumber,
-        'startTime': startTime.toIso8601String(),
-        if (endTime != null) 'endTime': endTime!.toIso8601String(),
-        'detections': detections.map((d) => d.toJson()).toList(),
-        if (recordingPath != null) 'recordingPath': recordingPath,
-        'settings': settings.toJson(),
-        if (annotations.isNotEmpty)
-          'annotations': annotations.map((a) => a.toJson()).toList(),
-        if (trimStartSec != null) 'trimStartSec': trimStartSec,
-        if (trimEndSec != null) 'trimEndSec': trimEndSec,
-        if (latitude != null) 'latitude': latitude,
-        if (longitude != null) 'longitude': longitude,
-        if (locationName != null) 'locationName': locationName,
-        if (customName != null) 'customName': customName,
-        if (gpsTrack.isNotEmpty)
-          'gpsTrack': gpsTrack.map((p) => p.toJson()).toList(),
-        if (distanceMeters != null) 'distanceMeters': distanceMeters,
-        if (transectId != null) 'transectId': transectId,
-        if (observerName != null) 'observerName': observerName,
-        if (stopReason != null) 'stopReason': stopReason!.name,
-        if (stopReasonValue != null) 'stopReasonValue': stopReasonValue,
-        if (_recordedDurationSeconds != null)
-          'recordedDurationSeconds': _recordedDurationSeconds,
-      };
+    'id': id,
+    if (type != SessionType.live) 'type': type.name,
+    if (sessionNumber != null) 'sessionNumber': sessionNumber,
+    'startTime': startTime.toUtc().toIso8601String(),
+    if (endTime != null) 'endTime': endTime!.toUtc().toIso8601String(),
+    'detections': detections.map((d) => d.toJson()).toList(),
+    if (recordingPath != null) 'recordingPath': recordingPath,
+    'settings': settings.toJson(),
+    if (annotations.isNotEmpty)
+      'annotations': annotations.map((a) => a.toJson()).toList(),
+    if (trimStartSec != null) 'trimStartSec': trimStartSec,
+    if (trimEndSec != null) 'trimEndSec': trimEndSec,
+    if (latitude != null) 'latitude': latitude,
+    if (longitude != null) 'longitude': longitude,
+    if (locationName != null) 'locationName': locationName,
+    if (customName != null) 'customName': customName,
+    if (gpsTrack.isNotEmpty)
+      'gpsTrack': gpsTrack.map((p) => p.toJson()).toList(),
+    if (distanceMeters != null) 'distanceMeters': distanceMeters,
+    if (transectId != null) 'transectId': transectId,
+    if (observerName != null) 'observerName': observerName,
+    if (stopReason != null) 'stopReason': stopReason!.name,
+    if (stopReasonValue != null) 'stopReasonValue': stopReasonValue,
+    if (_recordedDurationSeconds != null)
+      'recordedDurationSeconds': _recordedDurationSeconds,
+  };
 
   @override
-  String toString() => 'LiveSession($id, ${detections.length} detections, '
+  String toString() =>
+      'LiveSession($id, ${detections.length} detections, '
       '$uniqueSpeciesCount species)';
 }

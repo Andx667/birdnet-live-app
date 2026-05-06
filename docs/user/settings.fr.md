@@ -25,6 +25,17 @@ Contrôle la langue utilisée pour les noms d'espèces. **Suivez la langue de l'
 
 Affiche les noms scientifiques sous les noms communs dans l'application.
 
+### Affichage des horodatages
+
+Contrôle l'affichage des heures de chaque détection dans la revue de session.
+
+- **Relatif** affiche le décalage depuis le début de l'enregistrement, p. ex. `00:12:34`. Idéal pour parcourir une seule session et se caler sur le spectrogramme.
+- **Absolu** affiche l'heure locale au moment de la détection, p. ex. `08:42:17`. Idéal pour recouper des notes de terrain, des journaux météo ou des enregistrements simultanés.
+
+Si une détection tombe un jour calendaire différent du début de session (p. ex. un suivi nocturne), l'heure absolue reçoit le suffixe `+1d` pour éviter de confondre l'aube de demain avec celle d'aujourd'hui.
+
+Le stockage et les exports utilisent toujours UTC, quel que soit ce réglage : le choix n'affecte jamais les données — seulement leur affichage.
+
 ## Audio
 
 Ces contrôles apparaissent dans les flux de travail en direct pilotés par l'audio.

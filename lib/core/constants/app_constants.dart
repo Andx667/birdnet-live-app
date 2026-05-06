@@ -97,6 +97,10 @@ abstract final class PrefKeys {
   // Display settings
   static const String showSciNames = 'show_sci_names';
 
+  /// Timestamp display mode: 'relative' (session-relative `MM:SS`)
+  /// or 'absolute' (local clock `HH:mm:ss`). Default 'relative'.
+  static const String timestampDisplayMode = 'timestamp_display_mode';
+
   // Point count settings
   static const String pointCountDuration = 'point_count_duration';
   static const String pointCountLastObserver = 'point_count_last_observer';

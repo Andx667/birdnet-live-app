@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2026-05-06
+
+### Added
+
+- **Absolute timestamp display toggle.** Settings → General now lets you switch per-detection times in session review between **Relative** (offset from recording start, e.g. `00:12:34`) and **Absolute** (local clock time, e.g. `08:42:17`). Overnight surveys that cross midnight gain a `+1d` suffix so reviewers don't accidentally read tomorrow's dawn chorus as today's. Defaults to relative for backwards compatibility (#33).
+
+### Changed
+
+- **All persisted and exported timestamps are now UTC-normalized.** Detection timestamps, session start/end, GPS track points, and annotation `createdAt` values are now serialized with the `Z` suffix in JSON sessions, CSV/JSON exports, and Audacity label headers. Previous releases emitted local-time-without-zone strings, which silently shifted to the wrong instant when re-opened on a device in a different timezone. The CSV header is now `Timestamp (UTC)` to make the encoding self-documenting. Existing on-disk sessions still load correctly and continue to render with the same wall-clock values they had at capture time (#33).
+
 ## [0.9.9] - 2026-05-06
 
 ### Changed
