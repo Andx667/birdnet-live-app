@@ -382,7 +382,27 @@ class _SurveyMapWidgetState extends ConsumerState<SurveyMapWidget> {
               setState(() => _currentZoom = z);
             }
           }
-          if (widget.fitAllPoints && !_initialFitDone) {
+          // If we open with a pre-selected detection (e.g. user tapped
+          // "expand" on the inline map after focusing a detection), zoom
+          // straight to that detection on first frame instead of fitting
+          // the whole track.
+          final initialHighlight = widget.highlightedDetection;
+          if (initialHighlight != null &&
+              initialHighlight.latitude != null &&
+              initialHighlight.longitude != null) {
+            _initialFitDone = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                _mapController.move(
+                  LatLng(
+                    initialHighlight.latitude!,
+                    initialHighlight.longitude!,
+                  ),
+                  18,
+                );
+              }
+            });
+          } else if (widget.fitAllPoints && !_initialFitDone) {
             // Defer fitCamera to the next frame so the tile layer has
             // finished its initial layout and will request tiles for the
             // fitted bounds immediately.

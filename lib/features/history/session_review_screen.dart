@@ -1058,6 +1058,7 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
             (_) => _FullscreenSurveyMapScreen(
               gpsTrack: widget.session.gpsTrack,
               detections: _detections,
+              initialHighlight: _highlightedDetection,
             ),
       ),
     );
@@ -1945,10 +1946,17 @@ class _FullscreenSurveyMapScreen extends ConsumerStatefulWidget {
   const _FullscreenSurveyMapScreen({
     required this.gpsTrack,
     required this.detections,
+    this.initialHighlight,
   });
 
   final List<GpsPoint> gpsTrack;
   final List<DetectionRecord> detections;
+
+  /// Detection that the inline review map was currently focused on. When
+  /// non-null the fullscreen map opens centered and zoomed in on this
+  /// detection instead of fitting the whole track — keeps the user's
+  /// place when expanding from the small map.
+  final DetectionRecord? initialHighlight;
 
   @override
   ConsumerState<_FullscreenSurveyMapScreen> createState() =>
@@ -1961,6 +1969,15 @@ class _FullscreenSurveyMapScreenState
   _MapFilterMode _mode = _MapFilterMode.all;
   double _minConfidence = _defaultConfidenceFloor;
   String? _speciesFilter; // scientific name, or null for "all species"
+
+  @override
+  void initState() {
+    super.initState();
+    // Carry the inline map's focus into the fullscreen view so users land
+    // on the same detection they were inspecting instead of being yanked
+    // back out to a whole-track fit.
+    _highlight = widget.initialHighlight;
+  }
 
   bool get _isFilterActive =>
       _mode != _MapFilterMode.all ||

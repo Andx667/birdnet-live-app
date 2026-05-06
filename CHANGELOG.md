@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Survey map now z-orders overlapping markers by importance.** When two detections share a spot, the more important one is now drawn on top: the highlighted detection wins outright, then audio-bearing markers cover silent ones, then higher-confidence covers lower. Previously the draw order was effectively the iteration order of the location-keyed map, so a low-confidence silent marker could obscure a high-confidence audio detection at the same position (#33).
+- **Expanding the inline survey map preserves the focused detection.** When you tap a detection in the review list, the inline map centers on it; opening the fullscreen map from there now lands you on the same detection at zoom 18 instead of fitting the whole track and forcing you to find the marker again (#33).
 
 ## [0.9.8] - 2026-05-02
 
