@@ -1058,6 +1058,7 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
             (_) => _FullscreenSurveyMapScreen(
               gpsTrack: widget.session.gpsTrack,
               detections: _detections,
+              initialHighlight: _highlightedDetection,
             ),
       ),
     );
@@ -1945,10 +1946,17 @@ class _FullscreenSurveyMapScreen extends ConsumerStatefulWidget {
   const _FullscreenSurveyMapScreen({
     required this.gpsTrack,
     required this.detections,
+    this.initialHighlight,
   });
 
   final List<GpsPoint> gpsTrack;
   final List<DetectionRecord> detections;
+
+  /// Detection that the inline review map was currently focused on. When
+  /// non-null the fullscreen map opens centered and zoomed in on this
+  /// detection instead of fitting the whole track — keeps the user's
+  /// place when expanding from the small map.
+  final DetectionRecord? initialHighlight;
 
   @override
   ConsumerState<_FullscreenSurveyMapScreen> createState() =>
@@ -1962,10 +1970,44 @@ class _FullscreenSurveyMapScreenState
   double _minConfidence = _defaultConfidenceFloor;
   String? _speciesFilter; // scientific name, or null for "all species"
 
+  @override
+  void initState() {
+    super.initState();
+    // Carry the inline map's focus into the fullscreen view so users land
+    // on the same detection they were inspecting instead of being yanked
+    // back out to a whole-track fit.
+    _highlight = widget.initialHighlight;
+  }
+
   bool get _isFilterActive =>
       _mode != _MapFilterMode.all ||
       _speciesFilter != null ||
       _minConfidence > _defaultConfidenceFloor;
+
+  /// Localized one-line summary for the persistent filter chip — pinpoints
+  /// what's currently hidden so users don't have to open the sheet to find
+  /// out why some markers vanished. Order of precedence: species > mode >
+  /// confidence > inactive.
+  String _filterChipSummary(AppLocalizations l10n) {
+    if (!_isFilterActive) return l10n.surveyMapFilterChipAll;
+    if (_speciesFilter != null) {
+      // Find any record with that scientific name to recover a display name.
+      final match = widget.detections.firstWhere(
+        (d) => d.scientificName == _speciesFilter,
+        orElse: () => widget.detections.first,
+      );
+      return _localizedName(match.scientificName, match.commonName);
+    }
+    switch (_mode) {
+      case _MapFilterMode.withAudio:
+        return l10n.surveyMapFilterWithAudio;
+      case _MapFilterMode.manual:
+        return l10n.surveyMapFilterManual;
+      case _MapFilterMode.all:
+        // Only the confidence floor differs — show the threshold.
+        return '≥ ${(_minConfidence * 100).round()}%';
+    }
+  }
 
   /// Localized common name for [sciName]. Falls back to the record's stored
   /// common name when the taxonomy hasn't loaded yet.
@@ -2088,35 +2130,6 @@ class _FullscreenSurveyMapScreenState
               ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Icon(
-                  _isFilterActive
-                      ? Icons.filter_list
-                      : Icons.filter_list_outlined,
-                ),
-                if (_isFilterActive)
-                  Positioned(
-                    right: -2,
-                    top: -2,
-                    child: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            tooltip: l10n.surveyMapFilterTooltip,
-            onPressed: _openFilterSheet,
-          ),
-        ],
       ),
       body: Stack(
         children: [
@@ -2127,6 +2140,22 @@ class _FullscreenSurveyMapScreenState
             fitAllPoints: true,
             highlightedDetection: _highlight,
             onMarkerTap: _onMarkerTap,
+          ),
+          // Persistent filter chip — promotes the AppBar action to a
+          // first-class on-map affordance so the filter is discoverable
+          // (#33: users were missing the AppBar icon entirely). The chip
+          // shows the active filter summary so users can see at a glance
+          // what's hiding markers.
+          Positioned(
+            top: 12,
+            right: 12,
+            child: SafeArea(
+              child: _MapFilterChip(
+                isActive: _isFilterActive,
+                summary: _filterChipSummary(l10n),
+                onTap: _openFilterSheet,
+              ),
+            ),
           ),
           if (filtered.isEmpty)
             Positioned(
@@ -2476,4 +2505,75 @@ class _MapFilterChoice {
   final _MapFilterMode mode;
   final double minConfidence;
   final String? species;
+}
+
+// -----------------------------------------------------------------------------
+// _MapFilterChip � persistent on-map filter affordance.
+//
+// Promotes the filter from a hidden AppBar action to a chip overlay anchored
+// top-right of the fullscreen survey map. Solves the discoverability problem
+// reported in #33: users were missing the AppBar icon entirely. The chip
+// also serves as a status read-out � its label always shows what the active
+// filter is (All species, = 50%, Owl species, etc.) so users don't
+// have to open the sheet to find out why some markers vanished.
+// -----------------------------------------------------------------------------
+
+class _MapFilterChip extends StatelessWidget {
+  const _MapFilterChip({
+    required this.isActive,
+    required this.summary,
+    required this.onTap,
+  });
+
+  final bool isActive;
+  final String summary;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bg =
+        isActive
+            ? theme.colorScheme.primary
+            : theme.colorScheme.surface.withAlpha(230);
+    final fg =
+        isActive ? theme.colorScheme.onPrimary : theme.colorScheme.onSurface;
+    return Material(
+      color: bg,
+      elevation: 4,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 220),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  isActive ? Icons.filter_list : Icons.filter_list_outlined,
+                  size: 18,
+                  color: fg,
+                ),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    summary,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: fg,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

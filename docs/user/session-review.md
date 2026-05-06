@@ -25,9 +25,19 @@ Species are grouped into expandable rows. You can inspect detections by species 
 
 ### Survey track map
 
-Survey sessions show a small inline map of the GPS track and detection markers. Tap it to open a **fullscreen map** with the same data.
+Survey sessions show a small inline map of the GPS track and detection markers. Tap a marker on the inline map to focus a detection — the inline map centers on it. Tap the :material-fullscreen: **expand** button (top-right of the inline map) to open the **fullscreen map**; if a detection was focused, the fullscreen map opens centered and zoomed in on that detection so you keep your place.
 
-The fullscreen map's app bar has a :material-filter-list-outlined: **filter** button that opens a sheet for restricting which markers are shown. Available filters:
+#### Marker encoding
+
+- **Confidence is color-coded** with a CVD-safe ramp: low → high confidence runs from purple-blue through teal/yellow to red. The ramp's lightness changes monotonically so it stays readable in monochrome and for users with red-green color vision deficiency.
+- **Audio-bearing detections** show a colored ring around the species photo plus a corner play badge — tap them to play the recorded clip in a sheet.
+- **Silent detections** (no clip on disk) render smaller, faded, and with a neutral-grey ring so audio detections always read as the primary content.
+- **Overlapping markers at the same spot** are z-ordered by importance: highlighted > audio > higher confidence, so a low-confidence silent marker can never obscure a strong audio detection.
+- **Below zoom 14.5** silhouettes degrade to colored dots sized by confidence, and dense clusters collapse to a count bubble (clustering disables at zoom 15).
+
+#### Filtering
+
+The fullscreen map has a persistent **filter chip** anchored top-right of the map. Tap it to open the filter sheet; the chip's label always shows what's currently in effect (*"All species"*, *"With audio"*, *"≥ 80%"*, or a single species name). Available filters:
 
 - **All detections** (default).
 - **With audio clip** — only detections whose clip is still on disk and playable.
@@ -37,7 +47,7 @@ You can also restrict the detections by confidence level. The slider configures 
 
 Below the confidence slider is a **Limit to species** picker that lets you collapse the map to a single species — useful for asking "where exactly along the route did I hear the wood thrush?". An *All species* entry clears the species restriction. The filters combine: e.g. *With audio clip* + *Wood Thrush* + *> 80%* shows only the playable Wood Thrush markers that scored above 80%.
 
-When a filter is active, the app-bar title gains a match-count subtitle (e.g. *"7 detections"*) and the filter button shows a small dot. *Reset* in the sheet returns to the default.
+When a filter is active, the app-bar title gains a match-count subtitle (e.g. *"7 detections"*). *Reset* in the sheet returns to the default.
 
 ## Toolbar Icons
 

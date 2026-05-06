@@ -57,9 +57,10 @@ class SpeciesCard extends ConsumerWidget {
     final showSciNames = ref.watch(showSciNamesProvider);
 
     return Material(
-      color: isDark
-          ? theme.colorScheme.surfaceContainerHighest.withAlpha(120)
-          : theme.colorScheme.surfaceContainerHighest.withAlpha(180),
+      color:
+          isDark
+              ? theme.colorScheme.surfaceContainerHighest.withAlpha(120)
+              : theme.colorScheme.surfaceContainerHighest.withAlpha(180),
       borderRadius: BorderRadius.circular(12),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -100,8 +101,10 @@ class SpeciesCard extends ConsumerWidget {
               // ── Names and Details ──
               Expanded(
                 child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -124,44 +127,55 @@ class SpeciesCard extends ConsumerWidget {
                           if (confidence != null || geoScore != null) ...[
                             const SizedBox(width: 8),
                             Semantics(
-                              label: confidence != null
-                                  ? AppLocalizations.of(context)!
-                                      .a11yConfidencePercent(
-                                          (confidence! * 100).round())
-                                  : AppLocalizations.of(context)!
-                                      .a11yLikelihoodPercent(geoScore!.round()),
-                              excludeSemantics: true,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: probabilityCategoryColor(geoScore ??
-                                          (confidence != null
-                                              ? confidence! * 100
-                                              : 0))
-                                      .withAlpha(30),
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(
-                                    color: probabilityCategoryColor(geoScore ??
-                                            (confidence != null
-                                                ? confidence! * 100
-                                                : 0))
-                                        .withAlpha(120),
-                                  ),
-                                ),
-                                child: Text(
+                              label:
                                   confidence != null
-                                      ? '${(confidence! * 100).toStringAsFixed(0)}%'
-                                      : '${geoScore!.toStringAsFixed(0)}%',
-                                  style: theme.textTheme.labelSmall?.copyWith(
-                                    fontSize: 10,
-                                    color: probabilityCategoryColor(geoScore ??
-                                        (confidence != null
-                                            ? confidence! * 100
-                                            : 0)),
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
+                                      ? AppLocalizations.of(
+                                        context,
+                                      )!.a11yConfidencePercent(
+                                        (confidence! * 100).round(),
+                                      )
+                                      : AppLocalizations.of(
+                                        context,
+                                      )!.a11yLikelihoodPercent(
+                                        geoScore!.round(),
+                                      ),
+                              excludeSemantics: true,
+                              child: Builder(
+                                builder: (context) {
+                                  final pillScore =
+                                      geoScore ??
+                                      (confidence != null
+                                          ? confidence! * 100
+                                          : 0);
+                                  final pillColor = probabilityCategoryColor(
+                                    context,
+                                    pillScore.toDouble(),
+                                  );
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: pillColor.withAlpha(30),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(
+                                        color: pillColor.withAlpha(120),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      confidence != null
+                                          ? '${(confidence! * 100).toStringAsFixed(0)}%'
+                                          : '${geoScore!.toStringAsFixed(0)}%',
+                                      style: theme.textTheme.labelSmall
+                                          ?.copyWith(
+                                            fontSize: 10,
+                                            color: pillColor,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                    ),
+                                  );
+                                },
                               ),
                             ),
                           ],
@@ -204,16 +218,16 @@ class _SpeciesImage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final taxonomyAsync = ref.watch(taxonomyServiceProvider);
-    final path = taxonomyAsync.valueOrNull?.assetImagePath(scientificName) ??
+    final path =
+        taxonomyAsync.valueOrNull?.assetImagePath(scientificName) ??
         'assets/images/dummy_species.png';
 
     return Image.asset(
       path,
       fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => Image.asset(
-        'assets/images/dummy_species.png',
-        fit: BoxFit.cover,
-      ),
+      errorBuilder:
+          (_, __, ___) =>
+              Image.asset('assets/images/dummy_species.png', fit: BoxFit.cover),
     );
   }
 }
@@ -252,10 +266,13 @@ class _MiniChart extends StatelessWidget {
               final normalized = (score / 100.0).clamp(0.0, 1.0);
               final isCurrentWeek = index == currentWeekIndex;
 
-              final barHeight = score > 0
-                  ? (normalized * _chartHeight)
-                      .clamp(_minBarHeight, _chartHeight)
-                  : 0.0;
+              final barHeight =
+                  score > 0
+                      ? (normalized * _chartHeight).clamp(
+                        _minBarHeight,
+                        _chartHeight,
+                      )
+                      : 0.0;
 
               final baseColor = theme.colorScheme.primary;
               final activeColor = theme.colorScheme.tertiary;
@@ -266,17 +283,20 @@ class _MiniChart extends StatelessWidget {
                     margin: const EdgeInsets.symmetric(horizontal: 0.5),
                     height: barHeight,
                     decoration: BoxDecoration(
-                      color: isCurrentWeek
-                          ? activeColor
-                          : baseColor.withAlpha(
-                              (50 + (normalized * 150)).toInt().clamp(0, 255)),
+                      color:
+                          isCurrentWeek
+                              ? activeColor
+                              : baseColor.withAlpha(
+                                (50 + (normalized * 150)).toInt().clamp(0, 255),
+                              ),
                       borderRadius: BorderRadius.circular(1),
-                      border: isCurrentWeek
-                          ? Border.all(
-                              color: theme.colorScheme.onSurface,
-                              width: 0.5,
-                            )
-                          : null,
+                      border:
+                          isCurrentWeek
+                              ? Border.all(
+                                color: theme.colorScheme.onSurface,
+                                width: 0.5,
+                              )
+                              : null,
                     ),
                   ),
                 ),
@@ -288,20 +308,21 @@ class _MiniChart extends StatelessWidget {
         SizedBox(
           height: 10,
           child: Row(
-            children: _monthLabels(l10n).map((label) {
-              return Expanded(
-                flex: 4,
-                child: Text(
-                  label,
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    fontSize: 7,
-                    height: 1.0,
-                    color: theme.colorScheme.onSurface.withAlpha(100),
-                  ),
-                ),
-              );
-            }).toList(),
+            children:
+                _monthLabels(l10n).map((label) {
+                  return Expanded(
+                    flex: 4,
+                    child: Text(
+                      label,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        fontSize: 7,
+                        height: 1.0,
+                        color: theme.colorScheme.onSurface.withAlpha(100),
+                      ),
+                    ),
+                  );
+                }).toList(),
           ),
         ),
       ],
@@ -309,19 +330,19 @@ class _MiniChart extends StatelessWidget {
   }
 
   static List<String> _monthLabels(AppLocalizations l10n) => [
-        l10n.monthJ,
-        l10n.monthF,
-        l10n.monthM,
-        l10n.monthA,
-        l10n.monthMay,
-        l10n.monthJun,
-        l10n.monthJul,
-        l10n.monthAug,
-        l10n.monthS,
-        l10n.monthO,
-        l10n.monthN,
-        l10n.monthD,
-      ];
+    l10n.monthJ,
+    l10n.monthF,
+    l10n.monthM,
+    l10n.monthA,
+    l10n.monthMay,
+    l10n.monthJun,
+    l10n.monthJul,
+    l10n.monthAug,
+    l10n.monthS,
+    l10n.monthO,
+    l10n.monthN,
+    l10n.monthD,
+  ];
 }
 
 /// Small overlay badge that flags a species as previously detected by the
@@ -351,11 +372,7 @@ class _DetectedBadge extends StatelessWidget {
           ),
         ],
       ),
-      child: Icon(
-        Icons.check,
-        size: 12,
-        color: theme.colorScheme.onPrimary,
-      ),
+      child: Icon(Icons.check, size: 12, color: theme.colorScheme.onPrimary),
     );
   }
 }

@@ -1915,6 +1915,10 @@
   "@surveyMapFilterTooltip": {
     "description": "Tooltip for the survey map filter button"
   },
+  "surveyMapFilterChipAll": "All species",
+  "@surveyMapFilterChipAll": {
+    "description": "Persistent map filter chip label when no filter is active"
+  },
   "surveyMapFilterAll": "All detections",
   "@surveyMapFilterAll": {
     "description": "Filter option: show every detection"

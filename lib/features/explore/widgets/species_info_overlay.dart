@@ -469,7 +469,7 @@ class _WeeklyProbabilityChart extends ConsumerWidget {
         final currentWeekIndex = GeoModel.dateTimeToWeek(DateTime.now()) - 1;
         final currentScore = probs[currentWeekIndex];
         final category = _localizedProbabilityCategory(l10n, currentScore);
-        final categoryColor = probabilityCategoryColor(currentScore);
+        final categoryColor = probabilityCategoryColor(context, currentScore);
 
         // Normalize to 100 (= the #1 species peak from the provider).
         const maxProb = 100.0;

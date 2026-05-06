@@ -14,10 +14,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:birdnet_live/l10n/app_localizations.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../core/theme/score_colors.dart';
 import '../../../shared/models/gps_point.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../../../shared/widgets/open_street_map_tile_layer.dart';
@@ -88,6 +90,21 @@ class _SurveyMapWidgetState extends ConsumerState<SurveyMapWidget> {
   int _lastTrackLength = 0;
   bool _initialFitDone = false;
 
+  /// Tracks the current camera zoom so species markers can degrade to a
+  /// solid colored dot when zoomed out (where the bird silhouette is too
+  /// small to read), and the cluster layer can be turned off once the user
+  /// is zoomed in enough to disambiguate individual pins.
+  double _currentZoom = 14;
+
+  /// Zoom at and above which species markers render the full silhouette.
+  /// Below this zoom we show a solid colored dot sized by score, since the
+  /// silhouette glyph collapses to a few pixels and reads as visual noise.
+  static const double _silhouetteZoomThreshold = 14.5;
+
+  /// Zoom at and above which clustering is disabled — at high zoom the
+  /// pins are spatially distinct and grouping them just hides information.
+  static const double _disableClusteringAtZoom = 15;
+
   @override
   void initState() {
     super.initState();
@@ -103,10 +120,7 @@ class _SurveyMapWidgetState extends ConsumerState<SurveyMapWidget> {
         widget.highlightedDetection != oldWidget.highlightedDetection) {
       final d = widget.highlightedDetection!;
       if (d.latitude != null && d.longitude != null) {
-        _mapController.move(
-          LatLng(d.latitude!, d.longitude!),
-          18,
-        );
+        _mapController.move(LatLng(d.latitude!, d.longitude!), 18);
       }
       return;
     }
@@ -136,20 +150,21 @@ class _SurveyMapWidgetState extends ConsumerState<SurveyMapWidget> {
     final l10n = AppLocalizations.of(context)!;
     final agreed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.mapTileConsentTitle),
-        content: Text(l10n.mapTileConsentBody),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(l10n.mapTileConsentCancel),
+      builder:
+          (context) => AlertDialog(
+            title: Text(l10n.mapTileConsentTitle),
+            content: Text(l10n.mapTileConsentBody),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(l10n.mapTileConsentCancel),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text(l10n.mapTileConsentAllow),
+              ),
+            ],
           ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(l10n.mapTileConsentAllow),
-          ),
-        ],
-      ),
     );
     if (agreed == true) {
       final prefs = ref.read(sharedPreferencesProvider);
@@ -196,7 +211,21 @@ class _SurveyMapWidgetState extends ConsumerState<SurveyMapWidget> {
         widget.gpsTrack.map((p) => LatLng(p.latitude, p.longitude)).toList();
 
     // Build detection markers with species icons.
-    final markers = <Marker>[];
+    //
+    // Species markers go into a separate list so they can be wrapped in a
+    // [MarkerClusterLayerWidget] — overlapping pins at low zoom would
+    // otherwise turn the map into a single unreadable blob (#33). Auxiliary
+    // pins (start flag, current position) stay in a plain MarkerLayer above
+    // the cluster layer because clustering them would defeat their purpose.
+    final speciesMarkers = <Marker>[];
+    final auxMarkers = <Marker>[];
+
+    // When zoomed out, swap the bird silhouette for a solid colored dot
+    // sized by score. The silhouette is only legible above roughly
+    // [_silhouetteZoomThreshold] — below that the artwork collapses to a
+    // few pixels and the dot's color (which already encodes confidence
+    // after the CVD-safe palette swap) is the only thing that survives.
+    final useDot = _currentZoom < _silhouetteZoomThreshold;
 
     // Group detections by location to prevent overlapping.
     // We show each unique species at each location once. When multiple
@@ -224,44 +253,73 @@ class _SurveyMapWidgetState extends ConsumerState<SurveyMapWidget> {
       }
     }
 
-    for (final det in detectionsByLocation.values) {
-      final isHighlighted = widget.highlightedDetection != null &&
+    // Sort the marker draw order so that, when two markers overlap on the
+    // map, the more important one wins the top spot. Highest priority is the
+    // currently highlighted detection, then audio over silent, then high
+    // confidence over low. flutter_map paints markers in list order, so the
+    // last one added wins — sort ascending by importance.
+    final sortedDetections =
+        detectionsByLocation.values.toList()..sort((a, b) {
+          final aHighlight =
+              widget.highlightedDetection != null &&
+              a.scientificName == widget.highlightedDetection!.scientificName &&
+              a.timestamp == widget.highlightedDetection!.timestamp;
+          final bHighlight =
+              widget.highlightedDetection != null &&
+              b.scientificName == widget.highlightedDetection!.scientificName &&
+              b.timestamp == widget.highlightedDetection!.timestamp;
+          if (aHighlight != bHighlight) return aHighlight ? 1 : -1;
+          final aAudio = _hasPlayableClip(a);
+          final bAudio = _hasPlayableClip(b);
+          if (aAudio != bAudio) return aAudio ? 1 : -1;
+          return a.confidence.compareTo(b.confidence);
+        });
+
+    for (final det in sortedDetections) {
+      final isHighlighted =
+          widget.highlightedDetection != null &&
           det.scientificName == widget.highlightedDetection!.scientificName &&
           det.timestamp == widget.highlightedDetection!.timestamp;
       final hasAudio = _hasPlayableClip(det);
 
-      markers.add(
+      speciesMarkers.add(
         Marker(
           point: LatLng(det.latitude!, det.longitude!),
-          // Audio markers are rendered with an outer accent ring + corner
-          // play badge, so they need a larger bounding box than silent ones.
-          width: isHighlighted ? (hasAudio ? 56 : 44) : (hasAudio ? 44 : 32),
-          height: isHighlighted ? (hasAudio ? 56 : 44) : (hasAudio ? 44 : 32),
+          // Uniform bounding box so audio and silent markers visually match —
+          // the corner play badge needs a few extra pixels of padding either
+          // way. Slightly larger than the pre-#33 sizes so silhouettes stay
+          // legible when zoomed in.
+          width: isHighlighted ? 56 : 44,
+          height: isHighlighted ? 56 : 44,
           child: GestureDetector(
-            onTap: widget.onMarkerTap != null
-                ? () => widget.onMarkerTap!(det)
-                : null,
+            onTap:
+                widget.onMarkerTap != null
+                    ? () => widget.onMarkerTap!(det)
+                    : null,
             child: _SpeciesMarker(
               scientificName: det.scientificName,
               confidence: det.confidence,
               isHighlighted: isHighlighted,
               hasAudio: hasAudio,
+              useDot: useDot,
             ),
           ),
         ),
       );
     }
 
-    // Add start/end markers.
+    // Add start (flag) marker.
     if (trackPoints.isNotEmpty) {
-      markers.insert(
-        0,
+      auxMarkers.add(
         Marker(
           point: trackPoints.first,
           width: 28,
           height: 28,
-          child:
-              Icon(Icons.flag_rounded, color: Colors.green.shade700, size: 28),
+          child: Icon(
+            Icons.flag_rounded,
+            color: Colors.green.shade700,
+            size: 28,
+          ),
         ),
       );
     }
@@ -273,13 +331,16 @@ class _SurveyMapWidgetState extends ConsumerState<SurveyMapWidget> {
       final LatLng? currentPosition =
           trackPoints.isNotEmpty ? trackPoints.last : widget.initialCenter;
       if (currentPosition != null) {
-        markers.add(
+        auxMarkers.add(
           Marker(
             point: currentPosition,
             width: 28,
             height: 28,
-            child: Icon(Icons.person_pin_circle_rounded,
-                color: theme.colorScheme.primary, size: 28),
+            child: Icon(
+              Icons.person_pin_circle_rounded,
+              color: theme.colorScheme.primary,
+              size: 28,
+            ),
           ),
         );
       }
@@ -290,9 +351,10 @@ class _SurveyMapWidgetState extends ConsumerState<SurveyMapWidget> {
     double zoom;
     if (widget.fitAllPoints) {
       // Will be adjusted via fitBounds after first frame.
-      center = trackPoints.isNotEmpty
-          ? trackPoints.first
-          : const LatLng(52.52, 13.405);
+      center =
+          trackPoints.isNotEmpty
+              ? trackPoints.first
+              : const LatLng(52.52, 13.405);
       zoom = 14;
     } else if (trackPoints.isNotEmpty) {
       center = trackPoints.last;
@@ -311,7 +373,36 @@ class _SurveyMapWidgetState extends ConsumerState<SurveyMapWidget> {
         interactionOptions:
             widget.interactionOptions ?? const InteractionOptions(),
         onMapReady: () {
-          if (widget.fitAllPoints && !_initialFitDone) {
+          // Initial zoom may have been adjusted by `fitCamera` below; sync
+          // the cached value so the species markers pick the right
+          // dot/silhouette form on the very first frame.
+          if (mounted) {
+            final z = _mapController.camera.zoom;
+            if (z != _currentZoom) {
+              setState(() => _currentZoom = z);
+            }
+          }
+          // If we open with a pre-selected detection (e.g. user tapped
+          // "expand" on the inline map after focusing a detection), zoom
+          // straight to that detection on first frame instead of fitting
+          // the whole track.
+          final initialHighlight = widget.highlightedDetection;
+          if (initialHighlight != null &&
+              initialHighlight.latitude != null &&
+              initialHighlight.longitude != null) {
+            _initialFitDone = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                _mapController.move(
+                  LatLng(
+                    initialHighlight.latitude!,
+                    initialHighlight.longitude!,
+                  ),
+                  18,
+                );
+              }
+            });
+          } else if (widget.fitAllPoints && !_initialFitDone) {
             // Defer fitCamera to the next frame so the tile layer has
             // finished its initial layout and will request tiles for the
             // fitted bounds immediately.
@@ -328,6 +419,16 @@ class _SurveyMapWidgetState extends ConsumerState<SurveyMapWidget> {
           if (widget.onCameraMove != null) {
             widget.onCameraMove!(_mapController.camera.visibleBounds);
           }
+          // Only rebuild when crossing the silhouette/dot threshold —
+          // every camera tick would otherwise thrash the marker tree.
+          final newZoom = pos.zoom;
+          final wasDot = _currentZoom < _silhouetteZoomThreshold;
+          final isDot = newZoom < _silhouetteZoomThreshold;
+          if (wasDot != isDot && mounted) {
+            setState(() => _currentZoom = newZoom);
+          } else {
+            _currentZoom = newZoom;
+          }
         },
       ),
       children: [
@@ -342,7 +443,29 @@ class _SurveyMapWidgetState extends ConsumerState<SurveyMapWidget> {
               ),
             ],
           ),
-        MarkerLayer(markers: markers),
+        // Species pins live inside a cluster layer so dense surveys stay
+        // legible at low zoom. Clustering automatically disables once the
+        // user is zoomed in past [_disableClusteringAtZoom].
+        MarkerClusterLayerWidget(
+          options: MarkerClusterLayerOptions(
+            maxClusterRadius: 80,
+            disableClusteringAtZoom: _disableClusteringAtZoom.toInt(),
+            size: const Size(40, 40),
+            padding: const EdgeInsets.all(50),
+            markers: speciesMarkers,
+            polygonOptions: PolygonOptions(
+              borderColor: theme.colorScheme.primary.withAlpha(150),
+              color: theme.colorScheme.primary.withAlpha(40),
+              borderStrokeWidth: 2,
+            ),
+            builder: (context, clusterMarkers) {
+              return _ClusterBubble(count: clusterMarkers.length);
+            },
+          ),
+        ),
+        // Auxiliary markers (start flag, current position) sit above the
+        // cluster layer so they're never folded into a count bubble.
+        MarkerLayer(markers: auxMarkers),
         RichAttributionWidget(
           attributions: [
             TextSourceAttribution('OpenStreetMap (ODbL)', onTap: () {}),
@@ -375,8 +498,11 @@ class _SurveyMapWidgetState extends ConsumerState<SurveyMapWidget> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.map_outlined,
-                size: 48, color: theme.colorScheme.onSurface.withAlpha(100)),
+            Icon(
+              Icons.map_outlined,
+              size: 48,
+              color: theme.colorScheme.onSurface.withAlpha(100),
+            ),
             const SizedBox(height: 16),
             FilledButton.icon(
               onPressed: _requestConsent,
@@ -419,6 +545,7 @@ class _SpeciesMarker extends ConsumerWidget {
     required this.confidence,
     this.isHighlighted = false,
     this.hasAudio = false,
+    this.useDot = false,
   });
 
   final String scientificName;
@@ -426,23 +553,119 @@ class _SpeciesMarker extends ConsumerWidget {
   final bool isHighlighted;
   final bool hasAudio;
 
+  /// When true, render as a solid colored dot sized by score instead of the
+  /// species silhouette. Used at low zoom where the silhouette collapses to
+  /// a few unreadable pixels — the dot's color (CVD-safe) and outline weight
+  /// still encode confidence, and clusters take care of overlap.
+  final bool useDot;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Audio markers use the standard confidence color for the avatar border;
+    // Audio markers use the unified [ScoreColors] ramp for the avatar border;
     // silent markers fall back to a neutral grey so audio-bearing detections
-    // visually stand out at a glance.
-    final confidenceColor = confidence >= 0.8
-        ? Colors.green
-        : confidence >= 0.5
-            ? Colors.amber.shade700
-            : Colors.red;
+    // visually stand out at a glance. The border *width* is also scaled by the
+    // confidence bucket (1.5 px for very-low up to 3.5 px for very-high) so
+    // the strength of a detection survives complete loss of color vision —
+    // a heavier ring still reads as "stronger" in monochrome.
+    final scoreColors = ScoreColors.of(context);
+    final confidenceColor = scoreColors.forScore(confidence);
     final borderColor = hasAudio ? confidenceColor : Colors.grey.shade500;
+    final bucket = ScoreColors.bucketIndexForScore(confidence);
+    // 0 → 1.5, 1 → 2.0, 2 → 2.5, 3 → 3.0, 4 → 3.5
+    final scoreBorderWidth = 1.5 + bucket * 0.5;
 
-    final size = isHighlighted ? 40.0 : 28.0;
+    // Low-zoom dot form: render a small colored circle whose diameter scales
+    // with the confidence bucket (10 px → 18 px). Highlighted markers stay
+    // larger so the user can still spot the focused detection. The audio
+    // play badge is suppressed in this form because it would dominate a
+    // 12 px dot and re-introduce the visual noise this branch is meant to
+    // eliminate.
+    if (useDot && !isHighlighted) {
+      final dotSize = 10.0 + bucket * 2.0;
+      final fill = hasAudio ? confidenceColor : Colors.grey.shade500;
+      return Center(
+        child: Container(
+          width: dotSize,
+          height: dotSize,
+          decoration: BoxDecoration(
+            color: fill,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: Colors.white,
+              width: hasAudio ? scoreBorderWidth : 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withAlpha(60),
+                blurRadius: 2,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Silent (no-audio) markers are noticeably smaller than audio ones so
+    // the visual hierarchy reads at a glance — audio detections are the
+    // primary content, silent ones are context. The highlighted size is also
+    // shrunk for silent markers so a stray rebuild can never make a silent
+    // marker visually outweigh an unhighlighted audio one.
+    final size =
+        isHighlighted ? (hasAudio ? 48.0 : 36.0) : (hasAudio ? 36.0 : 24.0);
 
     final taxonomyAsync = ref.watch(taxonomyServiceProvider);
-    final path = taxonomyAsync.valueOrNull?.assetImagePath(scientificName) ??
+    final path =
+        taxonomyAsync.valueOrNull?.assetImagePath(scientificName) ??
         'assets/images/dummy_species.png';
+
+    // Silent markers are desaturated to grayscale so the user can tell at
+    // a glance which detections have audio without having to spot the
+    // small corner play badge. The confidence-colored border is preserved
+    // (silent markers use a neutral grey there too) but the photo itself
+    // reads as monochrome until a clip is attached.
+    final ColorFilter? silentFilter =
+        hasAudio
+            ? null
+            : const ColorFilter.matrix(<double>[
+              0.2126,
+              0.7152,
+              0.0722,
+              0,
+              0,
+              0.2126,
+              0.7152,
+              0.0722,
+              0,
+              0,
+              0.2126,
+              0.7152,
+              0.0722,
+              0,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+            ]);
+
+    Widget image = Image.asset(
+      path,
+      fit: BoxFit.cover,
+      errorBuilder:
+          (_, __, ___) => Container(
+            color: borderColor.withAlpha(60),
+            child: Icon(
+              Icons.music_note,
+              size: size * 0.45,
+              color: borderColor,
+            ),
+          ),
+    );
+    if (silentFilter != null) {
+      image = ColorFiltered(colorFilter: silentFilter, child: image);
+    }
 
     final avatar = Container(
       width: size,
@@ -451,68 +674,47 @@ class _SpeciesMarker extends ConsumerWidget {
         shape: BoxShape.circle,
         border: Border.all(
           color: isHighlighted ? Colors.blue : borderColor,
-          width: isHighlighted ? 3 : 2,
+          width: isHighlighted ? 3 : (hasAudio ? scoreBorderWidth : 2),
         ),
         boxShadow: [
           BoxShadow(
-            color: isHighlighted
-                ? Colors.blue.withAlpha(100)
-                : Colors.black.withAlpha(50),
+            color:
+                isHighlighted
+                    ? Colors.blue.withAlpha(100)
+                    : Colors.black.withAlpha(50),
             blurRadius: isHighlighted ? 8 : 3,
             offset: const Offset(0, 1),
           ),
         ],
       ),
-      child: ClipOval(
-        child: Image.asset(
-          path,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => Container(
-            color: borderColor.withAlpha(60),
-            child:
-                Icon(Icons.music_note, size: size * 0.45, color: borderColor),
-          ),
-        ),
-      ),
+      child: ClipOval(child: image),
     );
 
-    if (!hasAudio) return avatar;
+    if (!hasAudio) {
+      // Fade silent markers so the audio/silent distinction never depends
+      // on the species photo's natural hue \u2014 a desaturated photo of a
+      // grey-plumaged bird could otherwise be mistaken for an audio marker
+      // whose colored border just happens to be subtle.
+      return Opacity(opacity: 0.6, child: avatar);
+    }
 
-    // Audio-bearing markers get two affordances:
-    //   • An outer accent ring around the avatar so they stand out at low
-    //     zoom even when the corner badge is hard to read.
-    //   • A larger play badge in the bottom-right corner that reads as a
-    //     tappable control on close inspection.
-    const ringWidth = 2.5;
-    final ringColor = Theme.of(context).colorScheme.primary;
+    // Audio-bearing markers get a single affordance: a play badge anchored
+    // to the avatar's bottom-right. We deliberately don't draw an outer
+    // accent ring — that ring used to mask the confidence color encoded by
+    // the avatar's own border, defeating the CVD-safe ramp. The play badge
+    // alone is enough to signal "tap to hear this".
+    final badgeColor = Theme.of(context).colorScheme.primary;
     final badgeSize = (size * 0.55).clamp(14.0, 22.0);
-    final outerSize = size + ringWidth * 2 + 2;
     final badgeOffset = badgeSize * 0.25;
 
     return SizedBox(
-      width: outerSize + badgeOffset,
-      height: outerSize + badgeOffset,
+      width: size + badgeOffset,
+      height: size + badgeOffset,
       child: Stack(
         clipBehavior: Clip.none,
         alignment: Alignment.center,
         children: [
-          // Accent ring + soft halo behind the avatar.
-          Container(
-            width: outerSize,
-            height: outerSize,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: ringColor, width: ringWidth),
-              boxShadow: [
-                BoxShadow(
-                  color: ringColor.withAlpha(70),
-                  blurRadius: 6,
-                  spreadRadius: 0.5,
-                ),
-              ],
-            ),
-            child: Center(child: avatar),
-          ),
+          Center(child: avatar),
           // Play badge anchored to the avatar's bottom-right.
           Positioned(
             right: 0,
@@ -521,7 +723,7 @@ class _SpeciesMarker extends ConsumerWidget {
               width: badgeSize,
               height: badgeSize,
               decoration: BoxDecoration(
-                color: ringColor,
+                color: badgeColor,
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.white, width: 1.5),
                 boxShadow: [
@@ -540,6 +742,51 @@ class _SpeciesMarker extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Cluster bubble — shown by [MarkerClusterLayerWidget] when several species
+// markers occupy the same screen region. The bubble's size grows with the
+// log of the count so a 3-pin and a 300-pin cluster look meaningfully
+// different at a glance.
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _ClusterBubble extends StatelessWidget {
+  const _ClusterBubble({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    // Scale 40 px → 64 px across log10(count) ≈ 0..3 (1 → 1000+).
+    final scale = (count > 1) ? (1 + (count.bitLength - 1) * 0.06) : 1.0;
+    final size = (40.0 * scale).clamp(40.0, 64.0);
+    return Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primary,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(70),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Text(
+        count.toString(),
+        style: theme.textTheme.labelLarge?.copyWith(
+          color: theme.colorScheme.onPrimary,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }

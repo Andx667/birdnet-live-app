@@ -29,9 +29,11 @@ import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter/widgets.dart' show BuildContext;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/app_constants.dart';
+import '../../core/theme/score_colors.dart';
 import '../../core/services/asset_pack_service.dart';
 import '../../shared/models/taxonomy_species.dart';
 import '../../shared/providers/settings_providers.dart';
@@ -51,24 +53,28 @@ import '../inference/geo_model.dart';
 ///   - Explore only shows species the audio model can also detect.
 ///   - Live only shows detections for species the geo-model also knows.
 final audioLabelsSetProvider = FutureProvider<Set<String>>((ref) async {
-  final configJson =
-      await rootBundle.loadString(AppConstants.modelConfigAssetPath);
+  final configJson = await rootBundle.loadString(
+    AppConstants.modelConfigAssetPath,
+  );
   final fullConfig = json.decode(configJson) as Map<String, dynamic>;
-  final labelsConfig = (fullConfig['audioModel']
-      as Map<String, dynamic>)['labels'] as Map<String, dynamic>;
+  final labelsConfig =
+      (fullConfig['audioModel'] as Map<String, dynamic>)['labels']
+          as Map<String, dynamic>;
 
   final file = labelsConfig['file'] as String;
   final delimiter = labelsConfig['delimiter'] as String? ?? ';';
   final cols = labelsConfig['columns'] as Map<String, dynamic>? ?? const {};
   final sciNameColHeader = cols['scientificName'] as String? ?? 'sci_name';
 
-  final csvText =
-      await rootBundle.loadString('${AppConstants.modelAssetsDir}/$file');
-  final lines = csvText
-      .split('\n')
-      .map((l) => l.trim())
-      .where((l) => l.isNotEmpty)
-      .toList();
+  final csvText = await rootBundle.loadString(
+    '${AppConstants.modelAssetsDir}/$file',
+  );
+  final lines =
+      csvText
+          .split('\n')
+          .map((l) => l.trim())
+          .where((l) => l.isNotEmpty)
+          .toList();
   if (lines.isEmpty) return {};
 
   final headers = lines.first.split(delimiter).map((h) => h.trim()).toList();
@@ -125,8 +131,9 @@ final taxonomyServiceProvider = FutureProvider<TaxonomyService>((ref) async {
 });
 
 /// Singleton [SpeciesDescriptionService] for loading bundled descriptions.
-final speciesDescriptionServiceProvider =
-    Provider<SpeciesDescriptionService>((ref) {
+final speciesDescriptionServiceProvider = Provider<SpeciesDescriptionService>((
+  ref,
+) {
   return SpeciesDescriptionService();
 });
 
@@ -169,8 +176,10 @@ final geoModelProvider = FutureProvider<GeoModel>((ref) async {
   geoModel.loadLabels(labelsText);
   await geoModel.loadModel(onnxPath);
 
-  debugPrint('[geoModelProvider] geo model ready '
-      '(${geoModel.labels.length} species)');
+  debugPrint(
+    '[geoModelProvider] geo model ready '
+    '(${geoModel.labels.length} species)',
+  );
   return geoModel;
 });
 
@@ -215,8 +224,9 @@ class ExploreSpecies {
 /// included — the audio model must be able to detect what is shown.
 ///
 /// Invalidate [currentLocationProvider] to refresh after a location change.
-final exploreSpeciesProvider =
-    FutureProvider<List<ExploreSpecies>>((ref) async {
+final exploreSpeciesProvider = FutureProvider<List<ExploreSpecies>>((
+  ref,
+) async {
   // Wait for all dependencies.
   final location = await ref.watch(currentLocationProvider.future);
   final geoModel = await ref.watch(geoModelProvider.future);
@@ -249,19 +259,20 @@ final exploreSpeciesProvider =
     if (!audioLabels.contains(sciName)) continue;
 
     final taxonomy = taxonomyService.lookup(sciName);
-    final geoLabel = geoModel.labels.where(
-      (l) => l.scientificName == sciName,
-    );
-    final commonName = taxonomy?.commonNameForLocale(speciesLocale) ??
+    final geoLabel = geoModel.labels.where((l) => l.scientificName == sciName);
+    final commonName =
+        taxonomy?.commonNameForLocale(speciesLocale) ??
         (geoLabel.isNotEmpty ? geoLabel.first.commonName : sciName);
 
-    results.add(ExploreSpecies(
-      scientificName: sciName,
-      commonName: commonName,
-      geoScore: currentScore,
-      taxonomy: taxonomy,
-      weeklyScores: weeklyScores,
-    ));
+    results.add(
+      ExploreSpecies(
+        scientificName: sciName,
+        commonName: commonName,
+        geoScore: currentScore,
+        taxonomy: taxonomy,
+        weeklyScores: weeklyScores,
+      ),
+    );
   }
 
   // Sort by current-week probability (descending).
@@ -319,11 +330,11 @@ String probabilityCategory(double score) {
   return 'Rare';
 }
 
-/// Returns a color for the probability category.
-Color probabilityCategoryColor(double score) {
-  if (score >= 80) return const Color(0xFF2E7D32); // forest green
-  if (score >= 60) return const Color(0xFFAFB42B); // yellow-green
-  if (score >= 40) return const Color(0xFFFBC02D); // yellow/amber
-  if (score >= 20) return const Color(0xFFF57C00); // orange
-  return const Color(0xFFD32F2F); // red
+/// Returns a color for the probability category by routing through the
+/// app-wide [ScoreColors] theme extension. Score is on the 0–100 geo-score
+/// scale and gets normalized to 0–1 internally so a single CVD-safe ramp
+/// drives every confidence/likelihood badge in the app.
+Color probabilityCategoryColor(BuildContext context, double score) {
+  final colors = ScoreColors.of(context);
+  return colors.forScore((score / 100).clamp(0.0, 1.0));
 }

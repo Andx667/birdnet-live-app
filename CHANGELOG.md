@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.9] - 2026-05-06
+
+### Changed
+
+- **Survey map now z-orders overlapping markers by importance.** When two detections share a spot, the more important one is now drawn on top: the highlighted detection wins outright, then audio-bearing markers cover silent ones, then higher-confidence covers lower. Previously the draw order was effectively the iteration order of the location-keyed map, so a low-confidence silent marker could obscure a high-confidence audio detection at the same position (#33).
+- **Expanding the inline survey map preserves the focused detection.** When you tap a detection in the review list, the inline map centers on it; opening the fullscreen map from there now lands you on the same detection at zoom 18 instead of fitting the whole track and forcing you to find the marker again (#33).
+
+## [0.9.8] - 2026-05-02
+
+### Changed
+
+- **Survey map now clusters overlapping detections.** Dense surveys used to render as an unreadable pile of pins on top of each other; species markers are now grouped into count bubbles below zoom 15, with a polygon overlay on tap so the cluster's footprint is visible. Start-flag and current-position markers stay outside the cluster layer so they're never folded into a count (#33).
+- **Zoom-aware species markers.** Below zoom 14.5 the silhouette image collapses to a few unreadable pixels — markers now switch to a solid colored dot whose size and outline weight encode the confidence bucket. Zooming in past the threshold restores the full silhouette + audio play badge form.
+- **Persistent map filter chip.** Added a chip overlay anchored top-right of the fullscreen survey map that shows the active filter ("All species", "≥ 50%", a species name) and opens the existing filter sheet on tap. Solves the discoverability problem in #33 where users were missing the AppBar filter icon entirely. The redundant AppBar filter icon was removed in favor of the chip.
+- **Removed the blue accent ring around audio-bearing map markers.** The ring sat on top of the avatar's confidence-colored border and masked the CVD-safe ramp, so two equally-confident detections looked identical when one had audio. Audio is now signaled solely by the corner play badge, leaving the confidence color fully visible.
+- **Uniform, slightly larger species markers on the map.** Audio and silent markers used to render at different bounding-box sizes (44 vs 32 px), making the map look uneven. Both now share the same box and the silhouette form is bumped 28 → 36 px (40 → 48 px when highlighted) so species photos stay legible when zoomed in.
+- **Silent (no-audio) markers are now grayscale and slightly smaller (30 px vs 36 px).** Desaturating the photo lets the user tell at a glance which detections have audio without hunting for the small corner play badge, and the size offset compensates for the play-badge overhang on audio markers so audio detections no longer look visually larger inside the same bounding box.
+- **Clip player sheet now uses the same `ScoreColors` ramp as the map markers.** The sheet's avatar border was still using the old hardcoded red/amber/green ramp, so the same detection looked like a different confidence level depending on whether you saw it on the map or in the playback overlay. Both surfaces now share one source of truth.
+- **Silent map markers are smaller (24 px) and faded to 60 % opacity.** Shrinking them clarifies the visual hierarchy — audio detections are the primary content, silent ones are context. The opacity fade also guarantees that silent markers read as "muted" regardless of the species photo's natural hue, so a grey-plumaged bird with audio can never be mistaken for a silent marker.
+
+## [0.9.7] - 2026-05-02
+
+### Changed
+
+- **Score & confidence color ramp redesigned for color-vision-deficient viewers.** Replaced the Material red/orange/amber/green palette (whose buckets all sat at similar lightness) with a CVD-safe ramp where lightness changes monotonically across buckets — light → dark on light theme, dim → bright on dark theme. The ramp now stays unambiguous when simulated for protan/deutan/tritan vision because the lightness gradient survives even when hue collapses (#33, thanks @LimitlessGreen).
+- **Survey map markers now scale outline weight with confidence** (1.5 px for very-low up to 3.5 px for very-high), so the strength of a detection is readable from the marker geometry alone in monochrome or in CVD simulation.
+- **Eliminated the duplicate Explore color ramp.** `probabilityCategoryColor` now routes through the unified `ScoreColors` theme extension, so every confidence/likelihood badge across Live, Survey, Explore, and File Analysis shares the same palette and any future tweak lands in one place.
+
 ## [0.9.6] - 2026-05-02
 
 ### Changed

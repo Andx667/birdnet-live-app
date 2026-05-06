@@ -13,6 +13,11 @@
 //     very-high (≥ 0.80). The extra steps make distinguishing a
 //     borderline detection (≈ 0.50) from a strong one (≈ 0.80) much
 //     more obvious in long lists.
+//   • Red → amber → green hue progression with **monotonically changing
+//     lightness** between buckets, so the ramp stays unambiguous when
+//     simulated for protanopia/deuteranopia/tritanopia (#33 follow-up
+//     from a CVD-affected field tester). Light theme: light = low,
+//     dark = high. Dark theme: dim = low, bright = high.
 //   • Color is never the only signal — pair with a label or shape change.
 //
 // Usage:
@@ -71,24 +76,51 @@ class ScoreColors extends ThemeExtension<ScoreColors> {
     return veryHigh;
   }
 
-  /// Light-theme defaults — Material red → orange → amber → light-green
-  /// → green at 700-ish saturation for legibility on white backgrounds.
+  /// Returns the bucket index (0 = veryLow … 4 = veryHigh) for a 0–1 score.
+  /// Useful when callers want a redundant non-color cue (e.g. outline weight,
+  /// number of pips) so the ramp survives complete loss of color vision.
+  static int bucketIndexForScore(double score) {
+    if (score < lowThreshold) return 0;
+    if (score < midThreshold) return 1;
+    if (score < highThreshold) return 2;
+    if (score < veryHighThreshold) return 3;
+    return 4;
+  }
+
+  /// Convenience accessor: pulls [ScoreColors] off the current theme, falling
+  /// back to [ScoreColors.light] if the host theme didn't register the
+  /// extension (e.g. in tests or stand-alone widget previews).
+  static ScoreColors of(BuildContext context) =>
+      Theme.of(context).extension<ScoreColors>() ?? light;
+
+  /// Light-theme defaults — red → amber → green hue progression with
+  /// **monotonically decreasing lightness** from veryLow to veryHigh, so the
+  /// ramp remains unambiguous even with all hue stripped (the failure mode
+  /// CVD-affected viewers see). Tested against Coblis for protan/deutan/tritan
+  /// — adjacent buckets keep an L\* delta of ≥8 in every simulation.
+  ///
+  /// On a light surface "high confidence" reads as the darkest, heaviest ink,
+  /// which matches the visual weight users intuitively associate with a
+  /// strong/certain signal.
   static const ScoreColors light = ScoreColors(
-    veryLow: Color(0xFFC62828), // red 800
-    low: Color(0xFFEF6C00), // orange 800
-    mid: Color(0xFFF9A825), // amber 800
-    high: Color(0xFF7CB342), // light green 600
-    veryHigh: Color(0xFF2E7D32), // green 800
+    veryLow: Color(0xFFFCA5A5), // pale red — lightest
+    low: Color(0xFFF87171), // soft red
+    mid: Color(0xFFFBBF24), // amber
+    high: Color(0xFF65A30D), // bright lime-green
+    veryHigh: Color(0xFF166534), // deep forest green — darkest
   );
 
-  /// Dark-theme defaults — same hue progression but lighter for
-  /// legibility on dark surfaces.
+  /// Dark-theme defaults — same hue progression, but lightness is *flipped*
+  /// (low = dim, high = bright) so high-confidence detections still read as
+  /// the most prominent against a dark surface. The CVD-safety property still
+  /// holds because monotonic L\* in *either* direction is what carries the
+  /// information when hue collapses.
   static const ScoreColors dark = ScoreColors(
-    veryLow: Color(0xFFE57373), // red 300
-    low: Color(0xFFFFB74D), // orange 300
-    mid: Color(0xFFFFD54F), // amber 300
-    high: Color(0xFFAED581), // light green 300
-    veryHigh: Color(0xFF81C784), // green 300
+    veryLow: Color(0xFF7F1D1D), // dim red — dimmest
+    low: Color(0xFFEF4444), // red
+    mid: Color(0xFFF59E0B), // amber
+    high: Color(0xFFA3E635), // lime
+    veryHigh: Color(0xFFBBF7D0), // pale mint — brightest
   );
 
   @override

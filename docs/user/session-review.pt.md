@@ -25,18 +25,29 @@ As espécies são agrupadas em linhas expansíveis. Você pode inspecionar as de
 
 ### Mapa de rastreamento de pesquisa
 
-As sessões de pesquisa mostram um pequeno mapa embutido da trilha GPS e marcadores de detecção. Toque nele para abrir um **mapa em tela cheia** com os mesmos dados.
+As sessões de pesquisa mostram um pequeno mapa embutido do trajeto GPS e marcadores de detecção. Toque em um marcador no mapa embutido para focar uma detecção — o mapa centraliza nela. Toque no botão :material-fullscreen: **expandir** (canto superior direito do mapa embutido) para abrir o **mapa em tela cheia**; se uma detecção estava focada, o mapa em tela cheia abre centralizado e ampliado nessa detecção para que você mantenha seu lugar.
 
-A barra de aplicativos do mapa em tela cheia tem um botão :material-filter-list-outlined: **filter** que abre uma planilha para restringir quais marcadores são mostrados. Filtros disponíveis:
+#### Codificação dos marcadores
+
+- **A confiança é codificada por cor** com uma paleta segura para daltônicos (CVD): a confiança baixa para alta vai do violeta-azul ao turquesa/amarelo até o vermelho. A luminosidade da paleta muda monotonicamente, portanto permanece legível em monocromático e para usuários com deficiência de visão vermelho-verde.
+- **Detecções com áudio** mostram um anel colorido ao redor da foto da espécie mais um emblema de reprodução no canto — toque-as para reproduzir o clipe gravado em uma folha.
+- **Detecções silenciosas** (sem clipe no disco) são renderizadas menores, esmaecidas e com um anel cinza neutro, para que as detecções de áudio sempre sejam lidas como o conteúdo principal.
+- **Marcadores sobrepostos no mesmo ponto** são ordenados em z por importância: destacado > com áudio > maior confiança, de modo que um marcador silencioso de baixa confiança nunca pode ocultar uma detecção de áudio forte.
+- **Abaixo do zoom 14,5** as silhuetas degradam para pontos coloridos dimensionados pela confiança e clusters densos colapsam em uma bolha de contagem (o agrupamento é desativado no zoom 15).
+
+#### Filtragem
+
+O mapa em tela cheia tem um **chip de filtro** persistente ancorado no canto superior direito. Toque nele para abrir a folha de filtros; o rótulo do chip sempre mostra o que está ativo no momento (*«Todas as espécies»*, *«Com áudio»*, *«≥ 80 %»* ou o nome de uma única espécie). Filtros disponíveis:
 
 - **Todas as detecções** (padrão).
-- **Com clipe de áudio** — apenas detecções cujo clipe ainda está no disco e pode ser reproduzido.
-- **Alta confiança** — apenas detecções com confiança igual ou superior a 80%.
-- **Adições manuais** — apenas as detecções que você adicionou na Revisão da Sessão (excluindo as detectadas automaticamente).
+- **Com clipe de áudio** — apenas detecções cujo clipe ainda está em disco e pode ser reproduzido.
+- **Adições manuais** — apenas detecções que você adicionou na Revisão de sessão (exclui as detectadas automaticamente).
 
-Abaixo do seletor de modo há um seletor **Limite às espécies** que permite reduzir o mapa para uma única espécie - útil para perguntar "onde exatamente ao longo da rota eu ouvi o tordo?". Uma entrada *Todas as espécies* elimina a restrição de espécies. Os dois filtros combinam: por ex. *Com clipe de áudio* + *Wood Thrush* mostra apenas os marcadores Wood Thrush reproduzíveis.
+Você também pode restringir as detecções por nível de confiança. O controle deslizante configura o limite mínimo de confiança (começa em 10 %).
 
-Quando um filtro está ativo, o título da barra de aplicativos ganha uma legenda de contagem de correspondências (por exemplo, *"7 detecções"*) e o botão de filtro mostra um pequeno ponto. *Reset* na planilha retorna ao padrão.
+Abaixo do controle deslizante de confiança há um seletor **Limitar às espécies** que permite recolher o mapa para uma única espécie — útil para perguntar «onde exatamente ao longo da rota ouvi o sabiá-da-mata?». Uma entrada *Todas as espécies* limpa a restrição de espécie. Os filtros se combinam: por exemplo *Com clipe de áudio* + *Sabiá-da-mata* + *> 80 %* mostra apenas os marcadores reproduzíveis do Sabiá-da-mata que ultrapassaram 80 %.
+
+Quando um filtro está ativo, o título da barra do aplicativo ganha um subtítulo com a contagem de correspondências (por exemplo *«7 detecções»*). *Redefinir* na folha volta ao padrão.
 
 ## Ícones da barra de ferramentas
 
