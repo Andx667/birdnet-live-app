@@ -901,7 +901,11 @@ class _SpeciesTile extends ConsumerWidget {
           AnimatedCrossFade(
             firstChild: const SizedBox.shrink(),
             secondChild: Padding(
-              padding: const EdgeInsets.only(left: 56, bottom: 4),
+              // No left indent — detection rows extend to the parent's
+              // left edge for maximum horizontal room. The play button
+              // is no longer aligned under the species image above; we
+              // trade that visual column for a wider, more readable row.
+              padding: const EdgeInsets.only(bottom: 4),
               child: Column(
                 children: [
                   for (final cluster in group.clusters)

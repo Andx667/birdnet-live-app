@@ -1,4 +1,4 @@
-{
+﻿{
   "@@locale": "en",
   "appTitle": "BirdNET Live",
   "@appTitle": {
@@ -1949,7 +1949,7 @@
   "@surveyMapFilterTooltip": {
     "description": "Tooltip for the survey map filter button"
   },
-  "surveyMapFilterChipAll": "All species",
+  "surveyMapFilterChipAll": "All detections",
   "@surveyMapFilterChipAll": {
     "description": "Persistent map filter chip label when no filter is active"
   },

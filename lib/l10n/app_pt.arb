@@ -1,4 +1,4 @@
-{
+﻿{
   "@@locale": "pt",
   "appTitle": "BirdNET Live",
   "liveMode": "Live",
@@ -512,6 +512,7 @@
   "surveyTrackMap": "Percurso do Survey",
   "surveyMapFilterTitle": "Mostrar no mapa",
   "surveyMapFilterTooltip": "Filtrar marcadores",
+  "surveyMapFilterChipAll": "Todas as detecções",
   "surveyMapFilterAll": "Todas as deteções",
   "surveyMapFilterWithAudio": "Com clipe de áudio",
   "surveyMapFilterMinConfidence": "Confiança mínima",

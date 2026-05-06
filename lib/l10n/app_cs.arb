@@ -1,4 +1,4 @@
-{
+﻿{
   "@@locale": "cs",
   "appTitle": "BirdNET Live",
   "liveMode": "Live",
@@ -512,6 +512,7 @@
   "surveyTrackMap": "Trasa Survey",
   "surveyMapFilterTitle": "Zobrazit na mapě",
   "surveyMapFilterTooltip": "Filtrovat značky",
+  "surveyMapFilterChipAll": "Všechny detekce",
   "surveyMapFilterAll": "Všechny detekce",
   "surveyMapFilterWithAudio": "S audiozaznamem",
   "surveyMapFilterMinConfidence": "Minimální spolehlivost",

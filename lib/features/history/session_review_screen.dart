@@ -1063,6 +1063,12 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
               gpsTrack: widget.session.gpsTrack,
               detections: _detections,
               initialHighlight: _highlightedDetection,
+              onConfirmChanged: () {
+                // Detections were mutated in place from the in-sheet
+                // checkmark; mark dirty so save/discard prompts trigger
+                // and rebuild so species rows + badges refresh.
+                if (mounted) setState(() => _isDirty = true);
+              },
             ),
       ),
     );
@@ -1975,10 +1981,16 @@ class _FullscreenSurveyMapScreen extends ConsumerStatefulWidget {
     required this.gpsTrack,
     required this.detections,
     this.initialHighlight,
+    this.onConfirmChanged,
   });
 
   final List<GpsPoint> gpsTrack;
   final List<DetectionRecord> detections;
+
+  /// Invoked after the in-sheet confirm checkmark mutates a detection's
+  /// [DetectionRecord.confirmedAt]. The host uses this hook to mark the
+  /// session dirty and refresh derived UI (species rows, marker badges).
+  final VoidCallback? onConfirmChanged;
 
   /// Detection that the inline review map was currently focused on. When
   /// non-null the fullscreen map opens centered and zoomed in on this
@@ -2079,7 +2091,17 @@ class _FullscreenSurveyMapScreenState
     if (path == null || !File(path).existsSync()) return;
 
     setState(() => _highlight = detection);
-    await showClipPlayerSheet(context, detection: detection);
+    await showClipPlayerSheet(
+      context,
+      detection: detection,
+      onConfirmChanged: () {
+        // Rebuild this screen so the marker's confirmed badge updates
+        // immediately, then forward to the host so the session is marked
+        // dirty and the inline review screen refreshes on pop.
+        if (mounted) setState(() {});
+        widget.onConfirmChanged?.call();
+      },
+    );
     if (mounted) setState(() => _highlight = null);
   }
 

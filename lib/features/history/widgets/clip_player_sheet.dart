@@ -38,9 +38,16 @@ import '../../spectrogram/color_maps.dart';
 /// Show the modal player for a [detection]'s audio clip.
 ///
 /// No-op if the detection has no clip path or the file doesn't exist.
+///
+/// When [onConfirmChanged] is provided, the sheet renders a tap-to-toggle
+/// confirm checkmark next to the species header so reviewers can validate
+/// detections while they listen. The callback is invoked after each toggle
+/// (the [DetectionRecord.confirmedAt] field is already mutated by the time
+/// it fires) so the host can mark the session dirty / trigger a rebuild.
 Future<void> showClipPlayerSheet(
   BuildContext context, {
   required DetectionRecord detection,
+  VoidCallback? onConfirmChanged,
 }) {
   final path = detection.audioClipPath;
   if (path == null || !File(path).existsSync()) {
@@ -51,15 +58,25 @@ Future<void> showClipPlayerSheet(
     isScrollControlled: true,
     showDragHandle: true,
     backgroundColor: Theme.of(context).colorScheme.surface,
-    builder: (_) => _ClipPlayerSheet(detection: detection, clipPath: path),
+    builder:
+        (_) => _ClipPlayerSheet(
+          detection: detection,
+          clipPath: path,
+          onConfirmChanged: onConfirmChanged,
+        ),
   );
 }
 
 class _ClipPlayerSheet extends ConsumerStatefulWidget {
-  const _ClipPlayerSheet({required this.detection, required this.clipPath});
+  const _ClipPlayerSheet({
+    required this.detection,
+    required this.clipPath,
+    this.onConfirmChanged,
+  });
 
   final DetectionRecord detection;
   final String clipPath;
+  final VoidCallback? onConfirmChanged;
 
   @override
   ConsumerState<_ClipPlayerSheet> createState() => _ClipPlayerSheetState();
@@ -212,6 +229,18 @@ class _ClipPlayerSheetState extends ConsumerState<_ClipPlayerSheet> {
     return '$mm:$ss';
   }
 
+  /// Flip the confirmation flag on the underlying record. We mutate the
+  /// shared [DetectionRecord] in place (the host owns the list) and notify
+  /// the host via [widget.onConfirmChanged] so it can mark its session
+  /// dirty and rebuild any dependent UI (map markers, species rows).
+  void _toggleConfirm() {
+    final det = widget.detection;
+    setState(() {
+      det.confirmedAt = det.isConfirmed ? null : DateTime.now().toUtc();
+    });
+    widget.onConfirmChanged?.call();
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -320,6 +349,15 @@ class _ClipPlayerSheetState extends ConsumerState<_ClipPlayerSheet> {
                     ],
                   ),
                 ),
+                // Confirm checkmark in the upper-right corner of the header.
+                // Only rendered when the host wired up [onConfirmChanged] so
+                // contexts that can't persist the change (e.g. a future
+                // read-only viewer) won't show a button that does nothing.
+                if (widget.onConfirmChanged != null)
+                  _ConfirmToggle(
+                    confirmed: det.isConfirmed,
+                    onToggle: _toggleConfirm,
+                  ),
               ],
             ),
             const SizedBox(height: 12),
@@ -367,9 +405,20 @@ class _ClipPlayerSheetState extends ConsumerState<_ClipPlayerSheet> {
             ),
             const SizedBox(height: 8),
 
-            // Scrubber + position.
+            // Transport row: play/pause inline with the scrubber so the
+            // bottom of the sheet stays uncluttered (only the close button
+            // remains there). Times flank the slider as compact labels.
             Row(
               children: [
+                IconButton.filled(
+                  iconSize: 28,
+                  onPressed:
+                      () => _isPlaying ? _player.pause() : _player.play(),
+                  icon: Icon(
+                    _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                  ),
+                ),
+                const SizedBox(width: 8),
                 Text(_fmt(_position), style: theme.textTheme.labelSmall),
                 Expanded(
                   child: Slider(
@@ -394,19 +443,10 @@ class _ClipPlayerSheetState extends ConsumerState<_ClipPlayerSheet> {
               ],
             ),
 
-            // Play / pause.
+            // Bottom row: close-only.
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                IconButton.filled(
-                  iconSize: 36,
-                  onPressed:
-                      () => _isPlaying ? _player.pause() : _player.play(),
-                  icon: Icon(
-                    _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                  ),
-                ),
-                const SizedBox(width: 12),
                 TextButton.icon(
                   onPressed: () => Navigator.of(context).maybePop(),
                   icon: const Icon(Icons.close),
@@ -453,4 +493,42 @@ class _ClipSpectrogramPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _ClipSpectrogramPainter old) =>
       old.image != image || old.progress != progress || old.accent != accent;
+}
+
+/// Small tap-to-toggle confirm checkmark shown in the player sheet header.
+/// Uses the same green check-circle iconography as the per-row confirm
+/// button in session review and the corner badge on confirmed map markers,
+/// so the visual language stays consistent across the three surfaces.
+class _ConfirmToggle extends StatelessWidget {
+  const _ConfirmToggle({required this.confirmed, required this.onToggle});
+
+  final bool confirmed;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    return Tooltip(
+      message:
+          confirmed
+              ? l10n.detectionUnconfirmTooltip
+              : l10n.detectionConfirmTooltip,
+      child: InkWell(
+        onTap: onToggle,
+        borderRadius: BorderRadius.circular(24),
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Icon(
+            confirmed ? Icons.check_circle : Icons.check_circle_outline,
+            size: 28,
+            color:
+                confirmed
+                    ? Colors.green.shade600
+                    : theme.colorScheme.onSurface.withAlpha(120),
+          ),
+        ),
+      ),
+    );
+  }
 }
