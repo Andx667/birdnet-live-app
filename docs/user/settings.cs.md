@@ -34,6 +34,10 @@ Určuje, jak se v přehledu sezení zobrazují časy jednotlivých detekcí.
 
 Pokud detekce spadá na jiný kalendářní den než začátek sezení (např. při nočním sledování), připojí se k absolutnímu času přípona `+1d`, aby si recenzenti omylem nepletli zítřejší rozbřesk se dnešním.
 
+Když je vybrána **Absolutní**, objeví se navíc přepínač **Zobrazovat sekundy v časových údajích**. Vypněte ho, pokud dáváte přednost úspornějšímu `08:42` před `08:42:17` — hodí se při procházení dlouhých seznamů detekcí. Relativní odstupy vždy zobrazují sekundy, protože k synchronizaci se spektrogramem je nutná sub-minutová přesnost.
+
+Když je vybrána **Absolutní**, objeví se navíc přepínač **Zobrazovat sekundy v časových údajích**. Vypněte ho, pokud dáváte přednost úspornějšímu `08:42` před `08:42:17` — hodí se při procházení dlouhých seznamů detekcí. Relativní odstupy vždy zobrazují sekundy, protože k synchronizaci se spektrogramem je nutná sub-minutová přesnost.
+
 Ukládání i export vždy používají UTC bez ohledu na toto nastavení, takže volba nikdy neovlivní vaše data — pouze způsob jejich zobrazení.
 
 ## Zvuk

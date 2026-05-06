@@ -246,6 +246,15 @@ final timestampDisplayModeProvider =
       );
     });
 
+/// Whether per-detection timestamps in the UI include the trailing seconds
+/// component.  When false, relative renders as `MM` / `H:MM` and absolute
+/// as `HH:mm`.  Exports always include seconds regardless.
+final timestampShowSecondsProvider =
+    StateNotifierProvider<BoolSettingNotifier, bool>((ref) {
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return BoolSettingNotifier(prefs, PrefKeys.timestampShowSeconds, true);
+    });
+
 /// Geo-model probability threshold (0.0 – 1.0, default 0.03).
 final geoThresholdProvider =
     StateNotifierProvider<DoubleSettingNotifier, double>((ref) {

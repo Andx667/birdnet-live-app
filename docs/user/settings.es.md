@@ -34,6 +34,10 @@ Controla cómo aparecen las horas de cada detección en la revisión de la sesi�
 
 Si una detección cae en un día calendario distinto al del inicio de la sesión (p. ej. un seguimiento nocturno), la hora absoluta recibe el sufijo `+1d` para que los revisores no confundan el amanecer de mañana con el de hoy.
 
+Cuando está seleccionado **Absoluta**, aparece además un interruptor **Mostrar segundos en marcas de tiempo**. Desáctivalo si prefieres el formato más compacto `08:42` en lugar de `08:42:17` — útil al revisar listas largas de detecciones. Los desplazamientos relativos siempre muestran segundos porque la alineación con el espectrograma requiere precisión inferior al minuto.
+
+Cuando está seleccionado **Absoluta**, aparece además un interruptor **Mostrar segundos en marcas de tiempo**. Desáctivalo si prefieres el formato más compacto `08:42` en lugar de `08:42:17` — útil al revisar listas largas de detecciones. Los desplazamientos relativos siempre muestran segundos porque la alineación con el espectrograma requiere precisión inferior al minuto.
+
 El almacenamiento y las exportaciones siempre usan instantes UTC independientemente de este ajuste, por lo que la elección nunca afecta a los datos — solo a su presentación.
 
 ##Audio

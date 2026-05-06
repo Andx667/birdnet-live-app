@@ -94,6 +94,50 @@ void main() {
     });
   });
 
+  group('formatDetectionTime — showSeconds: false', () {
+    test('relative is unaffected by showSeconds (always renders :SS)', () {
+      final start = DateTime.utc(2026, 5, 6, 8, 0, 0);
+      final ts = start.add(const Duration(minutes: 12, seconds: 34));
+      expect(
+        formatDetectionTime(
+          ts,
+          start,
+          TimestampDisplayMode.relative,
+          showSeconds: false,
+        ),
+        '12:34',
+      );
+    });
+
+    test('absolute renders as HH:mm', () {
+      final start = DateTime(2026, 5, 6, 8, 0, 0);
+      final ts = DateTime(2026, 5, 6, 8, 42, 17);
+      expect(
+        formatDetectionTime(
+          ts,
+          start,
+          TimestampDisplayMode.absolute,
+          showSeconds: false,
+        ),
+        '08:42',
+      );
+    });
+
+    test('absolute keeps day-rollover suffix without seconds', () {
+      final start = DateTime(2026, 5, 6, 23, 50, 0);
+      final ts = DateTime(2026, 5, 7, 0, 5, 0);
+      expect(
+        formatDetectionTime(
+          ts,
+          start,
+          TimestampDisplayMode.absolute,
+          showSeconds: false,
+        ),
+        '00:05 +1d',
+      );
+    });
+  });
+
   group('TimestampDisplayMode.fromString', () {
     test('parses known values', () {
       expect(

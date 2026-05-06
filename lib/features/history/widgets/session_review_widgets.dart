@@ -670,6 +670,7 @@ class _SpeciesTile extends ConsumerWidget {
     final tsMode = TimestampDisplayMode.fromString(
       ref.watch(timestampDisplayModeProvider),
     );
+    final tsShowSeconds = ref.watch(timestampShowSecondsProvider);
 
     final displayName =
         taxonomyAsync.valueOrNull
@@ -688,6 +689,7 @@ class _SpeciesTile extends ConsumerWidget {
       sessionStart,
       tsMode,
       clipOffset: clipOffsetDur,
+      showSeconds: tsShowSeconds,
     );
 
     return AnimatedContainer(
@@ -996,6 +998,7 @@ class _ClusterRow extends ConsumerWidget {
     final tsMode = TimestampDisplayMode.fromString(
       ref.watch(timestampDisplayModeProvider),
     );
+    final tsShowSeconds = ref.watch(timestampShowSecondsProvider);
     final clipOffsetDur = Duration(microseconds: (clipOffsetSec * 1e6).round());
     // Prefer the recorded continuous-detection end. Fall back to the
     // last record's analysis-window end when [endTimestamp] is missing
@@ -1013,12 +1016,14 @@ class _ClusterRow extends ConsumerWidget {
       sessionStart,
       tsMode,
       clipOffset: clipOffsetDur,
+      showSeconds: tsShowSeconds,
     );
     final endStr = formatDetectionTime(
       lastEnd,
       sessionStart,
       tsMode,
       clipOffset: clipOffsetDur,
+      showSeconds: tsShowSeconds,
     );
     final timeStr = startStr == endStr ? startStr : '$startStr \u2013 $endStr';
 

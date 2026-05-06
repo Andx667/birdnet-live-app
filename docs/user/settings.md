@@ -34,6 +34,8 @@ Controls how per-detection times appear in session review.
 
 If a detection lands on a different calendar day from the session start (e.g. an overnight survey), the absolute time gains a `+1d` suffix so reviewers don't accidentally read tomorrow's dawn chorus as today's.
 
+When **Absolute** is selected, an additional **Show seconds in timestamps** toggle appears. Disable it if you prefer the more compact `08:42` over `08:42:17` — useful when scanning long detection lists. Relative offsets always show seconds because reviewers need sub-minute precision to align with the spectrogram playhead.
+
 Storage and exports always use UTC instants regardless of this setting, so the choice never affects the data — only the way it's displayed.
 
 ## Audio

@@ -176,6 +176,19 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                 ),
               ),
+              if (ref.watch(timestampDisplayModeProvider) == 'absolute')
+                SwitchListTile(
+                  title: _TitleWithHelp(
+                    title: l10n.settingsTimestampShowSeconds,
+                    helpBody: l10n.settingsHelpTimestampShowSeconds,
+                  ),
+                  subtitle: Text(l10n.settingsTimestampShowSecondsDescription),
+                  value: ref.watch(timestampShowSecondsProvider),
+                  onChanged:
+                      (v) => ref
+                          .read(timestampShowSecondsProvider.notifier)
+                          .set(v),
+                ),
               const Divider(),
             ],
 

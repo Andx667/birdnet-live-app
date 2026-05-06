@@ -34,6 +34,10 @@ Bestimmt, wie Zeitangaben einzelner Erkennungen in der Sitzungsübersicht ersche
 
 Liegt eine Erkennung an einem anderen Kalendertag als der Sitzungsbeginn (z. B. bei einer Nachtaufnahme), wird der absoluten Zeit ein `+1d`-Suffix angehängt, damit man die morgige Morgendämmerung nicht mit der heutigen verwechselt.
 
+Wenn **Absolut** ausgewählt ist, erscheint zusätzlich der Schalter **Sekunden in Zeitstempeln anzeigen**. Deaktiviere ihn, wenn du das kompaktere `08:42` dem `08:42:17` vorziehst — hilfreich beim Überfliegen langer Erkennungslisten. Relative Versatzangaben zeigen immer Sekunden, weil zur Synchronisation mit dem Spektrogramm Sub-Minuten-Genauigkeit nötig ist.
+
+Wenn **Absolut** ausgewählt ist, erscheint zusätzlich der Schalter **Sekunden in Zeitstempeln anzeigen**. Deaktiviere ihn, wenn du das kompaktere `08:42` dem `08:42:17` vorziehst — hilfreich beim Überfliegen langer Erkennungslisten. Relative Versatzangaben zeigen immer Sekunden, weil zur Synchronisation mit dem Spektrogramm Sub-Minuten-Genauigkeit nötig ist.
+
 Speicherung und Export verwenden unabhängig von dieser Einstellung immer UTC, sodass die Auswahl niemals die Daten verändert — nur deren Darstellung.
 
 ## Audio

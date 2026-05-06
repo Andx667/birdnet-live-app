@@ -52,17 +52,28 @@ enum TimestampDisplayMode {
 /// has been trimmed (so the rendered offset stays aligned with the
 /// spectrogram playhead).  It does NOT affect absolute mode — wall-clock
 /// time is independent of how the clip was cropped.
+///
+/// [showSeconds] toggles the trailing `:ss` component for **absolute mode
+/// only** (`HH:mm:ss` vs `HH:mm`).  Relative mode always renders seconds —
+/// reviewers expect sub-minute precision when correlating offsets to the
+/// spectrogram playhead.  This is a UI-only preference; exports always
+/// include seconds regardless.
 String formatDetectionTime(
   DateTime timestamp,
   DateTime sessionStart,
   TimestampDisplayMode mode, {
   Duration clipOffset = Duration.zero,
+  bool showSeconds = true,
 }) {
   switch (mode) {
     case TimestampDisplayMode.relative:
       return _formatRelative(timestamp.difference(sessionStart) - clipOffset);
     case TimestampDisplayMode.absolute:
-      return _formatAbsolute(timestamp.toLocal(), sessionStart.toLocal());
+      return _formatAbsolute(
+        timestamp.toLocal(),
+        sessionStart.toLocal(),
+        showSeconds: showSeconds,
+      );
   }
 }
 
@@ -72,20 +83,23 @@ String _formatRelative(Duration d) {
   final h = totalSeconds ~/ 3600;
   final m = (totalSeconds % 3600) ~/ 60;
   final s = totalSeconds % 60;
-  final ss = s.toString().padLeft(2, '0');
-  if (h > 0) {
-    final mm = m.toString().padLeft(2, '0');
-    return '$h:$mm:$ss';
-  }
   final mm = m.toString().padLeft(2, '0');
+  final ss = s.toString().padLeft(2, '0');
+  if (h > 0) return '$h:$mm:$ss';
   return '$mm:$ss';
 }
 
-String _formatAbsolute(DateTime localTs, DateTime localStart) {
+String _formatAbsolute(
+  DateTime localTs,
+  DateTime localStart, {
+  required bool showSeconds,
+}) {
   final h = localTs.hour.toString().padLeft(2, '0');
   final m = localTs.minute.toString().padLeft(2, '0');
-  final s = localTs.second.toString().padLeft(2, '0');
-  final base = '$h:$m:$s';
+  final base =
+      showSeconds
+          ? '$h:$m:${localTs.second.toString().padLeft(2, '0')}'
+          : '$h:$m';
   // Day-rollover suffix (e.g. session started 23:50, detection at 00:05 next
   // day → "00:05:00 +1d").  Compare calendar dates, not raw differences.
   final tsDay = DateTime(localTs.year, localTs.month, localTs.day);

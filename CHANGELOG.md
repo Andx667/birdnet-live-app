@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Absolute timestamp display toggle.** Settings → General now lets you switch per-detection times in session review between **Relative** (offset from recording start, e.g. `00:12:34`) and **Absolute** (local clock time, e.g. `08:42:17`). Overnight surveys that cross midnight gain a `+1d` suffix so reviewers don't accidentally read tomorrow's dawn chorus as today's. Defaults to relative for backwards compatibility (#33).
+- **Show seconds toggle for absolute timestamps.** When the timestamp display is set to **Absolute**, an additional **Show seconds in timestamps** switch lets you collapse `08:42:17` to the more compact `08:42` for easier scanning of long detection lists. Relative offsets always show seconds because reviewers need sub-minute precision to align with the spectrogram playhead, and exports always include seconds regardless (#33).
 
 ### Changed
 

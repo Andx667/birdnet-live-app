@@ -941,6 +941,14 @@
   "@settingsTimestampDisplayModeAbsolute": {
     "description": "Segmented-button label: local clock time, e.g. 08:42:17"
   },
+  "settingsTimestampShowSeconds": "Show seconds in timestamps",
+  "@settingsTimestampShowSeconds": {
+    "description": "Title for the show-seconds toggle"
+  },
+  "settingsTimestampShowSecondsDescription": "Include seconds in absolute detection times shown in the app",
+  "@settingsTimestampShowSecondsDescription": {
+    "description": "Subtitle for the show-seconds toggle"
+  },
   "monthJ": "J",
   "monthF": "F",
   "monthM": "M",
@@ -1288,6 +1296,7 @@
   },
   "settingsHelpShowSciNames": "When enabled, scientific names appear in grey under common names throughout the app. Useful when you want unambiguous identification or are working with field guides that use Latin names.",
   "settingsHelpTimestampDisplayMode": "Choose how per-detection times are rendered in session review. 'Relative' shows the offset from the start of the recording (00:12:34) — best for reviewing a single session and matching the spectrogram playhead. 'Absolute' shows the local clock time when the detection was captured (08:42:17) — best for cross-referencing field notes, weather logs, or other recordings. Storage and exports always use UTC instants regardless of this setting, so the choice never affects your data.",
+  "settingsHelpTimestampShowSeconds": "When enabled, absolute detection times include the trailing seconds component (08:42:17). When disabled, they stop at minute precision (08:42), which can be easier to scan in long lists. Only affects absolute mode — relative offsets always show seconds for spectrogram alignment, and exported CSV and JSON files always include seconds regardless.",
   "settingsHelpGain": "Multiplies the microphone signal in the app. Use values above 1.0 only for very quiet recordings — high gain amplifies noise too and can cause clipping. Most built-in mics work best at 1.0.",
   "settingsHelpHighPassFilter": "Removes low-frequency content (wind, traffic, handling noise) before inference. Most species vocalize above 1 kHz, so a 100–200 Hz cut-off is usually safe and improves detection in noisy conditions.",
   "settingsHelpWindowDuration": "How many seconds of audio BirdNET analyzes at once. Shorter windows react faster and give finer time resolution; longer windows average more context per pass for steadier scores at the cost of slower reaction time.",

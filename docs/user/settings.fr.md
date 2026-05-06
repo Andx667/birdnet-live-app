@@ -34,6 +34,10 @@ Contrôle l'affichage des heures de chaque détection dans la revue de session.
 
 Si une détection tombe un jour calendaire différent du début de session (p. ex. un suivi nocturne), l'heure absolue reçoit le suffixe `+1d` pour éviter de confondre l'aube de demain avec celle d'aujourd'hui.
 
+Lorsque **Absolu** est sélectionné, un interrupteur supplémentaire **Afficher les secondes dans les horodatages** apparaît. Désactivez-le si vous préférez le format plus compact `08:42` à `08:42:17` — utile lors du parcours de longues listes de détections. Les décalages relatifs affichent toujours les secondes car l'alignement avec le spectrogramme requiert une précision inférieure à la minute.
+
+Lorsque **Absolu** est sélectionné, un interrupteur supplémentaire **Afficher les secondes dans les horodatages** apparaît. Désactivez-le si vous préférez le format plus compact `08:42` à `08:42:17` — utile lors du parcours de longues listes de détections. Les décalages relatifs affichent toujours les secondes car l'alignement avec le spectrogramme requiert une précision inférieure à la minute.
+
 Le stockage et les exports utilisent toujours UTC, quel que soit ce réglage : le choix n'affecte jamais les données — seulement leur affichage.
 
 ## Audio
