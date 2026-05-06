@@ -9,7 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Confirmed-detection flag.** Reviewers can now mark detections as visually or acoustically confirmed during session review. The confirmed state persists with the session and travels with every export format (#33).
+- **Confirmed-detection flag.** Reviewers can now mark detections as visually or acoustically confirmed during session review. Each detection row in the species list has a tap-to-toggle check button; confirmed clusters get a small green check next to the species name and confirmed map markers gain a green check badge in the upper-left corner so they stand out at a glance. A toolbar filter in the session-review app bar narrows the view to "Confirmed only" for quick triage. The confirmed state persists with the session and travels with every export format (#33).
+  - **Raven `.selections.txt`** and **CSV** add `Confirmed` (true/false) and `Confirmed At (UTC)` columns.
+  - **JSON** detections always emit `confirmed`; `confirmedAt` is included only when set.
+  - **GPX** waypoints for confirmed detections gain `<sym>confirmed</sym>` and a `<cmt>` note carrying the confirmation timestamp, making the flag survive trips through QGIS, GPSBabel, and Garmin tooling.
 
 ## [0.10.0] - 2026-05-06
 

@@ -136,6 +136,9 @@ String buildRavenSelectionTable(
   // detections back to the survey timeline. We always emit it: when no clips
   // are involved it duplicates Begin Time, but having a stable column name
   // makes downstream tooling simpler than conditionally including it.
+  // 'Confirmed' / 'Confirmed At (UTC)' are likewise always emitted so the
+  // schema is stable regardless of whether the session has any confirmed
+  // detections; unconfirmed rows carry an empty 'Confirmed At'.
   final surveyTimeHeader =
       useAbsoluteSurveyTime ? 'Survey Time (UTC)' : 'Survey Time (s)';
   buf.writeln(
@@ -144,6 +147,7 @@ String buildRavenSelectionTable(
     'Low Freq (Hz)\tHigh Freq (Hz)\t'
     'Common Name\tScientific Name\tConfidence'
     '\t$surveyTimeHeader'
+    '\tConfirmed\tConfirmed At (UTC)'
     '${hasCoords ? '\tLatitude\tLongitude' : ''}',
   );
 
@@ -196,6 +200,9 @@ String buildRavenSelectionTable(
             ? d.timestamp.toUtc().toIso8601String()
             : surveySec.toStringAsFixed(3);
     final surveyTimeSuffix = '\t$surveyTimeValue';
+    final confirmedSuffix =
+        '\t${d.isConfirmed ? 'true' : 'false'}'
+        '\t${d.confirmedAt?.toUtc().toIso8601String() ?? ''}';
     final coordSuffix =
         hasCoords
             ? '\t${d.latitude?.toStringAsFixed(6) ?? ''}'
@@ -215,6 +222,7 @@ String buildRavenSelectionTable(
       '${d.scientificName}\t'
       '${d.confidence.toStringAsFixed(4)}'
       '$surveyTimeSuffix'
+      '$confirmedSuffix'
       '$coordSuffix',
     );
   }
@@ -256,6 +264,9 @@ String buildCsvExport(
   // Survey Time is always included (see [buildRavenSelectionTable] for the
   // rationale). When [useAbsoluteSurveyTime] is true the column becomes
   // 'Survey Time (UTC)' and carries an ISO-8601 wall-clock timestamp.
+  // 'Confirmed' / 'Confirmed At (UTC)' are always emitted so downstream
+  // pipelines see a stable schema; unconfirmed rows carry an empty
+  // 'Confirmed At'.
   final surveyTimeHeader =
       useAbsoluteSurveyTime ? 'Survey Time (UTC)' : 'Survey Time (s)';
   buf.writeln(
@@ -263,6 +274,7 @@ String buildCsvExport(
     'Common Name,Scientific Name,Confidence'
     '${hasFileRefs ? ',File' : ''}'
     ',$surveyTimeHeader'
+    ',Confirmed,Confirmed At (UTC)'
     '${hasCoords ? ',Latitude,Longitude' : ''}',
   );
 
@@ -317,6 +329,9 @@ String buildCsvExport(
             ? d.timestamp.toUtc().toIso8601String()
             : surveySec.toStringAsFixed(3);
     final surveyTimeRef = ',$surveyTimeValue';
+    final confirmedRef =
+        ',${d.isConfirmed ? 'true' : 'false'}'
+        ',${d.confirmedAt?.toUtc().toIso8601String() ?? ''}';
     final coordRef =
         hasCoords
             ? ',${d.latitude?.toStringAsFixed(6) ?? ''}'
@@ -332,6 +347,7 @@ String buildCsvExport(
       '${d.confidence.toStringAsFixed(4)}'
       '$fileRef'
       '$surveyTimeRef'
+      '$confirmedRef'
       '$coordRef',
     );
   }
@@ -439,6 +455,9 @@ String buildJsonExport(LiveSession session, {Map<String, dynamic>? metadata}) {
             if (d.latitude != null) 'latitude': d.latitude,
             if (d.longitude != null) 'longitude': d.longitude,
             if (d.source != DetectionSource.auto) 'source': d.source.name,
+            'confirmed': d.isConfirmed,
+            if (d.confirmedAt != null)
+              'confirmedAt': d.confirmedAt!.toUtc().toIso8601String(),
           };
         }).toList(),
     if (session.annotations.isNotEmpty)
@@ -692,6 +711,17 @@ String buildGpxExport(LiveSession session) {
     buf.writeln(
       '    <desc>${_xmlEscape(d.scientificName)} (${(d.confidence * 100).toStringAsFixed(1)}%)</desc>',
     );
+    if (d.isConfirmed) {
+      // GPX <sym> is a free-form symbol hint; downstream tools (QGIS,
+      // GPSBabel, Garmin BaseCamp) treat unknown values as a tag rather
+      // than failing to load the waypoint, so 'confirmed' here doubles as
+      // a filterable attribute. The <cmt> note carries the confirmation
+      // timestamp so the audit trail survives the export.
+      buf.writeln('    <sym>confirmed</sym>');
+      buf.writeln(
+        '    <cmt>Confirmed at ${d.confirmedAt!.toUtc().toIso8601String()}</cmt>',
+      );
+    }
     buf.writeln('  </wpt>');
   }
 

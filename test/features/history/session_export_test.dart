@@ -250,14 +250,16 @@ void main() {
       );
 
       final table = buildRavenSelectionTable(session);
-      final header = table.split('\n').first;
+      final lines = table.split('\n');
+      final header = lines.first.split('\t');
       expect(header, contains('Latitude'));
       expect(header, contains('Longitude'));
 
-      final cols = table.split('\n')[1].split('\t');
-      // Survey Time is now always emitted (col 11), so coords sit at 12/13.
-      expect(cols[12], '52.520008');
-      expect(cols[13], '13.404954');
+      final cols = lines[1].split('\t');
+      final latIdx = header.indexOf('Latitude');
+      final lonIdx = header.indexOf('Longitude');
+      expect(cols[latIdx], '52.520008');
+      expect(cols[lonIdx], '13.404954');
     });
 
     test('omits Latitude/Longitude when no detections have coordinates', () {
@@ -376,10 +378,12 @@ void main() {
         ],
       );
       final csv = buildCsvExport(session);
-      expect(csv.split('\n').first, contains('Survey Time (s)'));
-      // Last column on the row is the survey time value.
-      final cols = csv.split('\n')[1].split(',');
-      expect(cols.last, '5.000');
+      final lines = csv.split('\n');
+      final header = lines.first.split(',');
+      expect(header, contains('Survey Time (s)'));
+      final idx = header.indexOf('Survey Time (s)');
+      final cols = lines[1].split(',');
+      expect(cols[idx], '5.000');
     });
 
     test('useAbsoluteSurveyTime renames CSV column and emits ISO UTC', () {
@@ -396,11 +400,13 @@ void main() {
         ],
       );
       final csv = buildCsvExport(session, useAbsoluteSurveyTime: true);
-      final header = csv.split('\n').first;
+      final lines = csv.split('\n');
+      final header = lines.first.split(',');
       expect(header, contains('Survey Time (UTC)'));
       expect(header, isNot(contains('Survey Time (s)')));
-      final cols = csv.split('\n')[1].split(',');
-      expect(cols.last, '2025-06-15T08:00:05.000Z');
+      final idx = header.indexOf('Survey Time (UTC)');
+      final cols = lines[1].split(',');
+      expect(cols[idx], '2025-06-15T08:00:05.000Z');
     });
   });
 
@@ -819,6 +825,185 @@ void main() {
 
       final names = archive.map((f) => f.name).toList();
       expect(names.any((n) => n.contains('annotations')), isFalse);
+    });
+  });
+
+  // ── Confirmed-detection flag in exports (#33) ────────────────────────
+
+  group('confirmed-detection flag in exports', () {
+    DetectionRecord makeConfirmed(
+      String sci,
+      String common,
+      double conf,
+      Duration offset,
+      DateTime start, {
+      DateTime? confirmedAt,
+      double? lat,
+      double? lon,
+    }) {
+      return DetectionRecord(
+        scientificName: sci,
+        commonName: common,
+        confidence: conf,
+        timestamp: start.add(offset),
+        confirmedAt: confirmedAt,
+        latitude: lat,
+        longitude: lon,
+      );
+    }
+
+    test('Raven table emits Confirmed columns and per-row values', () {
+      final start = DateTime.utc(2025, 6, 15, 8, 0, 0);
+      final stamp = DateTime.utc(2025, 6, 15, 9, 30);
+      final session = _makeSession(
+        detections: [
+          makeConfirmed(
+            'Turdus merula',
+            'Eurasian Blackbird',
+            0.91,
+            const Duration(seconds: 5),
+            start,
+            confirmedAt: stamp,
+          ),
+          makeConfirmed(
+            'Erithacus rubecula',
+            'European Robin',
+            0.80,
+            const Duration(seconds: 10),
+            start,
+          ),
+        ],
+      );
+
+      final table = buildRavenSelectionTable(session);
+      final lines = table.split('\n');
+      final header = lines.first.split('\t');
+      expect(header, contains('Confirmed'));
+      expect(header, contains('Confirmed At (UTC)'));
+      final cIdx = header.indexOf('Confirmed');
+      final cAtIdx = header.indexOf('Confirmed At (UTC)');
+
+      final row1 = lines[1].split('\t');
+      expect(row1[cIdx], 'true');
+      expect(row1[cAtIdx], '2025-06-15T09:30:00.000Z');
+
+      final row2 = lines[2].split('\t');
+      expect(row2[cIdx], 'false');
+      expect(row2[cAtIdx], '');
+    });
+
+    test('CSV emits Confirmed columns and per-row values', () {
+      final start = DateTime.utc(2025, 6, 15, 8, 0, 0);
+      final stamp = DateTime.utc(2025, 6, 15, 9, 30);
+      final session = _makeSession(
+        detections: [
+          makeConfirmed(
+            'Turdus merula',
+            'Eurasian Blackbird',
+            0.91,
+            const Duration(seconds: 5),
+            start,
+            confirmedAt: stamp,
+          ),
+          makeConfirmed(
+            'Erithacus rubecula',
+            'European Robin',
+            0.80,
+            const Duration(seconds: 10),
+            start,
+          ),
+        ],
+      );
+
+      final csv = buildCsvExport(session);
+      final lines = csv.split('\n');
+      final header = lines.first.split(',');
+      expect(header, contains('Confirmed'));
+      expect(header, contains('Confirmed At (UTC)'));
+      final cIdx = header.indexOf('Confirmed');
+      final cAtIdx = header.indexOf('Confirmed At (UTC)');
+
+      final row1 = lines[1].split(',');
+      expect(row1[cIdx], 'true');
+      expect(row1[cAtIdx], '2025-06-15T09:30:00.000Z');
+
+      final row2 = lines[2].split(',');
+      expect(row2[cIdx], 'false');
+      expect(row2[cAtIdx], '');
+    });
+
+    test('JSON emits confirmed (always) and confirmedAt (only when set)', () {
+      final start = DateTime.utc(2025, 6, 15, 8, 0, 0);
+      final stamp = DateTime.utc(2025, 6, 15, 9, 30);
+      final session = _makeSession(
+        detections: [
+          makeConfirmed(
+            'Turdus merula',
+            'Eurasian Blackbird',
+            0.91,
+            const Duration(seconds: 5),
+            start,
+            confirmedAt: stamp,
+          ),
+          makeConfirmed(
+            'Erithacus rubecula',
+            'European Robin',
+            0.80,
+            const Duration(seconds: 10),
+            start,
+          ),
+        ],
+      );
+
+      final map = jsonDecode(buildJsonExport(session)) as Map<String, dynamic>;
+      final dets = map['detections'] as List;
+      final d0 = dets[0] as Map<String, dynamic>;
+      final d1 = dets[1] as Map<String, dynamic>;
+      expect(d0['confirmed'], true);
+      expect(d0['confirmedAt'], '2025-06-15T09:30:00.000Z');
+      expect(d1['confirmed'], false);
+      expect(d1.containsKey('confirmedAt'), isFalse);
+    });
+
+    test('GPX adds <sym>confirmed</sym> + <cmt> only for confirmed waypoints',
+        () {
+      final start = DateTime.utc(2025, 6, 15, 8, 0, 0);
+      final stamp = DateTime.utc(2025, 6, 15, 9, 30);
+      final session = _makeSession(
+        type: SessionType.survey,
+        detections: [
+          makeConfirmed(
+            'Turdus merula',
+            'Eurasian Blackbird',
+            0.91,
+            const Duration(seconds: 5),
+            start,
+            confirmedAt: stamp,
+            lat: 52.52,
+            lon: 13.40,
+          ),
+          makeConfirmed(
+            'Erithacus rubecula',
+            'European Robin',
+            0.80,
+            const Duration(seconds: 10),
+            start,
+            lat: 52.53,
+            lon: 13.41,
+          ),
+        ],
+      );
+
+      final gpx = buildGpxExport(session);
+      // Confirmed waypoint carries the badge + audit comment.
+      expect(gpx, contains('<sym>confirmed</sym>'));
+      expect(
+        gpx,
+        contains('<cmt>Confirmed at 2025-06-15T09:30:00.000Z</cmt>'),
+      );
+      // Exactly one of each — the unconfirmed waypoint must not emit them.
+      expect('<sym>confirmed</sym>'.allMatches(gpx).length, 1);
+      expect('<cmt>'.allMatches(gpx).length, 1);
     });
   });
 }
