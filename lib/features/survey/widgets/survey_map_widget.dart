@@ -570,9 +570,7 @@ class _SpeciesMarker extends ConsumerWidget {
     // shrunk for silent markers so a stray rebuild can never make a silent
     // marker visually outweigh an unhighlighted audio one.
     final size =
-        isHighlighted
-            ? (hasAudio ? 48.0 : 36.0)
-            : (hasAudio ? 36.0 : 24.0);
+        isHighlighted ? (hasAudio ? 48.0 : 36.0) : (hasAudio ? 36.0 : 24.0);
 
     final taxonomyAsync = ref.watch(taxonomyServiceProvider);
     final path =
@@ -650,7 +648,13 @@ class _SpeciesMarker extends ConsumerWidget {
       child: ClipOval(child: image),
     );
 
-    if (!hasAudio) return avatar;
+    if (!hasAudio) {
+      // Fade silent markers so the audio/silent distinction never depends
+      // on the species photo's natural hue \u2014 a desaturated photo of a
+      // grey-plumaged bird could otherwise be mistaken for an audio marker
+      // whose colored border just happens to be subtle.
+      return Opacity(opacity: 0.6, child: avatar);
+    }
 
     // Audio-bearing markers get a single affordance: a play badge anchored
     // to the avatar's bottom-right. We deliberately don't draw an outer

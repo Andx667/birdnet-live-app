@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Uniform, slightly larger species markers on the map.** Audio and silent markers used to render at different bounding-box sizes (44 vs 32 px), making the map look uneven. Both now share the same box and the silhouette form is bumped 28 → 36 px (40 → 48 px when highlighted) so species photos stay legible when zoomed in.
 - **Silent (no-audio) markers are now grayscale and slightly smaller (30 px vs 36 px).** Desaturating the photo lets the user tell at a glance which detections have audio without hunting for the small corner play badge, and the size offset compensates for the play-badge overhang on audio markers so audio detections no longer look visually larger inside the same bounding box.
 - **Clip player sheet now uses the same `ScoreColors` ramp as the map markers.** The sheet's avatar border was still using the old hardcoded red/amber/green ramp, so the same detection looked like a different confidence level depending on whether you saw it on the map or in the playback overlay. Both surfaces now share one source of truth.
+- **Silent map markers are smaller (24 px) and faded to 60 % opacity.** Shrinking them clarifies the visual hierarchy — audio detections are the primary content, silent ones are context. The opacity fade also guarantees that silent markers read as "muted" regardless of the species photo's natural hue, so a grey-plumaged bird with audio can never be mistaken for a silent marker.
 
 ## [0.9.7] - 2026-05-02
 
