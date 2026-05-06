@@ -55,13 +55,13 @@ class GpsPoint {
 
   /// Serialize to JSON (compact keys to minimize file size for long tracks).
   Map<String, dynamic> toJson() => {
-        'lat': latitude,
-        'lon': longitude,
-        if (altitude != null) 'alt': altitude,
-        if (accuracy != null) 'acc': accuracy,
-        't': timestamp.toIso8601String(),
-        if (!measured) 'm': false,
-      };
+    'lat': latitude,
+    'lon': longitude,
+    if (altitude != null) 'alt': altitude,
+    if (accuracy != null) 'acc': accuracy,
+    't': timestamp.toUtc().toIso8601String(),
+    if (!measured) 'm': false,
+  };
 
   @override
   String toString() =>

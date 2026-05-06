@@ -11,8 +11,9 @@ import 'app_providers.dart';
 // ---------------------------------------------------------------------------
 
 /// Audio gain (0.0 – 2.0, default 1.0).
-final audioGainProvider =
-    StateNotifierProvider<DoubleSettingNotifier, double>((ref) {
+final audioGainProvider = StateNotifierProvider<DoubleSettingNotifier, double>((
+  ref,
+) {
   final prefs = ref.watch(sharedPreferencesProvider);
   return DoubleSettingNotifier(prefs, PrefKeys.audioGain, 1.0);
 });
@@ -20,17 +21,18 @@ final audioGainProvider =
 /// High-pass filter cutoff in Hz (0 = off, default 0).
 final highPassFilterProvider =
     StateNotifierProvider<DoubleSettingNotifier, double>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return DoubleSettingNotifier(prefs, PrefKeys.highPassFilter, 0);
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return DoubleSettingNotifier(prefs, PrefKeys.highPassFilter, 0);
+    });
 
 // ---------------------------------------------------------------------------
 // Inference Settings
 // ---------------------------------------------------------------------------
 
 /// Window duration in seconds (3, 5, or 10).
-final windowDurationProvider =
-    StateNotifierProvider<IntSettingNotifier, int>((ref) {
+final windowDurationProvider = StateNotifierProvider<IntSettingNotifier, int>((
+  ref,
+) {
   final prefs = ref.watch(sharedPreferencesProvider);
   return IntSettingNotifier(prefs, PrefKeys.windowDuration, 3);
 });
@@ -38,16 +40,16 @@ final windowDurationProvider =
 /// Confidence threshold (0 – 100, default 25).
 final confidenceThresholdProvider =
     StateNotifierProvider<IntSettingNotifier, int>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return IntSettingNotifier(prefs, PrefKeys.confidenceThreshold, 25);
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return IntSettingNotifier(prefs, PrefKeys.confidenceThreshold, 25);
+    });
 
 /// Inference rate in Hz (0.25, 0.5, 1.0, 2.0 — default 1.0).
 final inferenceRateProvider =
     StateNotifierProvider<DoubleSettingNotifier, double>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return DoubleSettingNotifier(prefs, PrefKeys.inferenceRate, 1.0);
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return DoubleSettingNotifier(prefs, PrefKeys.inferenceRate, 1.0);
+    });
 
 /// Sensitivity (0.5 – 1.5, default 1.0).
 ///
@@ -55,18 +57,18 @@ final inferenceRateProvider =
 /// <1 suppresses weak signals (fewer false positives).
 final sensitivityProvider =
     StateNotifierProvider<DoubleSettingNotifier, double>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return DoubleSettingNotifier(prefs, PrefKeys.sensitivity, 1.0);
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return DoubleSettingNotifier(prefs, PrefKeys.sensitivity, 1.0);
+    });
 
 /// Score pooling mode ('off', 'average', 'max', 'lme' — default 'lme').
 ///
 /// Controls how scores from consecutive inference windows are combined.
 final scorePoolingProvider =
     StateNotifierProvider<StringSettingNotifier, String>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return StringSettingNotifier(prefs, PrefKeys.scorePooling, 'lme');
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return StringSettingNotifier(prefs, PrefKeys.scorePooling, 'lme');
+    });
 
 /// Number of consecutive inference windows that participate in score pooling.
 ///
@@ -75,16 +77,20 @@ final scorePoolingProvider =
 /// default of 5 matches the value historically baked into the model config.
 final scorePoolingWindowsProvider =
     StateNotifierProvider<IntSettingNotifier, int>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return IntSettingNotifier(prefs, PrefKeys.scorePoolingWindows, 5);
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return IntSettingNotifier(prefs, PrefKeys.scorePoolingWindows, 5);
+    });
 
 /// Species filter mode ('off', 'geoExclude', 'geoMerge', 'customList').
 final speciesFilterModeProvider =
     StateNotifierProvider<StringSettingNotifier, String>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return StringSettingNotifier(prefs, PrefKeys.speciesFilterMode, 'geoExclude');
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return StringSettingNotifier(
+        prefs,
+        PrefKeys.speciesFilterMode,
+        'geoExclude',
+      );
+    });
 
 // ---------------------------------------------------------------------------
 // Spectrogram Settings
@@ -97,22 +103,25 @@ final fftSizeProvider = StateNotifierProvider<IntSettingNotifier, int>((ref) {
 });
 
 /// Color map name (default 'viridis').
-final colorMapProvider =
-    StateNotifierProvider<StringSettingNotifier, String>((ref) {
+final colorMapProvider = StateNotifierProvider<StringSettingNotifier, String>((
+  ref,
+) {
   final prefs = ref.watch(sharedPreferencesProvider);
   return StringSettingNotifier(prefs, PrefKeys.colorMap, 'viridis');
 });
 
 /// dB floor (default -80).
-final dbFloorProvider =
-    StateNotifierProvider<DoubleSettingNotifier, double>((ref) {
+final dbFloorProvider = StateNotifierProvider<DoubleSettingNotifier, double>((
+  ref,
+) {
   final prefs = ref.watch(sharedPreferencesProvider);
   return DoubleSettingNotifier(prefs, PrefKeys.dbFloor, -80);
 });
 
 /// dB ceiling (default 0).
-final dbCeilingProvider =
-    StateNotifierProvider<DoubleSettingNotifier, double>((ref) {
+final dbCeilingProvider = StateNotifierProvider<DoubleSettingNotifier, double>((
+  ref,
+) {
   final prefs = ref.watch(sharedPreferencesProvider);
   return DoubleSettingNotifier(prefs, PrefKeys.dbCeiling, 0);
 });
@@ -120,20 +129,21 @@ final dbCeilingProvider =
 /// Spectrogram visible duration in seconds (5, 10, 15, 20, 30 — default 20).
 final spectrogramDurationProvider =
     StateNotifierProvider<IntSettingNotifier, int>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return IntSettingNotifier(prefs, PrefKeys.spectrogramDuration, 20);
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return IntSettingNotifier(prefs, PrefKeys.spectrogramDuration, 20);
+    });
 
 /// Maximum frequency displayed in the spectrogram in Hz (default 16000).
 final spectrogramMaxFreqProvider =
     StateNotifierProvider<IntSettingNotifier, int>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return IntSettingNotifier(prefs, PrefKeys.spectrogramMaxFreq, 16000);
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return IntSettingNotifier(prefs, PrefKeys.spectrogramMaxFreq, 16000);
+    });
 
 /// Whether to use logarithmic amplitude scaling (default true).
-final logAmplitudeProvider =
-    StateNotifierProvider<BoolSettingNotifier, bool>((ref) {
+final logAmplitudeProvider = StateNotifierProvider<BoolSettingNotifier, bool>((
+  ref,
+) {
   final prefs = ref.watch(sharedPreferencesProvider);
   return BoolSettingNotifier(prefs, PrefKeys.logAmplitude, true);
 });
@@ -145,9 +155,9 @@ final logAmplitudeProvider =
 /// Older / low-end devices can drop to `'low'` to reduce GPU load.
 final spectrogramQualityProvider =
     StateNotifierProvider<StringSettingNotifier, String>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return StringSettingNotifier(prefs, PrefKeys.spectrogramQuality, 'high');
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return StringSettingNotifier(prefs, PrefKeys.spectrogramQuality, 'high');
+    });
 
 // ---------------------------------------------------------------------------
 // Recording Settings
@@ -156,9 +166,9 @@ final spectrogramQualityProvider =
 /// Recording format ('wav' or 'flac', default 'flac').
 final recordingFormatProvider =
     StateNotifierProvider<StringSettingNotifier, String>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return StringSettingNotifier(prefs, PrefKeys.recordingFormat, 'flac');
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return StringSettingNotifier(prefs, PrefKeys.recordingFormat, 'flac');
+    });
 
 /// Recording mode ('full', 'detections', 'off' — default 'full').
 ///
@@ -166,17 +176,18 @@ final recordingFormatProvider =
 /// [surveyRecordingModeProvider] configured in the survey-setup screen.
 final recordingModeProvider =
     StateNotifierProvider<StringSettingNotifier, String>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return StringSettingNotifier(prefs, PrefKeys.recordingMode, 'full');
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return StringSettingNotifier(prefs, PrefKeys.recordingMode, 'full');
+    });
 
 /// Clip context in seconds (default 1).
 ///
 /// Number of seconds of audio captured before AND after each detection
 /// window. Total saved clip length = analysis window (e.g. 3 s) plus
 /// 2 × clipContext, so a context of 1 yields a 5 s clip.
-final clipContextProvider =
-    StateNotifierProvider<IntSettingNotifier, int>((ref) {
+final clipContextProvider = StateNotifierProvider<IntSettingNotifier, int>((
+  ref,
+) {
   final prefs = ref.watch(sharedPreferencesProvider);
   return IntSettingNotifier(prefs, PrefKeys.clipContext, 1);
 });
@@ -188,13 +199,14 @@ final clipContextProvider =
 /// Export format ('csv', 'json', 'gpx' — default 'csv').
 final exportFormatProvider =
     StateNotifierProvider<StringSettingNotifier, String>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return StringSettingNotifier(prefs, PrefKeys.exportFormat, 'raven');
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return StringSettingNotifier(prefs, PrefKeys.exportFormat, 'raven');
+    });
 
 /// Include audio files in export (default true).
-final includeAudioProvider =
-    StateNotifierProvider<BoolSettingNotifier, bool>((ref) {
+final includeAudioProvider = StateNotifierProvider<BoolSettingNotifier, bool>((
+  ref,
+) {
   final prefs = ref.watch(sharedPreferencesProvider);
   return BoolSettingNotifier(prefs, PrefKeys.includeAudio, true);
 });
@@ -211,32 +223,58 @@ final useGpsProvider = StateNotifierProvider<BoolSettingNotifier, bool>((ref) {
 });
 
 /// Show scientific names below common names (default true).
-final showSciNamesProvider =
-    StateNotifierProvider<BoolSettingNotifier, bool>((ref) {
+final showSciNamesProvider = StateNotifierProvider<BoolSettingNotifier, bool>((
+  ref,
+) {
   final prefs = ref.watch(sharedPreferencesProvider);
   return BoolSettingNotifier(prefs, PrefKeys.showSciNames, true);
 });
 
+/// Timestamp display mode: `'relative'` (session-relative `MM:SS`) or
+/// `'absolute'` (local clock `HH:mm:ss`).  Default `'relative'`.
+///
+/// Used by [formatDetectionTime] to render per-detection timestamps in
+/// Session Review and other history surfaces.  Storage and exports always
+/// use UTC instants regardless of this setting.
+final timestampDisplayModeProvider =
+    StateNotifierProvider<StringSettingNotifier, String>((ref) {
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return StringSettingNotifier(
+        prefs,
+        PrefKeys.timestampDisplayMode,
+        'relative',
+      );
+    });
+
+/// Whether per-detection timestamps in the UI include the trailing seconds
+/// component.  When false, relative renders as `MM` / `H:MM` and absolute
+/// as `HH:mm`.  Exports always include seconds regardless.
+final timestampShowSecondsProvider =
+    StateNotifierProvider<BoolSettingNotifier, bool>((ref) {
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return BoolSettingNotifier(prefs, PrefKeys.timestampShowSeconds, true);
+    });
+
 /// Geo-model probability threshold (0.0 – 1.0, default 0.03).
 final geoThresholdProvider =
     StateNotifierProvider<DoubleSettingNotifier, double>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return DoubleSettingNotifier(prefs, PrefKeys.geoThreshold, 0.03);
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return DoubleSettingNotifier(prefs, PrefKeys.geoThreshold, 0.03);
+    });
 
 /// Manual latitude for when GPS is disabled (default 52.52 — Berlin).
 final manualLatitudeProvider =
     StateNotifierProvider<DoubleSettingNotifier, double>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return DoubleSettingNotifier(prefs, PrefKeys.manualLatitude, 52.52);
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return DoubleSettingNotifier(prefs, PrefKeys.manualLatitude, 52.52);
+    });
 
 /// Manual longitude for when GPS is disabled (default 13.405 — Berlin).
 final manualLongitudeProvider =
     StateNotifierProvider<DoubleSettingNotifier, double>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return DoubleSettingNotifier(prefs, PrefKeys.manualLongitude, 13.405);
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return DoubleSettingNotifier(prefs, PrefKeys.manualLongitude, 13.405);
+    });
 
 // ---------------------------------------------------------------------------
 // Species Language
@@ -247,9 +285,9 @@ final manualLongitudeProvider =
 /// When 'system', follows the app locale.
 final speciesLanguageProvider =
     StateNotifierProvider<StringSettingNotifier, String>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return StringSettingNotifier(prefs, PrefKeys.speciesLanguage, 'system');
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return StringSettingNotifier(prefs, PrefKeys.speciesLanguage, 'system');
+    });
 
 /// Resolved species locale code (never 'system').
 ///
@@ -271,16 +309,16 @@ final effectiveSpeciesLocaleProvider = Provider<String>((ref) {
 /// Point count duration in minutes (default: 5).
 final pointCountDurationProvider =
     StateNotifierProvider<IntSettingNotifier, int>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return IntSettingNotifier(prefs, PrefKeys.pointCountDuration, 5);
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return IntSettingNotifier(prefs, PrefKeys.pointCountDuration, 5);
+    });
 
 /// Last used observer name in Point Count (persisted for convenience).
 final pointCountLastObserverProvider =
     StateNotifierProvider<StringSettingNotifier, String>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return StringSettingNotifier(prefs, PrefKeys.pointCountLastObserver, '');
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return StringSettingNotifier(prefs, PrefKeys.pointCountLastObserver, '');
+    });
 
 // ---------------------------------------------------------------------------
 // Survey Mode
@@ -289,83 +327,89 @@ final pointCountLastObserverProvider =
 /// Survey inference rate in Hz (default 0.25).
 final surveyInferenceRateProvider =
     StateNotifierProvider<DoubleSettingNotifier, double>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return DoubleSettingNotifier(prefs, PrefKeys.surveyInferenceRate, 0.3);
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return DoubleSettingNotifier(prefs, PrefKeys.surveyInferenceRate, 0.3);
+    });
 
 /// GPS logging interval in seconds (default 10).
 final surveyGpsIntervalProvider =
     StateNotifierProvider<IntSettingNotifier, int>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return IntSettingNotifier(prefs, PrefKeys.surveyGpsInterval, 10);
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return IntSettingNotifier(prefs, PrefKeys.surveyGpsInterval, 10);
+    });
 
 /// Maximum survey duration in hours (default 12).
 final surveyMaxDurationProvider =
     StateNotifierProvider<IntSettingNotifier, int>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return IntSettingNotifier(prefs, PrefKeys.surveyMaxDuration, 8);
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return IntSettingNotifier(prefs, PrefKeys.surveyMaxDuration, 8);
+    });
 
 /// Auto-stop battery threshold in percent (default 0 = off).
 final surveyAutoStopBatteryProvider =
     StateNotifierProvider<IntSettingNotifier, int>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return IntSettingNotifier(prefs, PrefKeys.surveyAutoStopBattery, 0);
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return IntSettingNotifier(prefs, PrefKeys.surveyAutoStopBattery, 0);
+    });
 
 /// Survey recording mode ('full', 'detections', 'off' — default 'detections').
 final surveyRecordingModeProvider =
     StateNotifierProvider<StringSettingNotifier, String>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return StringSettingNotifier(
-      prefs, PrefKeys.surveyRecordingMode, 'detections');
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return StringSettingNotifier(
+        prefs,
+        PrefKeys.surveyRecordingMode,
+        'detections',
+      );
+    });
 
 /// Survey clip context in seconds (default 1).
 ///
 /// Same semantics as [clipContextProvider] but scoped to survey sessions.
 final surveyClipContextProvider =
     StateNotifierProvider<IntSettingNotifier, int>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return IntSettingNotifier(prefs, PrefKeys.surveyClipContext, 1);
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return IntSettingNotifier(prefs, PrefKeys.surveyClipContext, 1);
+    });
 
 /// Detection sampling mode ('all', 'topN', 'smart' — default 'smart').
 final surveyDetectionSamplingProvider =
     StateNotifierProvider<StringSettingNotifier, String>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return StringSettingNotifier(
-      prefs, PrefKeys.surveyDetectionSampling, 'smart');
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return StringSettingNotifier(
+        prefs,
+        PrefKeys.surveyDetectionSampling,
+        'smart',
+      );
+    });
 
 /// Top N detections per species to keep (default 10).
 final surveyTopNPerSpeciesProvider =
     StateNotifierProvider<IntSettingNotifier, int>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return IntSettingNotifier(prefs, PrefKeys.surveyTopNPerSpecies, 10);
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return IntSettingNotifier(prefs, PrefKeys.surveyTopNPerSpecies, 10);
+    });
 
 /// Preferred microphone device ID (empty = system default).
 final surveyMicDeviceIdProvider =
     StateNotifierProvider<StringSettingNotifier, String>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return StringSettingNotifier(prefs, PrefKeys.surveyMicDeviceId, '');
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return StringSettingNotifier(prefs, PrefKeys.surveyMicDeviceId, '');
+    });
 
 /// Last used observer name (persisted for convenience).
 final surveyLastObserverProvider =
     StateNotifierProvider<StringSettingNotifier, String>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return StringSettingNotifier(prefs, PrefKeys.surveyLastObserver, '');
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return StringSettingNotifier(prefs, PrefKeys.surveyLastObserver, '');
+    });
 
 /// Last used transect ID (persisted for convenience).
 final surveyLastTransectIdProvider =
     StateNotifierProvider<StringSettingNotifier, String>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return StringSettingNotifier(prefs, PrefKeys.surveyLastTransectId, '');
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return StringSettingNotifier(prefs, PrefKeys.surveyLastTransectId, '');
+    });
 
 // ===========================================================================
 // Survey species alerts (v0.7.0+)
@@ -373,8 +417,9 @@ final surveyLastTransectIdProvider =
 
 /// Active alert mode: 0=off, 1=first-in-session, 2=first-ever, 3=rare,
 /// 4=watchlist. See `AlertMode` in `survey_alert_engine.dart`.
-final surveyAlertModeProvider =
-    StateNotifierProvider<IntSettingNotifier, int>((ref) {
+final surveyAlertModeProvider = StateNotifierProvider<IntSettingNotifier, int>((
+  ref,
+) {
   final prefs = ref.watch(sharedPreferencesProvider);
   return IntSettingNotifier(prefs, PrefKeys.surveyAlertMode, 0);
 });
@@ -382,76 +427,96 @@ final surveyAlertModeProvider =
 /// Geo-model probability cutoff for the "rare" alert mode (0.0–0.5).
 final surveyAlertRareThresholdProvider =
     StateNotifierProvider<DoubleSettingNotifier, double>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return DoubleSettingNotifier(prefs, PrefKeys.surveyAlertRareThreshold, 0.05);
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return DoubleSettingNotifier(
+        prefs,
+        PrefKeys.surveyAlertRareThreshold,
+        0.05,
+      );
+    });
 
 /// Name of the saved [CustomSpeciesList] used as the watchlist. Empty
 /// when no list selected.
 final surveyAlertWatchlistNameProvider =
     StateNotifierProvider<StringSettingNotifier, String>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return StringSettingNotifier(prefs, PrefKeys.surveyAlertWatchlistName, '');
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return StringSettingNotifier(
+        prefs,
+        PrefKeys.surveyAlertWatchlistName,
+        '',
+      );
+    });
 
 /// Whether alert notifications play a sound.
 final surveyAlertSoundProvider =
     StateNotifierProvider<BoolSettingNotifier, bool>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return BoolSettingNotifier(prefs, PrefKeys.surveyAlertSound, true);
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return BoolSettingNotifier(prefs, PrefKeys.surveyAlertSound, true);
+    });
 
 /// Whether alert notifications vibrate.
 final surveyAlertVibrateProvider =
     StateNotifierProvider<BoolSettingNotifier, bool>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return BoolSettingNotifier(prefs, PrefKeys.surveyAlertVibrate, true);
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return BoolSettingNotifier(prefs, PrefKeys.surveyAlertVibrate, true);
+    });
 
 /// Detections below this confidence never fire alerts.
 final surveyAlertMinConfidenceProvider =
     StateNotifierProvider<DoubleSettingNotifier, double>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return DoubleSettingNotifier(prefs, PrefKeys.surveyAlertMinConfidence, 0.5);
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return DoubleSettingNotifier(
+        prefs,
+        PrefKeys.surveyAlertMinConfidence,
+        0.5,
+      );
+    });
 
 /// Seconds at the start of a survey during which non-bypass alerts are
 /// silently suppressed (default 60).
 final surveyAlertStartupGraceSecondsProvider =
     StateNotifierProvider<IntSettingNotifier, int>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return IntSettingNotifier(prefs, PrefKeys.surveyAlertStartupGraceSeconds, 60);
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return IntSettingNotifier(
+        prefs,
+        PrefKeys.surveyAlertStartupGraceSeconds,
+        60,
+      );
+    });
 
 /// Hard cooldown between any two delivered alerts (default 15 s).
 final surveyAlertMinIntervalSecondsProvider =
     StateNotifierProvider<IntSettingNotifier, int>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return IntSettingNotifier(prefs, PrefKeys.surveyAlertMinIntervalSeconds, 15);
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return IntSettingNotifier(
+        prefs,
+        PrefKeys.surveyAlertMinIntervalSeconds,
+        15,
+      );
+    });
 
 /// Maximum delivered alerts per minute. `0` means unlimited.
 final surveyAlertMaxPerMinuteProvider =
     StateNotifierProvider<IntSettingNotifier, int>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return IntSettingNotifier(prefs, PrefKeys.surveyAlertMaxPerMinute, 3);
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return IntSettingNotifier(prefs, PrefKeys.surveyAlertMaxPerMinute, 3);
+    });
 
 /// Whether over-cap alerts are queued for a summary notification (true)
 /// or silently dropped (false).
 final surveyAlertCoalesceProvider =
     StateNotifierProvider<BoolSettingNotifier, bool>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return BoolSettingNotifier(prefs, PrefKeys.surveyAlertCoalesce, true);
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return BoolSettingNotifier(prefs, PrefKeys.surveyAlertCoalesce, true);
+    });
 
 /// Whether to mirror system notifications as in-app snackbars on the
 /// Survey Live screen.
 final surveyAlertInAppToastProvider =
     StateNotifierProvider<BoolSettingNotifier, bool>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return BoolSettingNotifier(prefs, PrefKeys.surveyAlertInAppToast, true);
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return BoolSettingNotifier(prefs, PrefKeys.surveyAlertInAppToast, true);
+    });
 
 // ===========================================================================
 // Generic setting notifiers
@@ -460,7 +525,7 @@ final surveyAlertInAppToastProvider =
 /// [StateNotifier] for a `double` setting backed by [SharedPreferences].
 class DoubleSettingNotifier extends StateNotifier<double> {
   DoubleSettingNotifier(this._prefs, this._key, double defaultValue)
-      : super(_prefs.getDouble(_key) ?? defaultValue);
+    : super(_prefs.getDouble(_key) ?? defaultValue);
 
   final SharedPreferences _prefs;
   final String _key;
@@ -474,7 +539,7 @@ class DoubleSettingNotifier extends StateNotifier<double> {
 /// [StateNotifier] for an `int` setting backed by [SharedPreferences].
 class IntSettingNotifier extends StateNotifier<int> {
   IntSettingNotifier(this._prefs, this._key, int defaultValue)
-      : super(_prefs.getInt(_key) ?? defaultValue);
+    : super(_prefs.getInt(_key) ?? defaultValue);
 
   final SharedPreferences _prefs;
   final String _key;
@@ -488,7 +553,7 @@ class IntSettingNotifier extends StateNotifier<int> {
 /// [StateNotifier] for a `String` setting backed by [SharedPreferences].
 class StringSettingNotifier extends StateNotifier<String> {
   StringSettingNotifier(this._prefs, this._key, String defaultValue)
-      : super(_prefs.getString(_key) ?? defaultValue);
+    : super(_prefs.getString(_key) ?? defaultValue);
 
   final SharedPreferences _prefs;
   final String _key;
@@ -502,7 +567,7 @@ class StringSettingNotifier extends StateNotifier<String> {
 /// [StateNotifier] for a `bool` setting backed by [SharedPreferences].
 class BoolSettingNotifier extends StateNotifier<bool> {
   BoolSettingNotifier(this._prefs, this._key, bool defaultValue)
-      : super(_prefs.getBool(_key) ?? defaultValue);
+    : super(_prefs.getBool(_key) ?? defaultValue);
 
   final SharedPreferences _prefs;
   final String _key;

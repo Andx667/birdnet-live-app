@@ -97,6 +97,15 @@ abstract final class PrefKeys {
   // Display settings
   static const String showSciNames = 'show_sci_names';
 
+  /// Timestamp display mode: 'relative' (session-relative `MM:SS`)
+  /// or 'absolute' (local clock `HH:mm:ss`). Default 'relative'.
+  static const String timestampDisplayMode = 'timestamp_display_mode';
+
+  /// Whether per-detection timestamps in the UI include seconds
+  /// (`MM:SS` / `HH:mm:ss`) or stop at minute precision (`MM` / `HH:mm`).
+  /// Exports always include seconds regardless of this setting. Default true.
+  static const String timestampShowSeconds = 'timestamp_show_seconds';
+
   // Point count settings
   static const String pointCountDuration = 'point_count_duration';
   static const String pointCountLastObserver = 'point_count_last_observer';

@@ -127,7 +127,12 @@ void main() {
       expect(roundTripped.scientificName, 'Turdus merula');
       expect(roundTripped.commonName, 'Eurasian Blackbird');
       expect(roundTripped.confidence, 0.85);
-      expect(roundTripped.timestamp, DateTime(2026, 2, 28, 14, 30, 0));
+      expect(
+        roundTripped.timestamp.isAtSameMomentAs(
+          DateTime(2026, 2, 28, 14, 30, 0),
+        ),
+        isTrue,
+      );
       expect(roundTripped.audioClipPath, '/recordings/clip.wav');
     });
 
@@ -201,18 +206,22 @@ void main() {
         settings: testSettings,
       );
 
-      session.addDetection(DetectionRecord(
-        scientificName: 'Turdus merula',
-        commonName: 'Eurasian Blackbird',
-        confidence: 0.85,
-        timestamp: DateTime.now(),
-      ));
-      session.addDetection(DetectionRecord(
-        scientificName: 'Parus major',
-        commonName: 'Great Tit',
-        confidence: 0.72,
-        timestamp: DateTime.now(),
-      ));
+      session.addDetection(
+        DetectionRecord(
+          scientificName: 'Turdus merula',
+          commonName: 'Eurasian Blackbird',
+          confidence: 0.85,
+          timestamp: DateTime.now(),
+        ),
+      );
+      session.addDetection(
+        DetectionRecord(
+          scientificName: 'Parus major',
+          commonName: 'Great Tit',
+          confidence: 0.72,
+          timestamp: DateTime.now(),
+        ),
+      );
 
       expect(session.detections.length, 2);
       expect(session.uniqueSpeciesCount, 2);
@@ -251,18 +260,22 @@ void main() {
       );
 
       // Same species detected twice.
-      session.addDetection(DetectionRecord(
-        scientificName: 'Turdus merula',
-        commonName: 'Eurasian Blackbird',
-        confidence: 0.85,
-        timestamp: DateTime.now(),
-      ));
-      session.addDetection(DetectionRecord(
-        scientificName: 'Turdus merula',
-        commonName: 'Eurasian Blackbird',
-        confidence: 0.90,
-        timestamp: DateTime.now(),
-      ));
+      session.addDetection(
+        DetectionRecord(
+          scientificName: 'Turdus merula',
+          commonName: 'Eurasian Blackbird',
+          confidence: 0.85,
+          timestamp: DateTime.now(),
+        ),
+      );
+      session.addDetection(
+        DetectionRecord(
+          scientificName: 'Turdus merula',
+          commonName: 'Eurasian Blackbird',
+          confidence: 0.90,
+          timestamp: DateTime.now(),
+        ),
+      );
 
       expect(session.detections.length, 2);
       expect(session.uniqueSpeciesCount, 1);
@@ -329,8 +342,14 @@ void main() {
 
       expect(roundTripped.id, 'session-2026');
       expect(roundTripped.type, SessionType.live);
-      expect(roundTripped.startTime, DateTime(2026, 2, 28, 14, 0));
-      expect(roundTripped.endTime, DateTime(2026, 2, 28, 15, 0));
+      expect(
+        roundTripped.startTime.isAtSameMomentAs(DateTime(2026, 2, 28, 14, 0)),
+        isTrue,
+      );
+      expect(
+        roundTripped.endTime!.isAtSameMomentAs(DateTime(2026, 2, 28, 15, 0)),
+        isTrue,
+      );
       expect(roundTripped.detections.length, 1);
       expect(roundTripped.detections[0].scientificName, 'Turdus merula');
       expect(roundTripped.detections[0].audioClipPath, '/clips/clip1.wav');
@@ -358,12 +377,14 @@ void main() {
         startTime: DateTime.now(),
         settings: testSettings,
       );
-      session.addDetection(DetectionRecord(
-        scientificName: 'Turdus merula',
-        commonName: 'Eurasian Blackbird',
-        confidence: 0.85,
-        timestamp: DateTime.now(),
-      ));
+      session.addDetection(
+        DetectionRecord(
+          scientificName: 'Turdus merula',
+          commonName: 'Eurasian Blackbird',
+          confidence: 0.85,
+          timestamp: DateTime.now(),
+        ),
+      );
 
       expect(session.toString(), contains('test'));
       expect(session.toString(), contains('1 detections'));
@@ -542,7 +563,10 @@ void main() {
 
       final roundTripped = SessionAnnotation.fromJson(json);
       expect(roundTripped.text, annotation.text);
-      expect(roundTripped.createdAt, annotation.createdAt);
+      expect(
+        roundTripped.createdAt.isAtSameMomentAs(annotation.createdAt),
+        isTrue,
+      );
       expect(roundTripped.offsetInRecording, isNull);
     });
 

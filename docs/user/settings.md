@@ -25,6 +25,19 @@ Controls the language used for species names. **Follow app language** uses the s
 
 Shows scientific names below common names across the app.
 
+### Timestamp display
+
+Controls how per-detection times appear in session review.
+
+- **Relative** shows the offset from the start of the recording, e.g. `00:12:34`. Best for reviewing a single session and matching the spectrogram playhead.
+- **Absolute** shows the local clock time when the detection was captured, e.g. `08:42:17`. Best for cross-referencing field notes, weather logs, or simultaneous recordings.
+
+If a detection lands on a different calendar day from the session start (e.g. an overnight survey), the absolute time gains a `+1d` suffix so reviewers don't accidentally read tomorrow's dawn chorus as today's.
+
+When **Absolute** is selected, an additional **Show seconds in timestamps** toggle appears. Disable it if you prefer the more compact `08:42` over `08:42:17` — useful when scanning long detection lists. Relative offsets always show seconds because reviewers need sub-minute precision to align with the spectrogram playhead.
+
+Storage and exports always use UTC instants regardless of this setting, so the choice never affects the data — only the way it's displayed.
+
 ## Audio
 
 These controls appear in audio-driven live workflows.

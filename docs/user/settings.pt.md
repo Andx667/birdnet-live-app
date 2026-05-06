@@ -25,6 +25,21 @@ Controla o idioma usado para nomes de espécies. **Seguir idioma do aplicativo**
 
 Mostra nomes científicos abaixo dos nomes comuns no aplicativo.
 
+### Exibição de carimbos de hora
+
+Controla como os horários de cada detecção aparecem na revisão de sessão.
+
+- **Relativo** mostra o deslocamento desde o início da gravação, ex. `00:12:34`. Melhor para revisar uma única sessão e alinhar com o espectrograma.
+- **Absoluto** mostra o horário local em que a detecção foi capturada, ex. `08:42:17`. Melhor para cruzar com notas de campo, registros meteorológicos ou gravações simultâneas.
+
+Se uma detecção cair em um dia de calendário diferente do início da sessão (ex. um monitoramento noturno), o horário absoluto ganha o sufixo `+1d` para que os revisores não confundam o amanhecer de amanhã com o de hoje.
+
+Quando **Absoluto** está selecionado, aparece também o interruptor **Mostrar segundos nos carimbos de hora**. Desative-o se preferir o formato mais compacto `08:42` em vez de `08:42:17` — útil ao percorrer longas listas de detecções. Os deslocamentos relativos sempre mostram segundos porque o alinhamento com o espectrograma exige precisão abaixo de um minuto.
+
+Quando **Absoluto** está selecionado, aparece também o interruptor **Mostrar segundos nos carimbos de hora**. Desative-o se preferir o formato mais compacto `08:42` em vez de `08:42:17` — útil ao percorrer longas listas de detecções. Os deslocamentos relativos sempre mostram segundos porque o alinhamento com o espectrograma exige precisão abaixo de um minuto.
+
+Armazenamento e exportações sempre usam UTC independentemente desta configuração, portanto a escolha nunca afeta os dados — apenas sua apresentação.
+
 ## Áudio
 
 Esses controles aparecem em fluxos de trabalho ao vivo orientados por áudio.

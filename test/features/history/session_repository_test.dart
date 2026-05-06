@@ -83,8 +83,14 @@ void main() {
 
       expect(loaded, isNotNull);
       expect(loaded!.id, 'test-session-1');
-      expect(loaded.startTime, DateTime(2025, 6, 15, 10, 0));
-      expect(loaded.endTime, DateTime(2025, 6, 15, 10, 30));
+      expect(
+        loaded.startTime.isAtSameMomentAs(DateTime(2025, 6, 15, 10, 0)),
+        isTrue,
+      );
+      expect(
+        loaded.endTime!.isAtSameMomentAs(DateTime(2025, 6, 15, 10, 30)),
+        isTrue,
+      );
       expect(loaded.detections.length, 2);
       expect(loaded.detections[0].scientificName, 'Turdus merula');
       expect(loaded.detections[1].commonName, 'Great Tit');
@@ -98,18 +104,13 @@ void main() {
     });
 
     test('save overwrites existing session', () async {
-      final session1 = makeSession(
-        detections: [makeDetection()],
-      );
+      final session1 = makeSession(detections: [makeDetection()]);
       await repo.save(session1);
 
       final session2 = makeSession(
         detections: [
           makeDetection(),
-          makeDetection(
-            scientific: 'Parus major',
-            common: 'Great Tit',
-          ),
+          makeDetection(scientific: 'Parus major', common: 'Great Tit'),
         ],
       );
       await repo.save(session2);
@@ -154,21 +155,27 @@ void main() {
     });
 
     test('returns all saved sessions sorted newest first', () async {
-      await repo.save(makeSession(
-        id: 'session-1',
-        startTime: DateTime(2025, 1, 1),
-        endTime: DateTime(2025, 1, 1, 1),
-      ));
-      await repo.save(makeSession(
-        id: 'session-3',
-        startTime: DateTime(2025, 3, 1),
-        endTime: DateTime(2025, 3, 1, 1),
-      ));
-      await repo.save(makeSession(
-        id: 'session-2',
-        startTime: DateTime(2025, 2, 1),
-        endTime: DateTime(2025, 2, 1, 1),
-      ));
+      await repo.save(
+        makeSession(
+          id: 'session-1',
+          startTime: DateTime(2025, 1, 1),
+          endTime: DateTime(2025, 1, 1, 1),
+        ),
+      );
+      await repo.save(
+        makeSession(
+          id: 'session-3',
+          startTime: DateTime(2025, 3, 1),
+          endTime: DateTime(2025, 3, 1, 1),
+        ),
+      );
+      await repo.save(
+        makeSession(
+          id: 'session-2',
+          startTime: DateTime(2025, 2, 1),
+          endTime: DateTime(2025, 2, 1, 1),
+        ),
+      );
 
       final sessions = await repo.listAll();
       expect(sessions.length, 3);

@@ -667,6 +667,10 @@ class _SpeciesTile extends ConsumerWidget {
     final speciesLocale = ref.watch(effectiveSpeciesLocaleProvider);
     final taxonomyAsync = ref.watch(taxonomyServiceProvider);
     final showSciNames = ref.watch(showSciNamesProvider);
+    final tsMode = TimestampDisplayMode.fromString(
+      ref.watch(timestampDisplayModeProvider),
+    );
+    final tsShowSeconds = ref.watch(timestampShowSecondsProvider);
 
     final displayName =
         taxonomyAsync.valueOrNull
@@ -674,14 +678,19 @@ class _SpeciesTile extends ConsumerWidget {
             ?.commonNameForLocale(speciesLocale) ??
         group.commonName;
 
-    // Show offsets relative to the *current clip* (not the original
-    // session start) so that the spectrogram playhead, the player
-    // position, and the detection labels all share the same time axis
-    // after the audio has been cropped.
-    final offset =
-        group.firstTimestamp.difference(sessionStart) -
-        Duration(microseconds: (clipOffsetSec * 1e6).round());
-    final offsetStr = _fmtOffset(offset);
+    // Render the per-cluster time using the user's selected mode.
+    // Relative mode subtracts the current clip offset so that the
+    // displayed offset stays aligned with the spectrogram playhead
+    // after the audio has been cropped; absolute mode is unaffected
+    // since wall-clock time is independent of the trim.
+    final clipOffsetDur = Duration(microseconds: (clipOffsetSec * 1e6).round());
+    final offsetStr = formatDetectionTime(
+      group.firstTimestamp,
+      sessionStart,
+      tsMode,
+      clipOffset: clipOffsetDur,
+      showSeconds: tsShowSeconds,
+    );
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 400),
@@ -916,18 +925,6 @@ class _SpeciesTile extends ConsumerWidget {
     );
   }
 
-  String _fmtOffset(Duration d) {
-    // Clamp negative offsets to zero so a detection emitted slightly
-    // before the session start (e.g. the first inference window arriving
-    // while the recorder is still spinning up) renders as 00:00 instead
-    // of "00:-1".
-    if (d.isNegative) d = Duration.zero;
-    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-    if (d.inHours > 0) return '${d.inHours}:$m:$s';
-    return '$m:$s';
-  }
-
   /// Whether [cluster] contains any record whose analysis window spans
   /// the current playback position (mapped into clip-relative time).
   ///
@@ -963,7 +960,7 @@ class _SpeciesTile extends ConsumerWidget {
 // Cluster Row — One time-span cluster within an expanded species
 // ═════════════════════════════════════════════════════════════════════════════
 
-class _ClusterRow extends StatelessWidget {
+class _ClusterRow extends ConsumerWidget {
   const _ClusterRow({
     required this.cluster,
     required this.sessionStart,
@@ -996,11 +993,13 @@ class _ClusterRow extends StatelessWidget {
   final VoidCallback? onShowOnMap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final tsMode = TimestampDisplayMode.fromString(
+      ref.watch(timestampDisplayModeProvider),
+    );
+    final tsShowSeconds = ref.watch(timestampShowSecondsProvider);
     final clipOffsetDur = Duration(microseconds: (clipOffsetSec * 1e6).round());
-    final start =
-        cluster.firstTimestamp.difference(sessionStart) - clipOffsetDur;
     // Prefer the recorded continuous-detection end. Fall back to the
     // last record's analysis-window end when [endTimestamp] is missing
     // (legacy sessions or in-progress records).
@@ -1008,13 +1007,24 @@ class _ClusterRow extends StatelessWidget {
     final lastEnd =
         lastRecord.endTimestamp ??
         lastRecord.timestamp.add(Duration(seconds: windowSec));
-    final end = lastEnd.difference(sessionStart) - clipOffsetDur;
     // Always show the full span (start – end) so users can see the
     // duration of continuous detections at a glance. For very short
     // detections where the formatted strings would be identical, fall
     // back to a single timestamp to keep the row compact.
-    final startStr = _fmtOffset(start);
-    final endStr = _fmtOffset(end);
+    final startStr = formatDetectionTime(
+      cluster.firstTimestamp,
+      sessionStart,
+      tsMode,
+      clipOffset: clipOffsetDur,
+      showSeconds: tsShowSeconds,
+    );
+    final endStr = formatDetectionTime(
+      lastEnd,
+      sessionStart,
+      tsMode,
+      clipOffset: clipOffsetDur,
+      showSeconds: tsShowSeconds,
+    );
     final timeStr = startStr == endStr ? startStr : '$startStr \u2013 $endStr';
 
     return AnimatedContainer(
@@ -1123,15 +1133,6 @@ class _ClusterRow extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _fmtOffset(Duration d) {
-    // See note above: clamp negative offsets to zero.
-    if (d.isNegative) d = Duration.zero;
-    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-    if (d.inHours > 0) return '${d.inHours}:$m:$s';
-    return '$m:$s';
   }
 }
 

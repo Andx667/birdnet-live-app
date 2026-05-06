@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2026-05-06
+
+### Added
+
+- **Absolute timestamp display toggle.** Settings → General now lets you switch per-detection times in session review between **Relative** (offset from recording start, e.g. `00:12:34`) and **Absolute** (local clock time, e.g. `08:42:17`). Overnight surveys that cross midnight gain a `+1d` suffix so reviewers don't accidentally read tomorrow's dawn chorus as today's. Defaults to relative for backwards compatibility (#33).
+- **Show seconds toggle for absolute timestamps.** When the timestamp display is set to **Absolute**, an additional **Show seconds in timestamps** switch lets you collapse `08:42:17` to the more compact `08:42` for easier scanning of long detection lists. Relative offsets always show seconds because reviewers need sub-minute precision to align with the spectrogram playhead, and exports always include seconds regardless (#33).
+- **Survey Time column always present in Raven and CSV exports.** Previously the `Survey Time (s)` column only appeared when detection clips were bundled. It is now always emitted so downstream tooling sees a stable schema. When the in-app timestamp display is set to **Absolute**, the column header becomes `Survey Time (UTC)` and carries an ISO-8601 wall-clock timestamp instead of a session-relative offset, making it straightforward to correlate detections across surveys, devices, or external data sources (#33).
+- **Session block in export metadata.** `<prefix>.metadata.json` (and the `meta` block in JSON exports) now carries a `session` object with the session id, type, UTC start/end times, custom name, session number, observer, transect id, and detection count, so exported bundles are self-describing without needing the original session JSON (#33).
+
+### Changed
+
+- **All persisted and exported timestamps are now UTC-normalized.** Detection timestamps, session start/end, GPS track points, and annotation `createdAt` values are now serialized with the `Z` suffix in JSON sessions, CSV/JSON exports, and Audacity label headers. Previous releases emitted local-time-without-zone strings, which silently shifted to the wrong instant when re-opened on a device in a different timezone. The CSV header is now `Timestamp (UTC)` to make the encoding self-documenting. Existing on-disk sessions still load correctly and continue to render with the same wall-clock values they had at capture time (#33).
+
+### Fixed
+
+- **Duplicate `metadata.json` entry in ZIP bundles.** A copy-paste glitch caused the metadata file to be added twice to every ZIP export. Bundles now contain a single `<prefix>.metadata.json` entry (#33).
+
 ## [0.9.9] - 2026-05-06
 
 ### Changed

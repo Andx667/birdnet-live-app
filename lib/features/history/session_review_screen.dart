@@ -68,6 +68,7 @@ import '../../shared/models/gps_point.dart';
 import '../../shared/models/taxonomy_species.dart';
 import '../../shared/providers/settings_providers.dart';
 import '../../shared/services/taxonomy_service.dart';
+import '../../shared/utils/timestamp_format.dart';
 import '../../shared/widgets/app_help_bottom_sheet.dart';
 import '../../shared/widgets/stat_chip.dart';
 import '../explore/explore_providers.dart';
@@ -739,6 +740,8 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
       speciesLocale: speciesLocale,
       clipContextSecondsOverride: clipContextOverride,
       metadata: await _buildExportMetadata(speciesLocale: speciesLocale),
+      useAbsoluteSurveyTime:
+          ref.read(timestampDisplayModeProvider) == 'absolute',
     );
 
     if (exportPath == null) return;
@@ -800,6 +803,7 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
       geoModel: geoModel,
       prefs: prefsMap,
       speciesLocale: speciesLocale,
+      session: widget.session,
     );
   }
 
