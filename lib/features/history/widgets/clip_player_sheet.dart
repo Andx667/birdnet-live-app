@@ -27,6 +27,7 @@ import 'package:intl/intl.dart';
 import 'package:just_audio/just_audio.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../core/theme/score_colors.dart';
 import '../../../shared/providers/settings_providers.dart';
 import '../../explore/explore_providers.dart';
 import '../../live/live_session.dart';
@@ -141,8 +142,10 @@ class _ClipPlayerSheetState extends ConsumerState<_ClipPlayerSheet> {
 
     final nyquist = audio.sampleRate / 2;
     final binCount = fftSize ~/ 2 + 1;
-    final displayBins =
-        (maxFreqHz / nyquist * binCount).round().clamp(1, binCount);
+    final displayBins = (maxFreqHz / nyquist * binCount).round().clamp(
+      1,
+      binCount,
+    );
 
     final lut = SpectrogramColorMap.lut('viridis');
     final pixels = Uint8List(numCols * displayBins * 4);
@@ -218,20 +221,20 @@ class _ClipPlayerSheetState extends ConsumerState<_ClipPlayerSheet> {
     final showSciNames = ref.watch(showSciNamesProvider);
     final imagePath =
         taxonomyAsync.valueOrNull?.assetImagePath(det.scientificName) ??
-            'assets/images/dummy_species.png';
+        'assets/images/dummy_species.png';
     // Resolve the localized common name from the taxonomy when available;
     // fall back to whatever was stored on the record (English at detection
     // time) so legacy or unknown species still render something.
-    final displayName = taxonomyAsync.valueOrNull
+    final displayName =
+        taxonomyAsync.valueOrNull
             ?.lookup(det.scientificName)
             ?.commonNameForLocale(speciesLocale) ??
         det.commonName;
     final timeStr = DateFormat('yyyy-MM-dd HH:mm:ss').format(det.timestamp);
-    final scoreColor = det.confidence >= 0.8
-        ? Colors.green
-        : det.confidence >= 0.5
-            ? Colors.amber.shade700
-            : Colors.red;
+    // Use the unified [ScoreColors] CVD-safe ramp so the avatar border on
+    // this sheet matches the same detection's marker on the survey map and
+    // its pill color in the Explore list.
+    final scoreColor = ScoreColors.of(context).forScore(det.confidence);
 
     return SafeArea(
       top: false,
@@ -255,10 +258,11 @@ class _ClipPlayerSheetState extends ConsumerState<_ClipPlayerSheet> {
                     child: Image.asset(
                       imagePath,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        color: scoreColor.withAlpha(60),
-                        child: Icon(Icons.music_note, color: scoreColor),
-                      ),
+                      errorBuilder:
+                          (_, __, ___) => Container(
+                            color: scoreColor.withAlpha(60),
+                            child: Icon(Icons.music_note, color: scoreColor),
+                          ),
                     ),
                   ),
                 ),
@@ -287,7 +291,9 @@ class _ClipPlayerSheetState extends ConsumerState<_ClipPlayerSheet> {
                         children: [
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 1),
+                              horizontal: 6,
+                              vertical: 1,
+                            ),
                             decoration: BoxDecoration(
                               color: scoreColor.withAlpha(40),
                               borderRadius: BorderRadius.circular(4),
@@ -326,32 +332,38 @@ class _ClipPlayerSheetState extends ConsumerState<_ClipPlayerSheet> {
                 borderRadius: BorderRadius.circular(6),
               ),
               clipBehavior: Clip.antiAlias,
-              child: _decoding
-                  ? const Center(
-                      child: SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    )
-                  : _spectrogramImage == null
-                      ? Center(
-                          child: Icon(Icons.graphic_eq,
-                              color: Colors.white.withAlpha(80), size: 32),
-                        )
-                      : LayoutBuilder(
-                          builder: (_, c) => CustomPaint(
-                            size: Size(c.maxWidth, c.maxHeight),
-                            painter: _ClipSpectrogramPainter(
-                              image: _spectrogramImage!,
-                              progress: _duration.inMicroseconds == 0
-                                  ? 0
-                                  : _position.inMicroseconds /
-                                      _duration.inMicroseconds,
-                              accent: theme.colorScheme.primary,
-                            ),
-                          ),
+              child:
+                  _decoding
+                      ? const Center(
+                        child: SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2),
                         ),
+                      )
+                      : _spectrogramImage == null
+                      ? Center(
+                        child: Icon(
+                          Icons.graphic_eq,
+                          color: Colors.white.withAlpha(80),
+                          size: 32,
+                        ),
+                      )
+                      : LayoutBuilder(
+                        builder:
+                            (_, c) => CustomPaint(
+                              size: Size(c.maxWidth, c.maxHeight),
+                              painter: _ClipSpectrogramPainter(
+                                image: _spectrogramImage!,
+                                progress:
+                                    _duration.inMicroseconds == 0
+                                        ? 0
+                                        : _position.inMicroseconds /
+                                            _duration.inMicroseconds,
+                                accent: theme.colorScheme.primary,
+                              ),
+                            ),
+                      ),
             ),
             const SizedBox(height: 8),
 
@@ -361,18 +373,21 @@ class _ClipPlayerSheetState extends ConsumerState<_ClipPlayerSheet> {
                 Text(_fmt(_position), style: theme.textTheme.labelSmall),
                 Expanded(
                   child: Slider(
-                    value: _duration.inMilliseconds == 0
-                        ? 0
-                        : _position.inMilliseconds
-                            .clamp(0, _duration.inMilliseconds)
-                            .toDouble(),
-                    max: _duration.inMilliseconds == 0
-                        ? 1.0
-                        : _duration.inMilliseconds.toDouble(),
-                    onChanged: _duration.inMilliseconds == 0
-                        ? null
-                        : (v) =>
-                            _player.seek(Duration(milliseconds: v.round())),
+                    value:
+                        _duration.inMilliseconds == 0
+                            ? 0
+                            : _position.inMilliseconds
+                                .clamp(0, _duration.inMilliseconds)
+                                .toDouble(),
+                    max:
+                        _duration.inMilliseconds == 0
+                            ? 1.0
+                            : _duration.inMilliseconds.toDouble(),
+                    onChanged:
+                        _duration.inMilliseconds == 0
+                            ? null
+                            : (v) =>
+                                _player.seek(Duration(milliseconds: v.round())),
                   ),
                 ),
                 Text(_fmt(_duration), style: theme.textTheme.labelSmall),
@@ -385,11 +400,11 @@ class _ClipPlayerSheetState extends ConsumerState<_ClipPlayerSheet> {
               children: [
                 IconButton.filled(
                   iconSize: 36,
-                  onPressed: () =>
-                      _isPlaying ? _player.pause() : _player.play(),
-                  icon: Icon(_isPlaying
-                      ? Icons.pause_rounded
-                      : Icons.play_arrow_rounded),
+                  onPressed:
+                      () => _isPlaying ? _player.pause() : _player.play(),
+                  icon: Icon(
+                    _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 TextButton.icon(
@@ -428,9 +443,10 @@ class _ClipSpectrogramPainter extends CustomPainter {
     final dst = Offset.zero & size;
     canvas.drawImageRect(image, src, dst, Paint());
     final x = (progress.clamp(0.0, 1.0)) * size.width;
-    final paint = Paint()
-      ..color = accent
-      ..strokeWidth = 2;
+    final paint =
+        Paint()
+          ..color = accent
+          ..strokeWidth = 2;
     canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
   }
 
