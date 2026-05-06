@@ -25,18 +25,29 @@ Le specie sono raggruppate in righe espandibili. Puoi esaminare i rilevamenti pe
 
 ### Mappa del percorso del sondaggio
 
-Le sessioni di rilevamento mostrano una piccola mappa in linea della traccia GPS e dei marker di rilevamento. Toccalo per aprire una **mappa a schermo intero** con gli stessi dati.
+Le sessioni di sondaggio mostrano una piccola mappa in linea della traccia GPS e degli indicatori di rilevamento. Tocca un indicatore sulla mappa in linea per mettere a fuoco un rilevamento — la mappa si centra su di esso. Tocca il pulsante :material-fullscreen: **espandi** (in alto a destra della mappa in linea) per aprire la **mappa a schermo intero**; se un rilevamento era a fuoco, la mappa a schermo intero si apre centrata e ingrandita su quel rilevamento in modo da mantenere il proprio posto.
 
-La barra delle applicazioni della mappa a schermo intero ha un pulsante :material-filter-list-outlined: **filtro** che apre un foglio per limitare quali indicatori vengono mostrati. Filtri disponibili:
+#### Codifica degli indicatori
 
-- **Tutti i rilevamenti** (impostazione predefinita).
-- **Con clip audio**: solo i rilevamenti la cui clip è ancora su disco e riproducibile.
-- **Alta confidenza**: solo rilevamenti pari o superiori all'80% di confidenza.
-- **Aggiunte manuali**: solo i rilevamenti aggiunti in Session Review (esclusi quelli rilevati automaticamente).
+- **La confidenza è codificata per colore** con una palette sicura per i daltonici (CVD): la confidenza da bassa ad alta passa dal viola-blu al turchese/giallo al rosso. La luminosità della palette cambia in modo monotono, quindi rimane leggibile in monocromia e per gli utenti con deficienza visiva rosso-verde.
+- **I rilevamenti con audio** mostrano un anello colorato attorno alla foto della specie più un distintivo di riproduzione nell'angolo — toccali per riprodurre il clip registrato in un foglio.
+- **I rilevamenti silenziosi** (nessun clip su disco) vengono visualizzati più piccoli, sbiaditi e con un anello grigio neutro, in modo che i rilevamenti audio si leggano sempre come contenuto principale.
+- **Gli indicatori sovrapposti nello stesso punto** sono ordinati per importanza: evidenziato > con audio > maggiore confidenza, in modo che un indicatore silenzioso a bassa confidenza non possa mai oscurare un forte rilevamento audio.
+- **Al di sotto dello zoom 14,5** le sagome degradano a punti colorati dimensionati per confidenza e i cluster densi si comprimono in una bolla di conteggio (il clustering si disattiva allo zoom 15).
 
-Sotto il selettore della modalità c'è un selettore **Limiti alle specie** che ti consente di ridurre la mappa a una singola specie, utile per chiedere "dove esattamente lungo il percorso ho sentito il tordo selvatico?". Una voce *Tutte le specie* annulla la limitazione delle specie. I due filtri si combinano: ad es. *Con clip audio* + *Wood Thrush* mostra solo i segnalini Wood Thrush giocabili.
+#### Filtraggio
 
-Quando un filtro è attivo, il titolo della barra dell'app ottiene un sottotitolo per il conteggio delle corrispondenze (ad esempio *"7 rilevamenti"*) e il pulsante del filtro mostra un piccolo punto. *Reimposta* nel foglio ritorna ai valori predefiniti.
+La mappa a schermo intero ha un **chip di filtro** persistente ancorato in alto a destra. Toccalo per aprire il foglio dei filtri; l'etichetta del chip mostra sempre cosa è attualmente attivo (*«Tutte le specie»*, *«Con audio»*, *«≥ 80 %»* o il nome di una singola specie). Filtri disponibili:
+
+- **Tutti i rilevamenti** (predefinito).
+- **Con clip audio** — solo rilevamenti il cui clip è ancora su disco e riproducibile.
+- **Aggiunte manuali** — solo rilevamenti aggiunti in Revisione sessione (esclude quelli rilevati automaticamente).
+
+Puoi anche limitare i rilevamenti per livello di confidenza. Il cursore configura la soglia minima di confidenza (inizia al 10 %).
+
+Sotto il cursore di confidenza c'è un selettore **Limita alle specie** che ti permette di comprimere la mappa a una singola specie — utile per chiedere «dove esattamente lungo il percorso ho sentito il tordo dei boschi?». Una voce *Tutte le specie* cancella la restrizione di specie. I filtri si combinano: ad es. *Con clip audio* + *Tordo dei boschi* + *> 80 %* mostra solo gli indicatori riproducibili del Tordo dei boschi che hanno superato l'80 %.
+
+Quando un filtro è attivo, il titolo della barra dell'app ottiene un sottotitolo con il numero di corrispondenze (ad es. *«7 rilevamenti»*). *Reimposta* nel foglio torna al valore predefinito.
 
 ## Icone della barra degli strumenti
 

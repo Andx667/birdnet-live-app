@@ -25,18 +25,29 @@ Druhy jsou seskupeny do rozbalitelných řad. Detekce můžete prohlížet podle
 
 ### Mapa trasy průzkumu
 
-Průzkumné relace zobrazují malou inline mapu trasy GPS a detekční značky. Klepnutím na něj otevřete **mapu na celou obrazovku** se stejnými údaji.
+Průzkumné relace zobrazují malou inline mapu trasy GPS a detekční značky. Klepnutím na značku v inline mapě zaměříte detekci – mapa se na ni vycentruje. Klepnutím na tlačítko :material-fullscreen: **rozbalit** (vpravo nahoře v inline mapě) otevřete **mapu na celou obrazovku**; pokud byla detekce zaměřena, otevře se mapa vycentrovaná a přiblížená přímo na ni, takže neztratíte své místo.
 
-Lišta aplikací mapy na celou obrazovku má tlačítko :material-filter-list-outlined: **filtr**, které otevírá list pro omezení, které značky se mají zobrazovat. Dostupné filtry:
+#### Kódování značek
+
+- **Spolehlivost je barevně kódována** s paletou bezpečnou pro barvoslepost (CVD): nízká až vysoká spolehlivost přechází z fialovo-modré přes tyrkysovou/žlutou až k červené. Jas palety se mění monotónně, aby zůstala čitelná i v jednobarevném zobrazení a pro uživatele s poruchou rozlišování červené a zelené.
+- **Detekce se zvukem** mají kolem fotografie druhu barevný kruh a v rohu odznak přehrávání – klepnutím na ně přehrajete nahraný klip v listu.
+- **Tiché detekce** (bez klipu na disku) se vykreslují menší, vybledlé a s neutrálně šedým kruhem, takže detekce se zvukem vždy vyniknou jako primární obsah.
+- **Překrývající se značky na stejném místě** jsou vrstveny podle důležitosti: zvýrazněná > se zvukem > vyšší spolehlivost, takže tichá značka s nízkou spolehlivostí nikdy nemůže zakrýt silnou zvukovou detekci.
+- **Pod úrovní zoomu 14,5** se siluety degradují na barevné body s velikostí podle spolehlivosti a husté shluky se sbalují do bubliny s počtem (clustering se vypíná na zoomu 15).
+
+#### Filtrování
+
+Mapa na celou obrazovku má trvalý **filtrovací čip** ukotvený vpravo nahoře. Klepnutím na něj otevřete filtrovací list; popisek čipu vždy ukazuje, co je aktuálně aktivní (*„Všechny druhy“*, *„Se zvukem“*, *„≥ 80 %“* nebo název jednoho druhu). Dostupné filtry:
 
 - **Všechny detekce** (výchozí).
 - **Se zvukovým klipem** – pouze detekce, jejichž klip je stále na disku a lze jej přehrát.
-- **Vysoká spolehlivost** – pouze detekce s spolehlivostí 80 % nebo vyšší.
 - **Ruční přidání** – pouze detekce, které jste přidali v relace Review (kromě automaticky zjištěných).
 
-Pod výběrem režimu je výběr **Limit to species**, který vám umožní sbalit mapu na jeden druh – užitečné při otázce „kde přesně na trase jsem slyšel drozda lesního?“. Položka *Všechny druhy* ruší omezení druhu. Oba filtry se kombinují: např. *Se zvukovým klipem* + *Wood Thrush* zobrazuje pouze hratelné značky drozda lesního.
+Detekce můžete také omezit podle úrovně spolehlivosti. Posuvník nastavuje minimální spolehlivost (začíná na 10 %).
 
-Když je filtr aktivní, název lišty aplikace získá titulek s počtem shod (např. *"7 detekcí"*) a na tlačítku filtru se zobrazí malá tečka. *Reset* v listu se vrátí na výchozí.
+Pod posuvníkem spolehlivosti je výběr **Limit to species**, který vám umožní sbalit mapu na jeden druh – užitečné při otázce „kde přesně na trase jsem slyšel drozda lesního?“. Položka *Všechny druhy* ruší omezení druhu. Filtry se kombinují: např. *Se zvukovým klipem* + *Wood Thrush* + *> 80 %* zobrazuje pouze hratelné značky drozda lesního, které dosáhly více než 80 %.
+
+Když je filtr aktivní, název lišty aplikace získá titulek s počtem shod (např. *„7 detekcí“*). *Reset* v listu se vrátí na výchozí.
 
 ## Ikony lišty nástrojů
 

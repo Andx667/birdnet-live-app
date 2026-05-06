@@ -25,18 +25,29 @@ Arten werden in erweiterbaren Reihen gruppiert. Sie können Erkennungen nach Art
 
 ### Vermessungs-Streckenkarte
 
-Bei Umfragesitzungen wird eine kleine Inline-Karte des GPS-Tracks und der Erkennungsmarkierungen angezeigt. Tippen Sie darauf, um eine **Vollbildkarte** mit denselben Daten zu öffnen.
+Bei Umfragesitzungen wird eine kleine Inline-Karte des GPS-Tracks und der Erkennungsmarkierungen angezeigt. Tippen Sie auf der Inline-Karte auf eine Markierung, um eine Erkennung zu fokussieren – die Karte zentriert sich darauf. Tippen Sie auf die :material-fullscreen: **Vergrößern**-Schaltfläche (oben rechts auf der Inline-Karte), um die **Vollbildkarte** zu öffnen; wenn eine Erkennung fokussiert war, öffnet sich die Vollbildkarte zentriert und herangezoomt auf diese Erkennung, sodass Sie Ihren Platz behalten.
 
-Die App-Leiste der Vollbildkarte verfügt über eine :material-filter-list-outlined: **Filter**-Schaltfläche, die ein Blatt zum Einschränken der angezeigten Markierungen öffnet. Verfügbare Filter:
+#### Markierungs-Kodierung
+
+- **Konfidenz wird farbcodiert** mit einer farbenblindheitssicheren (CVD) Skala: Niedrige bis hohe Konfidenz verläuft von Lila-Blau über Türkis/Gelb bis Rot. Die Helligkeit der Skala ändert sich monoton, sodass sie auch in Schwarzweiß und für Nutzer mit Rot-Grün-Sehschwäche lesbar bleibt.
+- **Erkennungen mit Audio** zeigen einen farbigen Ring um das Artenfoto plus ein Wiedergabe-Abzeichen in der Ecke – tippen Sie darauf, um den aufgezeichneten Clip in einem Blatt abzuspielen.
+- **Stille Erkennungen** (kein Clip auf der Festplatte) werden kleiner, ausgeblichen und mit einem neutral-grauen Ring dargestellt, damit Audio-Erkennungen immer als Hauptinhalt erkennbar sind.
+- **Überlappende Markierungen am gleichen Ort** werden nach Wichtigkeit z-geordnet: hervorgehoben > mit Audio > höhere Konfidenz, sodass eine stille Markierung mit niedriger Konfidenz nie eine starke Audio-Erkennung verdecken kann.
+- **Unterhalb von Zoomstufe 14,5** werden Silhouetten zu farbigen, nach Konfidenz dimensionierten Punkten reduziert, und dichte Cluster werden zu einer Zählblase zusammengefasst (Clustering wird ab Zoomstufe 15 deaktiviert).
+
+#### Filterung
+
+Die Vollbildkarte hat einen permanenten **Filter-Chip**, oben rechts auf der Karte verankert. Tippen Sie darauf, um das Filterblatt zu öffnen; das Label des Chips zeigt immer an, was aktuell aktiv ist (*„Alle Arten“*, *„Mit Audio“*, *„≥ 80 %“* oder ein einzelner Artname). Verfügbare Filter:
 
 - **Alle Erkennungen** (Standard).
 - **Mit Audioclip** – nur Erkennungen, deren Clip noch auf der Festplatte vorhanden und abspielbar ist.
-- **Hohe Konfidenz** – nur Erkennungen mit einer Konfidenz von oder über 80 %.
 - **Manuelle Hinzufügungen** – nur Erkennungen, die Sie in der Sitzungsüberprüfung hinzugefügt haben (automatisch erkannte ausgenommen).
 
-Unterhalb der Modusauswahl befindet sich die Option **Auf Arten beschränken**, mit der Sie die Karte auf eine einzelne Art reduzieren können – nützlich, wenn Sie fragen möchten: „Wo genau auf der Route habe ich die Walddrossel gehört?“. Durch den Eintrag „Alle Arten“ wird die Artenbeschränkung aufgehoben. Die beiden Filter kombinieren: z.B. *Mit Audioclip* + *Wood Thrush* zeigt nur die spielbaren Wood Thrush-Markierungen.
+Sie können Erkennungen außerdem nach Konfidenzniveau einschränken. Der Schieberegler stellt die Mindestkonfidenz ein (beginnt bei 10 %).
 
-Wenn ein Filter aktiv ist, erhält der Titel der App-Leiste einen Untertitel mit Übereinstimmungsanzahl (z. B. *„7 Erkennungen“*) und auf der Filterschaltfläche wird ein kleiner Punkt angezeigt. *Zurücksetzen* im Blatt stellt den Standardwert wieder her.
+Unterhalb des Konfidenz-Schiebereglers befindet sich die Option **Auf Arten beschränken**, mit der Sie die Karte auf eine einzelne Art reduzieren können – nützlich, wenn Sie fragen möchten: „Wo genau auf der Route habe ich die Walddrossel gehört?“. Durch den Eintrag *Alle Arten* wird die Artenbeschränkung aufgehoben. Die Filter kombinieren: z. B. *Mit Audioclip* + *Wood Thrush* + *> 80 %* zeigt nur die spielbaren Wood-Thrush-Markierungen, die über 80 % erreicht haben.
+
+Wenn ein Filter aktiv ist, erhält der Titel der App-Leiste einen Untertitel mit Übereinstimmungsanzahl (z. B. *„7 Erkennungen“*). *Zurücksetzen* im Blatt stellt den Standardwert wieder her.
 
 ## Symbolleistensymbole
 

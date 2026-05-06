@@ -25,18 +25,29 @@ Les espèces sont regroupées en lignes extensibles. Vous pouvez inspecter les d
 
 ### Carte des pistes d'enquête
 
-Les sessions d'enquête affichent une petite carte en ligne de la trace GPS et des marqueurs de détection. Appuyez dessus pour ouvrir une **carte plein écran** avec les mêmes données.
+Les sessions d'enquête affichent une petite carte en ligne de la trace GPS et des marqueurs de détection. Appuyez sur un marqueur dans la carte en ligne pour mettre une détection au point — la carte se centre dessus. Appuyez sur le bouton :material-fullscreen: **agrandir** (en haut à droite de la carte en ligne) pour ouvrir la **carte plein écran** ; si une détection était au point, la carte plein écran s'ouvre centrée et zoomée sur cette détection afin que vous gardiez votre place.
 
-La barre d'application de la carte plein écran comporte un bouton :material-filter-list-outlined: **filter** qui ouvre une feuille pour restreindre les marqueurs à afficher. Filtres disponibles :
+#### Codage des marqueurs
+
+- **La confiance est codée par couleur** avec une palette sûre pour les daltoniens (CVD) : la confiance basse à élevée passe du violet-bleu au turquoise/jaune puis au rouge. La luminosité de la palette varie de manière monotone, elle reste donc lisible en monochrome et pour les utilisateurs souffrant d'une déficience de la vision rouge-verte.
+- **Les détections avec audio** affichent un anneau coloré autour de la photo de l'espèce ainsi qu'un badge de lecture dans le coin — appuyez dessus pour lire le clip enregistré dans une feuille.
+- **Les détections silencieuses** (pas de clip sur le disque) sont rendues plus petites, atténuées et avec un anneau gris neutre, afin que les détections audio soient toujours perçues comme le contenu principal.
+- **Les marqueurs qui se chevauchent au même endroit** sont empilés par importance : surligné > avec audio > confiance plus élevée, de sorte qu'un marqueur silencieux à faible confiance ne peut jamais masquer une détection audio forte.
+- **En dessous du zoom 14,5**, les silhouettes se dégradent en points colorés dimensionnés selon la confiance, et les amas denses se replient en bulles de comptage (le clustering se désactive au zoom 15).
+
+#### Filtrage
+
+La carte plein écran possède une **puce de filtre** persistante ancrée en haut à droite. Appuyez dessus pour ouvrir la feuille de filtres ; l'étiquette de la puce indique toujours ce qui est actif (*« Toutes les espèces »*, *« Avec audio »*, *« ≥ 80 % »* ou un nom d'espèce unique). Filtres disponibles :
 
 - **Toutes les détections** (par défaut).
 - **Avec clip audio** — uniquement les détections dont le clip est toujours sur le disque et lisible.
-- **Confiance élevée** – uniquement les détections égales ou supérieures à 80 % de confiance.
 - **Ajouts manuels** — uniquement les détections que vous avez ajoutées dans Session Review (à l'exclusion de celles détectées automatiquement).
 
-Sous le sélecteur de mode se trouve un sélecteur **Limite aux espèces** qui vous permet de réduire la carte à une seule espèce — utile pour demander « où exactement le long de l'itinéraire ai-je entendu la grive des bois ? ». Une entrée *Toutes les espèces* efface la restriction d'espèce. Les deux filtres se combinent : par ex. *Avec clip audio* + *Grive des bois* affiche uniquement les marqueurs jouables de la Grive des bois.
+Vous pouvez également restreindre les détections par niveau de confiance. Le curseur configure le seuil minimum de confiance (commence à 10 %).
 
-Lorsqu'un filtre est actif, le titre de la barre d'application obtient un sous-titre correspondant au nombre de correspondances (par exemple *"7 détections"*) et le bouton de filtre affiche un petit point. *Réinitialiser* dans la feuille revient à la valeur par défaut.
+Sous le curseur de confiance se trouve un sélecteur **Limite aux espèces** qui vous permet de réduire la carte à une seule espèce — utile pour demander « où exactement le long de l'itinéraire ai-je entendu la grive des bois ? ». Une entrée *Toutes les espèces* efface la restriction d'espèce. Les filtres se combinent : par ex. *Avec clip audio* + *Grive des bois* + *> 80 %* affiche uniquement les marqueurs jouables de la Grive des bois ayant dépassé 80 %.
+
+Lorsqu'un filtre est actif, le titre de la barre d'application obtient un sous-titre correspondant au nombre de correspondances (par exemple *« 7 détections »*). *Réinitialiser* dans la feuille revient à la valeur par défaut.
 
 ## Icônes de la barre d'outils
 
