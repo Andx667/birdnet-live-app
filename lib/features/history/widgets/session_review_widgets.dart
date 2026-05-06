@@ -613,6 +613,7 @@ class _SpeciesTile extends ConsumerWidget {
     required this.onSeekCluster,
     required this.onDeleteCluster,
     required this.onReplaceCluster,
+    required this.onToggleConfirmCluster,
     this.activePositionSec,
     this.activeCluster,
     this.onPause,
@@ -654,6 +655,9 @@ class _SpeciesTile extends ConsumerWidget {
   final ValueChanged<_DetectionCluster> onSeekCluster;
   final ValueChanged<_DetectionCluster> onDeleteCluster;
   final ValueChanged<_DetectionCluster> onReplaceCluster;
+
+  /// Toggle the confirmed state of every record in a cluster.
+  final ValueChanged<_DetectionCluster> onToggleConfirmCluster;
   final ValueChanged<DetectionRecord>? onShowOnMap;
 
   /// Called when the user taps the play affordance on a row that is
@@ -814,6 +818,15 @@ class _SpeciesTile extends ConsumerWidget {
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
+                            if (group.allRecords.any((r) => r.isConfirmed))
+                              Padding(
+                                padding: const EdgeInsets.only(left: 4),
+                                child: Icon(
+                                  Icons.check_circle,
+                                  size: 14,
+                                  color: Colors.green.shade600,
+                                ),
+                              ),
                             if (group.totalCount > 1)
                               Container(
                                 margin: const EdgeInsets.only(left: 6),
@@ -902,6 +915,7 @@ class _SpeciesTile extends ConsumerWidget {
                       onPause: onPause,
                       onDelete: () => onDeleteCluster(cluster),
                       onReplace: () => onReplaceCluster(cluster),
+                      onToggleConfirm: () => onToggleConfirmCluster(cluster),
                       isSurvey: isSurvey,
                       audioAvailable: audioAvailable,
                       onShowOnMap:
@@ -967,6 +981,7 @@ class _ClusterRow extends ConsumerWidget {
     required this.onSeek,
     required this.onDelete,
     required this.onReplace,
+    required this.onToggleConfirm,
     this.onPause,
     this.clipOffsetSec = 0.0,
     this.windowSec = 3,
@@ -981,6 +996,11 @@ class _ClusterRow extends ConsumerWidget {
   final VoidCallback onSeek;
   final VoidCallback onDelete;
   final VoidCallback onReplace;
+
+  /// Toggles the confirmed state of every record in this cluster. The
+  /// host screen owns the actual mutation and persistence; the row only
+  /// reports user intent so it stays a pure presentational widget.
+  final VoidCallback onToggleConfirm;
 
   /// Pause callback used when this row is currently being played. When
   /// `null`, an active row continues to behave like a re-seek.
@@ -1105,6 +1125,35 @@ class _ClusterRow extends ConsumerWidget {
                   ),
                 ),
               ),
+            Builder(
+              builder: (context) {
+                final l10n = AppLocalizations.of(context)!;
+                final confirmed = cluster.records.any((r) => r.isConfirmed);
+                return Tooltip(
+                  message:
+                      confirmed
+                          ? l10n.detectionUnconfirmTooltip
+                          : l10n.detectionConfirmTooltip,
+                  child: InkWell(
+                    onTap: onToggleConfirm,
+                    borderRadius: BorderRadius.circular(24),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Icon(
+                        confirmed
+                            ? Icons.check_circle
+                            : Icons.check_circle_outline,
+                        size: 24,
+                        color:
+                            confirmed
+                                ? Colors.green.shade600
+                                : theme.colorScheme.onSurface.withAlpha(100),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
             InkWell(
               onTap: onReplace,
               borderRadius: BorderRadius.circular(24),

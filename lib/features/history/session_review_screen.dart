@@ -171,6 +171,12 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
   /// Detection highlighted on the map (set by tapping a species/cluster).
   DetectionRecord? _highlightedDetection;
 
+  /// When `true`, the species list shows only species that have at least
+  /// one confirmed detection. Toggled from the AppBar action; not
+  /// persisted across screen lifetimes — every fresh review starts with
+  /// the full list visible.
+  bool _confirmedOnly = false;
+
   /// Current visible map bounds (updated by camera move callback).
   /// When non-null, the species list is filtered to only show detections
   /// within these bounds.
@@ -1078,17 +1084,43 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
 
   /// Filter species groups to only include detections visible on the map.
   List<_SpeciesGroup> get _filteredSpeciesGroups {
-    if (widget.session.type != SessionType.survey ||
-        _visibleMapBounds == null) {
-      return _speciesGroups;
+    var groups = _speciesGroups;
+    if (widget.session.type == SessionType.survey &&
+        _visibleMapBounds != null) {
+      final bounds = _visibleMapBounds!;
+      final visible =
+          _detections.where((d) {
+            if (d.latitude == null || d.longitude == null) return true;
+            return bounds.contains(LatLng(d.latitude!, d.longitude!));
+          }).toList();
+      groups = _buildSpeciesGroups(
+        visible,
+        widget.session.settings.windowDuration,
+      );
     }
-    final bounds = _visibleMapBounds!;
-    final visible =
-        _detections.where((d) {
-          if (d.latitude == null || d.longitude == null) return true;
-          return bounds.contains(LatLng(d.latitude!, d.longitude!));
-        }).toList();
-    return _buildSpeciesGroups(visible, widget.session.settings.windowDuration);
+    if (_confirmedOnly) {
+      groups =
+          groups
+              .where((g) => g.allRecords.any((r) => r.isConfirmed))
+              .toList();
+    }
+    return groups;
+  }
+
+  /// Toggle the confirmed flag on every record in [cluster]. The new
+  /// state is determined by the cluster as a whole: if any record is
+  /// already confirmed, the action clears confirmation across the
+  /// cluster; otherwise it stamps every record with the same confirmation
+  /// timestamp so they group cleanly in exports.
+  void _toggleClusterConfirmation(_DetectionCluster cluster) {
+    final anyConfirmed = cluster.records.any((r) => r.isConfirmed);
+    final stamp = anyConfirmed ? null : DateTime.now().toUtc();
+    setState(() {
+      for (final r in cluster.records) {
+        r.confirmedAt = stamp;
+      }
+      _isDirty = true;
+    });
   }
 
   Future<void> _confirmDeleteDetection(
@@ -1431,6 +1463,23 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
             },
           ),
           actions: [
+            IconButton(
+              icon: Icon(
+                _confirmedOnly
+                    ? Icons.check_circle
+                    : Icons.check_circle_outline,
+                color:
+                    _confirmedOnly
+                        ? Colors.green.shade600
+                        : null,
+              ),
+              tooltip:
+                  _confirmedOnly
+                      ? l10n.sessionFilterShowAll
+                      : l10n.sessionFilterConfirmedOnly,
+              onPressed:
+                  () => setState(() => _confirmedOnly = !_confirmedOnly),
+            ),
             IconButton(
               icon: const Icon(Icons.help_outline),
               tooltip: l10n.sessionHelpTitle,
@@ -1802,6 +1851,7 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
           onPause: _pausePlayer,
           onDeleteCluster: (cluster) => _confirmDeleteDetection(group, cluster),
           onReplaceCluster: _replaceDetection,
+          onToggleConfirmCluster: _toggleClusterConfirmation,
           onShowOnMap: _showDetectionOnMap,
         );
       },

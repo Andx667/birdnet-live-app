@@ -675,6 +675,22 @@
   "@sessionRemove": {
     "description": "Remove button label"
   },
+  "detectionConfirmTooltip": "Mark as confirmed",
+  "@detectionConfirmTooltip": {
+    "description": "Tooltip on the per-detection confirm icon when the detection is not yet confirmed"
+  },
+  "detectionUnconfirmTooltip": "Remove confirmation",
+  "@detectionUnconfirmTooltip": {
+    "description": "Tooltip on the per-detection confirm icon when the detection is already confirmed"
+  },
+  "sessionFilterConfirmedOnly": "Show confirmed only",
+  "@sessionFilterConfirmedOnly": {
+    "description": "AppBar action tooltip on session review for filtering the species list to only confirmed detections"
+  },
+  "sessionFilterShowAll": "Show all detections",
+  "@sessionFilterShowAll": {
+    "description": "AppBar action tooltip on session review when the confirmed-only filter is active, restoring the full list"
+  },
   "sessionSave": "Save",
   "@sessionSave": {
     "description": "Save session button label"

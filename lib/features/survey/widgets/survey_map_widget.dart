@@ -302,6 +302,7 @@ class _SurveyMapWidgetState extends ConsumerState<SurveyMapWidget> {
               isHighlighted: isHighlighted,
               hasAudio: hasAudio,
               useDot: useDot,
+              isConfirmed: det.isConfirmed,
             ),
           ),
         ),
@@ -546,12 +547,19 @@ class _SpeciesMarker extends ConsumerWidget {
     this.isHighlighted = false,
     this.hasAudio = false,
     this.useDot = false,
+    this.isConfirmed = false,
   });
 
   final String scientificName;
   final double confidence;
   final bool isHighlighted;
   final bool hasAudio;
+
+  /// When true, overlay a small green checkmark badge on the marker so
+  /// reviewer-confirmed detections stand out at a glance on the survey
+  /// track. The badge is anchored top-left so it does not collide with
+  /// the existing audio play badge in the bottom-right corner.
+  final bool isConfirmed;
 
   /// When true, render as a solid colored dot sized by score instead of the
   /// species silhouette. Used at low zoom where the silhouette collapses to
@@ -695,7 +703,10 @@ class _SpeciesMarker extends ConsumerWidget {
       // on the species photo's natural hue \u2014 a desaturated photo of a
       // grey-plumaged bird could otherwise be mistaken for an audio marker
       // whose colored border just happens to be subtle.
-      return Opacity(opacity: 0.6, child: avatar);
+      return _withConfirmedBadge(
+        Opacity(opacity: 0.6, child: avatar),
+        size: size,
+      );
     }
 
     // Audio-bearing markers get a single affordance: a play badge anchored
@@ -707,23 +718,74 @@ class _SpeciesMarker extends ConsumerWidget {
     final badgeSize = (size * 0.55).clamp(14.0, 22.0);
     final badgeOffset = badgeSize * 0.25;
 
+    return _withConfirmedBadge(
+      SizedBox(
+        width: size + badgeOffset,
+        height: size + badgeOffset,
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
+          children: [
+            Center(child: avatar),
+            // Play badge anchored to the avatar's bottom-right.
+            Positioned(
+              right: 0,
+              bottom: 0,
+              child: Container(
+                width: badgeSize,
+                height: badgeSize,
+                decoration: BoxDecoration(
+                  color: badgeColor,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 1.5),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withAlpha(80),
+                      blurRadius: 3,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  Icons.play_arrow_rounded,
+                  size: badgeSize * 0.85,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      size: size,
+    );
+  }
+
+  /// Overlay a green check-circle badge on the marker's top-left when
+  /// the underlying detection has been confirmed by a reviewer. The
+  /// badge is anchored opposite the audio play badge so the two never
+  /// collide. Returns [child] unchanged when the marker is not
+  /// confirmed so we don't introduce a layout overhead for the common
+  /// case.
+  Widget _withConfirmedBadge(Widget child, {required double size}) {
+    if (!isConfirmed) return child;
+    final badgeSize = (size * 0.45).clamp(12.0, 18.0);
+    final pad = badgeSize * 0.25;
     return SizedBox(
-      width: size + badgeOffset,
-      height: size + badgeOffset,
+      width: size + pad * 2,
+      height: size + pad * 2,
       child: Stack(
         clipBehavior: Clip.none,
         alignment: Alignment.center,
         children: [
-          Center(child: avatar),
-          // Play badge anchored to the avatar's bottom-right.
+          Center(child: child),
           Positioned(
-            right: 0,
-            bottom: 0,
+            left: 0,
+            top: 0,
             child: Container(
               width: badgeSize,
               height: badgeSize,
               decoration: BoxDecoration(
-                color: badgeColor,
+                color: Colors.green.shade600,
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.white, width: 1.5),
                 boxShadow: [
@@ -735,7 +797,7 @@ class _SpeciesMarker extends ConsumerWidget {
                 ],
               ),
               child: Icon(
-                Icons.play_arrow_rounded,
+                Icons.check_rounded,
                 size: badgeSize * 0.85,
                 color: Colors.white,
               ),
