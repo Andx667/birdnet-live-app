@@ -1089,6 +1089,15 @@ class _ClusterRow extends ConsumerWidget {
     final timeStr = startStr == endStr ? startStr : '$startStr \u2013 $endStr';
     final l10n = AppLocalizations.of(context)!;
     final confirmed = cluster.records.any((r) => r.isConfirmed);
+    // A cluster is "manual" when every record was added by hand. We
+    // surface that by replacing the play button with the same edit-note
+    // glyph already shown on species headers, so reviewers can tell at
+    // a glance which rows came from a tap rather than the model.
+    final isManual = cluster.records.every(
+      (r) =>
+          r.source == DetectionSource.manual ||
+          r.source == DetectionSource.manualGlobal,
+    );
 
     final row = AnimatedContainer(
       duration: const Duration(milliseconds: 300),
@@ -1105,7 +1114,19 @@ class _ClusterRow extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
         child: Row(
           children: [
-            if (audioAvailable || cluster.hasAudioClip)
+            if (isManual)
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Tooltip(
+                  message: l10n.detectionSourceManual,
+                  child: Icon(
+                    Icons.edit_note,
+                    size: 24,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+              )
+            else if (audioAvailable || cluster.hasAudioClip)
               InkWell(
                 onTap: isActive && onPause != null ? onPause : onSeek,
                 borderRadius: BorderRadius.circular(24),

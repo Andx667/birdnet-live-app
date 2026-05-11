@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Species search and sort on the Session Review screen.** A sticky search field above the species list filters by common or scientific name (locale-aware), so finding a specific species in a 100-species session is a few keystrokes instead of a long scroll. A new sort menu offers four orderings: A → Z (the new default — first-detection order becomes hard to scan once a session has lots of species), Most detections, Highest confidence, and First detected (the historical default, kept for users who want it). The chosen sort persists across sessions via `SharedPreferences`. Manual swipe-to-delete on the live survey detection list is unchanged. (#33)
+- **Manual-detection indicator on detection rows.** Detection rows in Session Review whose records were all added by hand now display the same edit-note glyph already used on species headers in place of the play button, so reviewers can tell at a glance which rows came from a tap rather than from the model. (#33)
 
 ### Changed
 
