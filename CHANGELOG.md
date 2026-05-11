@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Compact view rows expand in place.** In the compact Session Library view, the trailing trash icon has been replaced by an expand affordance. Tapping it expands the row in-place to the full detailed-view card body — top species, duration, species count, detection count, size — without leaving the list or losing scroll position. The same overflow menu and swipe-to-delete gesture are available on the expanded card. (#33)
+- **Pinch-to-zoom on the Session Review spectrogram.** The playback spectrogram strip now responds to pinch gestures: spread to zoom in for fine timing inspection, pinch to zoom back out to the 10-second overview. Single-finger pan still scrubs the timeline, tap-to-seek still works, and the time-axis labels automatically retighten as you zoom so they stay legible. (#33)
+
+### Fixed
+
+- **Species play button no longer hides when the first cluster lacks audio.** The play button on a species header was previously gated on the very first cluster having an audio clip. In sessions where the earliest detection happened to lack a clip but later detections had one, the play button incorrectly disappeared. It now appears whenever any cluster has audio, and seeks to the first playable cluster. (#33)
 
 ## [0.10.4] - 2026-05-12
 

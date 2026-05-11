@@ -334,6 +334,21 @@ class _SpectrogramStripState extends State<_SpectrogramStrip>
 
   double get _viewCenterSec => _pannedCenterSec ?? _interpolatedPositionSec;
 
+  /// Width (in seconds of audio) currently visible in the spectrogram.
+  /// Pinch-to-zoom shrinks this for detail and spreads expand it back
+  /// toward the default 10 s overview. Bounded so the painter never tries
+  /// to render a sub-sample slice or more than the whole clip.
+  double _viewSeconds = _defaultViewSeconds;
+
+  /// Captured at the start of a scale gesture so single-finger pans and
+  /// two-finger pinches both compose smoothly without integrating drift.
+  double? _scaleStartViewSeconds;
+  double? _scaleStartCenterSec;
+
+  static const double _defaultViewSeconds = 10.0;
+  static const double _minViewSeconds = 1.0;
+  static const double _maxViewSeconds = 60.0;
+
   @override
   void initState() {
     super.initState();
@@ -411,7 +426,8 @@ class _SpectrogramStripState extends State<_SpectrogramStrip>
 
     return GestureDetector(
       onTapDown: _handleTap,
-      onHorizontalDragUpdate: _handleDrag,
+      onScaleStart: _handleScaleStart,
+      onScaleUpdate: _handleScaleUpdate,
       child: Container(
         height: 150,
         color: Colors.black,
@@ -420,6 +436,7 @@ class _SpectrogramStripState extends State<_SpectrogramStrip>
             spectrogramImage: widget.spectrogramImage!,
             centerSec: _viewCenterSec,
             durationSec: widget.duration.inMicroseconds / 1000000.0,
+            viewSeconds: _viewSeconds,
             colorScheme: theme.colorScheme,
           ),
           size: const Size(double.infinity, 150),
@@ -431,7 +448,7 @@ class _SpectrogramStripState extends State<_SpectrogramStrip>
   void _handleTap(TapDownDetails details) {
     final box = context.findRenderObject() as RenderBox?;
     if (box == null || widget.duration == Duration.zero) return;
-    const viewSeconds = _ReviewSpectrogramPainter._viewSeconds;
+    final viewSeconds = _viewSeconds;
     final startSec = _viewCenterSec - viewSeconds / 2;
     final fraction = details.localPosition.dx / box.size.width;
     final targetSec = startSec + fraction * viewSeconds;
@@ -443,21 +460,50 @@ class _SpectrogramStripState extends State<_SpectrogramStrip>
     setState(() => _pannedCenterSec = null);
   }
 
-  void _handleDrag(DragUpdateDetails details) {
-    final box = context.findRenderObject() as RenderBox?;
-    if (box == null) return;
-    final secPerPixel = _ReviewSpectrogramPainter._viewSeconds / box.size.width;
-    final durationSec = widget.duration.inMicroseconds / 1000000.0;
-
-    // Pause playback on first drag gesture.
-    if (widget.isPlaying && _pannedCenterSec == null) {
+  void _handleScaleStart(ScaleStartDetails details) {
+    // Pause playback the moment the user touches the spectrogram so that
+    // the panned/zoomed view doesn't fight against the auto-scrolling
+    // playhead. Resume happens via the regular play button.
+    if (widget.isPlaying) {
       widget.onPause();
     }
+    _scaleStartViewSeconds = _viewSeconds;
+    _scaleStartCenterSec =
+        _pannedCenterSec ?? widget.position.inMicroseconds / 1000000.0;
+  }
+
+  void _handleScaleUpdate(ScaleUpdateDetails details) {
+    final box = context.findRenderObject() as RenderBox?;
+    if (box == null) return;
+    final durationSec = widget.duration.inMicroseconds / 1000000.0;
+    if (durationSec <= 0) return;
+
+    final startView = _scaleStartViewSeconds ?? _viewSeconds;
+    final startCenter =
+        _scaleStartCenterSec ?? widget.position.inMicroseconds / 1000000.0;
+
+    // Two-finger pinch updates the visible time window. Single-finger
+    // drags arrive here too with scale == 1.0, so we still get pan.
+    final newView = ((startView / details.scale).clamp(
+      _minViewSeconds,
+      math.min(_maxViewSeconds, math.max(durationSec, _minViewSeconds)),
+    )).toDouble();
+
+    // focalPointDelta is in pixels relative to the gesture start; convert
+    // through the *current* view width so panning feels right at any zoom.
+    final secPerPixel = newView / box.size.width;
+    final newCenter =
+        (startCenter - details.focalPointDelta.dx * secPerPixel)
+            .clamp(0.0, durationSec)
+            .toDouble();
 
     setState(() {
-      _pannedCenterSec ??= widget.position.inMicroseconds / 1000000.0;
-      _pannedCenterSec = (_pannedCenterSec! - details.delta.dx * secPerPixel)
-          .clamp(0.0, durationSec);
+      _viewSeconds = newView;
+      _pannedCenterSec = newCenter;
+      // Keep the start anchors in sync with the running pan so a long
+      // single-finger drag doesn't accumulate rounding error.
+      _scaleStartViewSeconds = newView;
+      _scaleStartCenterSec = newCenter;
     });
   }
 }
@@ -476,16 +522,18 @@ class _ReviewSpectrogramPainter extends CustomPainter {
     required this.spectrogramImage,
     required this.centerSec,
     required this.durationSec,
+    required this.viewSeconds,
     required this.colorScheme,
   });
 
   final ui.Image spectrogramImage;
   final double centerSec;
   final double durationSec;
+  /// How many seconds of audio the widget viewport currently shows.
+  /// Lives on the painter (instead of being a const) so pinch-zoom can
+  /// drive it from the parent state.
+  final double viewSeconds;
   final ColorScheme colorScheme;
-
-  /// How many seconds of audio the widget viewport shows.
-  static const double _viewSeconds = 10.0;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -497,18 +545,18 @@ class _ReviewSpectrogramPainter extends CustomPainter {
     // Derive pixel mapping from image width and player duration.
     final pxPerSec = imgW / durationSec;
 
-    final startSec = centerSec - _viewSeconds / 2;
-    final endSec = centerSec + _viewSeconds / 2;
+    final startSec = centerSec - viewSeconds / 2;
+    final endSec = centerSec + viewSeconds / 2;
 
     // Convert time to image pixel x.
     final srcX1 = (startSec * pxPerSec).clamp(0.0, imgW);
     final srcX2 = (endSec * pxPerSec).clamp(0.0, imgW);
 
     // Destination x: offset when the view extends before/after the image.
-    final dstX1 = startSec < 0 ? (-startSec / _viewSeconds * size.width) : 0.0;
+    final dstX1 = startSec < 0 ? (-startSec / viewSeconds * size.width) : 0.0;
     final dstX2 =
         endSec > durationSec
-            ? size.width - ((endSec - durationSec) / _viewSeconds * size.width)
+            ? size.width - ((endSec - durationSec) / viewSeconds * size.width)
             : size.width;
 
     if (srcX2 > srcX1 && dstX2 > dstX1) {
@@ -530,14 +578,17 @@ class _ReviewSpectrogramPainter extends CustomPainter {
     );
 
     // ── Time labels ───────────────────────────────────────────────────
-    final pxPerSecScreen = size.width / _viewSeconds;
+    final pxPerSecScreen = size.width / viewSeconds;
     final textStyle = TextStyle(
       color: Colors.white.withAlpha(180),
       fontSize: 9,
     );
     final tp = TextPainter(textDirection: ui.TextDirection.ltr);
-    final firstLabel = ((startSec / 2).ceil() * 2).toDouble();
-    for (var t = firstLabel; t < endSec; t += 2) {
+    // Step labels every ~2s at default zoom; tighten/loosen with zoom so
+    // we never crowd the axis at high zoom or hide it at low zoom.
+    final labelStepSec = _niceLabelStep(viewSeconds);
+    final firstLabel = ((startSec / labelStepSec).ceil() * labelStepSec);
+    for (var t = firstLabel; t < endSec; t += labelStepSec) {
       if (t < 0) continue;
       final x = (t - startSec) * pxPerSecScreen;
       if (x < 0 || x > size.width - 30) continue;
@@ -558,10 +609,21 @@ class _ReviewSpectrogramPainter extends CustomPainter {
     return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
   }
 
+  /// Pick a label cadence that keeps ~5 ticks across the viewport.
+  static double _niceLabelStep(double viewSeconds) {
+    const targetTicks = 5;
+    final raw = viewSeconds / targetTicks;
+    for (final step in const [0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 30, 60]) {
+      if (raw <= step) return step.toDouble();
+    }
+    return 60.0;
+  }
+
   @override
   bool shouldRepaint(covariant _ReviewSpectrogramPainter old) {
     return old.centerSec != centerSec ||
         old.durationSec != durationSec ||
+        old.viewSeconds != viewSeconds ||
         !identical(old.spectrogramImage, spectrogramImage);
   }
 }
@@ -741,17 +803,28 @@ class _SpeciesTile extends ConsumerWidget {
                 ),
                 child: Row(
                   children: [
-                    // Seek to first detection (or just show offset if no audio).
+                    // Seek to the first cluster that actually has audio (or
+                    // fall back to the first cluster when whole-session audio
+                    // is available). The previous logic only checked the
+                    // first cluster, so the play button vanished whenever the
+                    // earliest detection happened to lack a clip — even if
+                    // every later cluster had one.
                     // When the species tile is currently being played and a
                     // pause callback is wired up, the same button doubles as a
                     // pause control so users can cancel playback.
-                    if (audioAvailable || group.clusters.first.hasAudioClip)
+                    if (audioAvailable ||
+                        group.clusters.any((c) => c.hasAudioClip))
                       InkWell(
                         onTap:
                             () =>
                                 isActive && onPause != null
                                     ? onPause!()
-                                    : onSeekCluster(group.clusters.first),
+                                    : onSeekCluster(
+                                      group.clusters.firstWhere(
+                                        (c) => c.hasAudioClip,
+                                        orElse: () => group.clusters.first,
+                                      ),
+                                    ),
                         borderRadius: BorderRadius.circular(16),
                         child: Container(
                           width: 48,

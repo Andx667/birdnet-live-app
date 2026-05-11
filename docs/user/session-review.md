@@ -19,6 +19,8 @@ You can also reopen any saved session from [Session Library](session-library.md)
 
 Session Review combines playback, spectrogram navigation, and a species list. For survey sessions it can also show mapped context.
 
+The spectrogram strip above the player is interactive: tap to seek, drag with one finger to scrub the timeline, and **pinch with two fingers to zoom in** on a narrow time window — useful when you want to inspect the timing of overlapping calls or pick apart a fast trill. Spread back out to return to the default 10-second overview. The play button on a species header always picks the first cluster that actually has a recorded clip, so the button is available whenever any of that species' detections are playable.
+
 ### Species list
 
 Species are grouped into expandable rows. You can inspect detections by species and move through the recording while reviewing them. Cluster rows under an expanded species are indented so the parent species card stays visually distinct from its children.
