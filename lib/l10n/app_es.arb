@@ -163,6 +163,8 @@
   "detectionConfirmTooltip": "Marcar como confirmada",
   "detectionUnconfirmTooltip": "Quitar confirmación",
   "detectionShareTooltip": "Compartir detección",
+  "detectionActionsTooltip": "Más acciones",
+  "detectionDeleteTooltip": "Eliminar detección",
   "sessionSave": "Guardar",
   "sessionSaved": "Sesión guardada",
   "sessionUnsavedChanges": "Hay cambios sin guardar. ¿Guardar o descartar?",

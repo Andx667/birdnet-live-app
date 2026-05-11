@@ -163,6 +163,8 @@
   "detectionConfirmTooltip": "Contrassegna come confermata",
   "detectionUnconfirmTooltip": "Rimuovi conferma",
   "detectionShareTooltip": "Condividi rilevazione",
+  "detectionActionsTooltip": "Altre azioni",
+  "detectionDeleteTooltip": "Elimina rilevazione",
   "sessionSave": "Salva",
   "sessionSaved": "Sessione salvata",
   "sessionUnsavedChanges": "Ci sono modifiche non salvate. Salvare o eliminare?",
