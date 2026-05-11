@@ -31,10 +31,7 @@ import 'dart:typed_data';
 
 /// Result of decoding an audio file to raw PCM.
 class DecodedAudio {
-  DecodedAudio({
-    required this.samples,
-    required this.sampleRate,
-  });
+  DecodedAudio({required this.samples, required this.sampleRate});
 
   /// Raw mono PCM samples as signed 16-bit integers.
   final Int16List samples;
@@ -244,7 +241,8 @@ class AudioDecoder {
       }
     } else {
       throw FormatException(
-          'Unsupported WAV format: $bitsPerSample-bit, format=$audioFormat');
+        'Unsupported WAV format: $bitsPerSample-bit, format=$audioFormat',
+      );
     }
 
     return DecodedAudio(samples: samples, sampleRate: sampleRate);
@@ -296,8 +294,11 @@ class AudioDecoder {
 
     // Total samples (36 bits at bytes 21[3:0] and 22-25).
     final totalHigh = bytes[21] & 0x0F;
-    final totalLow =
-        ByteData.sublistView(bytes, 22, 26).getUint32(0, Endian.big);
+    final totalLow = ByteData.sublistView(
+      bytes,
+      22,
+      26,
+    ).getUint32(0, Endian.big);
     final totalSamples = (totalHigh << 32) | totalLow;
 
     if (bitsPerSample != 16) {
@@ -353,6 +354,21 @@ class AudioDecoder {
       samplePos = frameEnd;
     }
 
+    // Trim trailing zero-padding when the source ran out of audio
+    // before the requested range was filled. Without this, callers see
+    // [DecodedAudio.totalSamples] equal to the requested count even
+    // when the file was shorter — that has bitten us in the share path
+    // where a "5 s" slice carried 6 s of silence at the tail.
+    final filled = (samplePos < outEnd ? samplePos : outEnd) - outStart;
+    if (filled <= 0) {
+      return DecodedAudio(samples: Int16List(0), sampleRate: sampleRate);
+    }
+    if (filled < outLen) {
+      return DecodedAudio(
+        samples: Int16List.sublistView(allSamples, 0, filled),
+        sampleRate: sampleRate,
+      );
+    }
     return DecodedAudio(samples: allSamples, sampleRate: sampleRate);
   }
 
@@ -586,7 +602,8 @@ class AudioDecoder {
           predicted = 3 * samples[i - 1] - 3 * samples[i - 2] + samples[i - 3];
           break;
         case 4:
-          predicted = 4 * samples[i - 1] -
+          predicted =
+              4 * samples[i - 1] -
               6 * samples[i - 2] +
               4 * samples[i - 3] -
               samples[i - 4];
@@ -615,9 +632,10 @@ class AudioDecoder {
     final residuals = <int>[];
 
     for (var p = 0; p < nPartitions; p++) {
-      final samplesInPartition = p == 0
-          ? (blockSize >> partitionOrder) - predictorOrder
-          : (blockSize >> partitionOrder);
+      final samplesInPartition =
+          p == 0
+              ? (blockSize >> partitionOrder) - predictorOrder
+              : (blockSize >> partitionOrder);
 
       final riceParam = reader.readBits(paramBits);
 

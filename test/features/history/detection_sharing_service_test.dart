@@ -15,6 +15,7 @@ import 'dart:typed_data';
 
 import 'package:birdnet_live/features/history/services/detection_sharing_service.dart';
 import 'package:birdnet_live/features/live/live_session.dart';
+import 'package:birdnet_live/features/recording/audio_decoder.dart';
 import 'package:birdnet_live/features/recording/flac_encoder.dart';
 import 'package:birdnet_live/features/recording/wav_writer.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -239,28 +240,31 @@ void main() {
       expect(out, isNotNull, reason: 'FLAC full recordings must slice');
       expect(out!.existsSync(), isTrue);
 
-      // Output is always WAV regardless of source container.
-      expect(p.extension(out.path), '.wav');
-      final length = await out.length();
-      // 5 seconds × 32_000 × 2 bytes + 44-byte header.
-      expect(length, 44 + 5 * 32000 * 2);
-
-      // Header sanity check.
-      final header = await out
-          .openRead(0, 44)
+      // Output container matches source: FLAC in → FLAC out.
+      expect(p.extension(out.path), '.flac');
+      // FLAC magic number 'fLaC' at file start.
+      final magic = await out
+          .openRead(0, 4)
           .fold<List<int>>(<int>[], (acc, chunk) => acc..addAll(chunk));
-      expect(String.fromCharCodes(header.sublist(0, 4)), 'RIFF');
-      expect(String.fromCharCodes(header.sublist(8, 12)), 'WAVE');
-      expect(String.fromCharCodes(header.sublist(36, 40)), 'data');
-      final view = ByteData.sublistView(Uint8List.fromList(header));
-      expect(view.getUint32(24, Endian.little), 32000);
+      expect(String.fromCharCodes(magic), 'fLaC');
+      // Re-decode and confirm we got the requested ~5 s back.
+      final roundTrip = await AudioDecoder.decodeFlacRange(
+        out.path,
+        startSample: 0,
+        count: 32000 * 6, // ask for more than we wrote; decoder clips to EOF
+      );
+      expect(roundTrip.sampleRate, 32000);
+      // Allow a small tolerance for end-of-stream block alignment.
+      expect(
+        roundTrip.totalSamples,
+        inInclusiveRange(32000 * 5 - 4096, 32000 * 5 + 4096),
+      );
     });
 
     test('FLAC: accepts a direct file path (post-stop shape)', () async {
       final start = DateTime.utc(2026, 5, 11, 10, 0, 0);
-      final sessionDir = await Directory(
-        p.join(tmp.path, 'rec_flac2'),
-      ).create();
+      final sessionDir =
+          await Directory(p.join(tmp.path, 'rec_flac2')).create();
       const sampleRate = 32000;
       final flacPath = p.join(sessionDir.path, 'full.flac');
       final encoder = FlacEncoder(filePath: flacPath, sampleRate: sampleRate);
@@ -282,15 +286,17 @@ void main() {
 
       final out = await extractClipFromFullAudio(session, detection);
       expect(out, isNotNull);
-      expect(p.extension(out!.path), '.wav');
-      expect(await out.length(), greaterThan(44));
+      expect(p.extension(out!.path), '.flac');
+      final magic = await out
+          .openRead(0, 4)
+          .fold<List<int>>(<int>[], (acc, chunk) => acc..addAll(chunk));
+      expect(String.fromCharCodes(magic), 'fLaC');
     });
 
     test('returns null when no full recording exists at all', () async {
       final start = DateTime.utc(2026, 5, 11, 10, 0, 0);
-      final sessionDir = await Directory(
-        p.join(tmp.path, 'rec_empty'),
-      ).create();
+      final sessionDir =
+          await Directory(p.join(tmp.path, 'rec_empty')).create();
       // Empty session dir — no full.wav and no full.flac.
       final session = _session(recordingPath: sessionDir.path, start: start);
       final out = await extractClipFromFullAudio(session, _det(start));
