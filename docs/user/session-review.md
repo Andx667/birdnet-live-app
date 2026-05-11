@@ -21,7 +21,39 @@ Session Review combines playback, spectrogram navigation, and a species list. Fo
 
 ### Species list
 
-Species are grouped into expandable rows. You can inspect detections by species and move through the recording while reviewing them.
+Species are grouped into expandable rows. You can inspect detections by species and move through the recording while reviewing them. Cluster rows under an expanded species are indented so the parent species card stays visually distinct from its children.
+
+### Per-detection actions
+
+Every place a detection appears — the species list, the clip player sheet, the live survey list, and the survey map markers — uses the same set of actions:
+
+- :material-check: **Confirm** — a one-tap inline checkmark that flags a detection as visually or acoustically verified. Confirmed clusters and map markers gain a small green check so they stand out at a glance, and the flag travels with every export format.
+- :material-dots-vertical: **More** — opens an overflow menu with:
+    - :material-share-variant: **Share detection** — see *Sharing* below.
+    - :material-swap-horizontal: **Replace species** — pick a different species for this detection.
+    - :material-delete-outline: **Delete detection** — removes the row immediately. An undo SnackBar appears for a few seconds so misfires are reversible. No confirmation dialog.
+    - :material-delete-sweep-outline: **Delete species** — removes every detection of that species from the session in one shot, with the same SnackBar undo. Useful for sweeping out a misidentified noise source without expanding the species and deleting clusters one by one.
+
+#### Swipe shortcuts on review rows
+
+In the species list you can also act on a detection by swiping the row horizontally:
+
+- swipe **right** → delete (with undo)
+- swipe **left** → open the replace-species overlay
+
+The two backgrounds are color-coded (error red vs primary blue) so the gesture's effect is obvious before you commit.
+
+### Sharing a single detection
+
+The :material-share-variant: **Share detection** entry opens the platform share sheet with a terse, field-tool-friendly payload — common + scientific name, confidence, ISO 8601 UTC timestamp, and a `geo:` URI when the detection has GPS — and attaches the audio clip whenever one is available. The shared file is named `BirdNET_Live_<timestamp>_<species>.<ext>` to match the ZIP export scheme.
+
+The audio attachment is resolved in this order:
+
+1. The detection's own per-detection clip on disk.
+2. **For live survey sessions recording one continuous WAV file**: the relevant audio window is sliced out of the in-progress recording on the fly, so the recipient still gets a clip rather than a text-only message.
+3. If neither is available, the share is text-only — location and timestamp still land in the payload.
+
+Continuous recordings in FLAC format aren't sliced mid-survey; share will fall back to text in that case.
 
 ### Survey track map
 
@@ -30,7 +62,7 @@ Survey sessions show a small inline map of the GPS track and detection markers. 
 #### Marker encoding
 
 - **Confidence is color-coded** with a CVD-safe ramp: low → high confidence runs from purple-blue through teal/yellow to red. The ramp's lightness changes monotonically so it stays readable in monochrome and for users with red-green color vision deficiency.
-- **Audio-bearing detections** show a colored ring around the species photo plus a corner play badge — tap them to play the recorded clip in a sheet.
+- **Audio-bearing detections** show a colored ring around the species photo plus a corner play badge — tap them to open the same clip player sheet used elsewhere, with confirm, share, replace, and delete all available.
 - **Silent detections** (no clip on disk) render smaller, faded, and with a neutral-grey ring so audio detections always read as the primary content.
 - **Overlapping markers at the same spot** are z-ordered by importance: highlighted > audio > higher confidence, so a low-confidence silent marker can never obscure a strong audio detection.
 - **Below zoom 14.5** silhouettes degrade to colored dots sized by confidence, and dense clusters collapse to a count bubble (clustering disables at zoom 15).

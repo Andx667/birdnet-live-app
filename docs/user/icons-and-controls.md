@@ -46,6 +46,19 @@ This page explains the recurring controls and symbols used across BirdNET Live. 
 | Confidence or geo-model percentage badge | A quick numeric summary of model output. Higher numbers indicate stronger support within that screen's context. |
 | Monthly labels (`Jan`, `Apr`, `Jul`, `Oct`, `Dec`) | Reference points on the weekly expected-frequency chart in the species overlay. |
 
+## Per-Detection Actions
+
+These controls appear on every detection row across the app — Session Review species list, the clip player sheet, the live survey detection list, and survey map markers. See [Session Review → Per-detection actions](session-review.md#per-detection-actions) for the full behavior.
+
+| Control | Meaning |
+|---|---|
+| :material-check: **Confirm** | One-tap checkmark that flags a detection as visually or acoustically verified. Confirmed detections gain a small green check on cluster rows and map markers. |
+| :material-dots-vertical: **More** | Opens the per-detection overflow with **Share detection**, **Replace species**, **Delete detection**, and **Delete species**. |
+| :material-share-variant: **Share detection** | Shares one detection through the platform share sheet, attaching the audio clip whenever one is available — including a slice of the in-progress recording during a live survey. |
+| :material-swap-horizontal: **Replace species** | Pick a different species for this detection. Also opens by swiping a review row to the left. |
+| :material-delete-outline: **Delete detection** | Removes the row immediately. An undo SnackBar appears for a few seconds. Also triggered by swiping a review row to the right. |
+| :material-delete-sweep-outline: **Delete species** | Removes every detection of that species from the session in one shot, with the same SnackBar undo. |
+
 ## Session Review Toolbar
 
 These controls are used on the Session Review screen.

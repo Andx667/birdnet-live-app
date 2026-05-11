@@ -92,6 +92,10 @@ The live Survey screen has three main tabs plus a recent detections list.
 
 Below the tab content, the survey dashboard shows a stats bar and a recent detections list. Tapping a detection opens the species details overlay.
 
+Each detection row also exposes the same per-detection actions used in [Session Review](session-review.md): a one-tap :material-check: **Confirm** checkmark and a :material-dots-vertical: **More** overflow with **Share detection** and **Delete detection** (with SnackBar undo) — so you can validate, share, or remove a noisy hit mid-capture instead of waiting for the post-session review.
+
+The same actions are available from the **live route map**: tap a detection marker to open the clip player sheet with confirm, share, and delete. Sharing during a survey works even when you've opted for one continuous WAV recording instead of per-detection clips — the relevant audio window is sliced out of the in-progress file on the fly. See [Session Review → Sharing a single detection](session-review.md#sharing-a-single-detection) for details.
+
 ## Background Operation
 
 Survey Mode keeps a persistent foreground notification visible while recording so Android won't suspend the audio pipeline. The notification expands to show:
