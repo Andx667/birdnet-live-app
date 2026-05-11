@@ -695,9 +695,17 @@
   "@detectionDeleteTooltip": {
     "description": "Label of the delete entry in the per-detection overflow menu"
   },
+  "detectionDeleteSpecies": "Delete species",
+  "@detectionDeleteSpecies": {
+    "description": "Label of the overflow-menu entry that removes every detection of this species from the session"
+  },
   "sessionDetectionRemoved": "Detection removed",
   "@sessionDetectionRemoved": {
     "description": "Snackbar text after a detection cluster is dismissed via swipe or the overflow menu's delete entry"
+  },
+  "sessionSpeciesRemoved": "Species removed",
+  "@sessionSpeciesRemoved": {
+    "description": "Snackbar text after every detection of a species is removed via the overflow menu's Delete species entry"
   },
   "sessionSave": "Save",
   "@sessionSave": {

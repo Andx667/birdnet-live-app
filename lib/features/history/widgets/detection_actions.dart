@@ -43,6 +43,7 @@ class DetectionActions {
     this.isConfirmed = false,
     this.onShare,
     this.onDelete,
+    this.onDeleteSpecies,
     this.onReplace,
   });
 
@@ -65,6 +66,13 @@ class DetectionActions {
   /// without a modal confirm dialog.
   final VoidCallback? onDelete;
 
+  /// Removes every detection of this species from the session in one
+  /// shot. Surfaced from cluster-row contexts where the user has
+  /// already decided the species itself is a false positive (mis-IDed
+  /// noise, etc.) and individual delete would be tedious. Hosts should
+  /// pair this with the same SnackBar undo as [onDelete].
+  final VoidCallback? onDeleteSpecies;
+
   /// Replaces the inferred species with a manually-picked one. Review
   /// surfaces only — live capture has nothing to replace yet.
   final VoidCallback? onReplace;
@@ -73,10 +81,13 @@ class DetectionActions {
   /// can use this to skip drawing the overflow button entirely when
   /// none of share / delete / replace is wired up.
   bool get hasOverflow =>
-      onShare != null || onDelete != null || onReplace != null;
+      onShare != null ||
+      onDelete != null ||
+      onDeleteSpecies != null ||
+      onReplace != null;
 }
 
-enum _OverflowAction { share, replace, delete }
+enum _OverflowAction { share, replace, delete, deleteSpecies }
 
 /// `more_vert` popup menu that lists the non-null entries of a
 /// [DetectionActions]. Renders nothing when `actions.hasOverflow` is
@@ -121,6 +132,8 @@ class DetectionActionsOverflow extends StatelessWidget {
             actions.onReplace?.call();
           case _OverflowAction.delete:
             actions.onDelete?.call();
+          case _OverflowAction.deleteSpecies:
+            actions.onDeleteSpecies?.call();
         }
       },
       itemBuilder: (_) {
@@ -154,6 +167,18 @@ class DetectionActionsOverflow extends StatelessWidget {
               child: _OverflowRow(
                 icon: Icons.delete_outline,
                 label: l10n.detectionDeleteTooltip,
+                color: theme.colorScheme.error,
+              ),
+            ),
+          );
+        }
+        if (actions.onDeleteSpecies != null) {
+          items.add(
+            PopupMenuItem<_OverflowAction>(
+              value: _OverflowAction.deleteSpecies,
+              child: _OverflowRow(
+                icon: Icons.delete_sweep_outlined,
+                label: l10n.detectionDeleteSpecies,
                 color: theme.colorScheme.error,
               ),
             ),

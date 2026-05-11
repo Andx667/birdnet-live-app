@@ -1156,6 +1156,37 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
     );
   }
 
+  /// Removes every detection of [scientificName] from the session in
+  /// one shot. Mirrors [_deleteDetectionWithUndo] but scoped to a whole
+  /// species — the SnackBar undo restores the full pre-delete state via
+  /// the same undo stack, so a misfire is fully recoverable.
+  void _deleteSpeciesWithUndo(String scientificName) {
+    final l10n = AppLocalizations.of(context)!;
+    _pushUndo();
+    setState(() {
+      _detections.removeWhere((r) => r.scientificName == scientificName);
+      _speciesGroups = _buildSpeciesGroups(
+        _detections,
+        widget.session.settings.windowDuration,
+      );
+      _expandedSpecies.remove(scientificName);
+      _isDirty = true;
+    });
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(l10n.sessionSpeciesRemoved),
+        action: SnackBarAction(
+          label: l10n.sessionUndo,
+          onPressed: () {
+            if (mounted) _undo();
+          },
+        ),
+      ),
+    );
+  }
+
   void _seekToCluster(_DetectionCluster cluster) {
     // Full recording available — seek the main player.
     if (_audioAvailable && _duration != Duration.zero) {
@@ -1830,6 +1861,7 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
           onSeekCluster: _seekToCluster,
           onPause: _pausePlayer,
           onDeleteCluster: _deleteDetectionWithUndo,
+          onDeleteSpecies: () => _deleteSpeciesWithUndo(group.scientificName),
           onReplaceCluster: _replaceDetection,
           onToggleConfirmCluster: _toggleClusterConfirmation,
           onShareCluster: (cluster) => shareDetection(cluster.records.first),

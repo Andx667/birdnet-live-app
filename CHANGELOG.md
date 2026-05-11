@@ -11,12 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Unified per-detection actions.** Confirm, share, replace, and delete now look and behave the same everywhere a detection appears — the session review species list, the clip player sheet (review and live survey), the live survey detection list, and the survey map markers. Confirm stays inline as a one-tap checkmark; share/replace/delete live behind a single `more_vert` overflow rendered by a new shared widget. The platform-neutral share icon (`Icons.share`) replaces the iOS-specific glyph that was used in some places. (#33)
 - **Faster cleanup of false positives.** Deleting a detection in session review no longer requires confirming a modal dialog. Rows can be swiped horizontally or removed via the overflow menu; an undo SnackBar appears for a few seconds so misfires are reversible. The same undo affordance is available when deleting from the live survey list or a live survey map marker. (#33)
+- **Distinct swipe shortcuts on session review rows.** Swiping a detection row to the right deletes it (with undo); swiping to the left opens the replace-species overlay. The two backgrounds are color-coded (error red vs primary blue) so the gesture's effect is obvious before the user commits. (#33)
+- **Hierarchy-emphasizing inset.** Cluster rows under an expanded species are now indented so the parent species card is visually distinct from its children. (#33)
+- **Friendlier filename for shared clips.** Sharing a single detection now uses the same `BirdNET_Live_<timestamp>_<species>.<ext>` naming scheme as the ZIP export, instead of the internal `clip_<ms>` filename. (#33)
 
 ### Added
 
 - **Live survey detection actions.** Detection rows during a survey now show inline confirm + a share/delete overflow so reviewers can validate, share, or remove a detection mid-capture instead of waiting for review. (#33)
 - **Live survey map markers open the clip player.** Tapping a detection marker on the live survey map opens the same review sheet (confirm + share + delete) used elsewhere, closing the gap between the live and post-session map experience. (#33)
 - **Delete from the survey review map.** The clip player sheet now exposes a `Delete detection` entry when opened from the post-session fullscreen survey map, fixing a dead-end where the only review action available there was confirm. (#33)
+- **Delete species from the overflow menu.** The per-detection `more_vert` menu now offers a `Delete species` entry that removes every detection of that species from the session in one shot, with the same SnackBar undo as a single delete. Useful for sweeping out a misidentified noise source without expanding the species and deleting clusters one by one. (#33)
 
 ## [0.10.1] - 2026-05-06
 

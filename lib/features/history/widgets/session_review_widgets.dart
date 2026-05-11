@@ -612,6 +612,7 @@ class _SpeciesTile extends ConsumerWidget {
     required this.onSpeciesInfo,
     required this.onSeekCluster,
     required this.onDeleteCluster,
+    required this.onDeleteSpecies,
     required this.onReplaceCluster,
     required this.onToggleConfirmCluster,
     required this.onShareCluster,
@@ -655,6 +656,7 @@ class _SpeciesTile extends ConsumerWidget {
   final VoidCallback onSpeciesInfo;
   final ValueChanged<_DetectionCluster> onSeekCluster;
   final ValueChanged<_DetectionCluster> onDeleteCluster;
+  final VoidCallback onDeleteSpecies;
   final ValueChanged<_DetectionCluster> onReplaceCluster;
 
   /// Toggle the confirmed state of every record in a cluster.
@@ -907,11 +909,11 @@ class _SpeciesTile extends ConsumerWidget {
           AnimatedCrossFade(
             firstChild: const SizedBox.shrink(),
             secondChild: Padding(
-              // No left indent — detection rows extend to the parent's
-              // left edge for maximum horizontal room. The play button
-              // is no longer aligned under the species image above; we
-              // trade that visual column for a wider, more readable row.
-              padding: const EdgeInsets.only(bottom: 4),
+              // Indent the detection rows so the hierarchical relationship
+              // to the species card above is visually emphasized. The
+              // inset roughly aligns the play column with the right edge
+              // of the species thumbnail in the parent card.
+              padding: const EdgeInsets.only(left: 16, bottom: 4),
               child: Column(
                 children: [
                   for (final cluster in group.clusters)
@@ -924,6 +926,7 @@ class _SpeciesTile extends ConsumerWidget {
                       onSeek: () => onSeekCluster(cluster),
                       onPause: onPause,
                       onDelete: () => onDeleteCluster(cluster),
+                      onDeleteSpecies: onDeleteSpecies,
                       onReplace: () => onReplaceCluster(cluster),
                       onToggleConfirm: () => onToggleConfirmCluster(cluster),
                       onShare: () => onShareCluster(cluster),
@@ -991,6 +994,7 @@ class _ClusterRow extends ConsumerWidget {
     required this.sessionStart,
     required this.onSeek,
     required this.onDelete,
+    required this.onDeleteSpecies,
     required this.onReplace,
     required this.onToggleConfirm,
     required this.onShare,
@@ -1007,6 +1011,7 @@ class _ClusterRow extends ConsumerWidget {
   final DateTime sessionStart;
   final VoidCallback onSeek;
   final VoidCallback onDelete;
+  final VoidCallback onDeleteSpecies;
   final VoidCallback onReplace;
 
   /// Toggles the confirmed state of every record in this cluster. The
@@ -1155,9 +1160,7 @@ class _ClusterRow extends ConsumerWidget {
                 child: Padding(
                   padding: const EdgeInsets.all(12),
                   child: Icon(
-                    confirmed
-                        ? Icons.check_circle
-                        : Icons.check_circle_outline,
+                    confirmed ? Icons.check_circle : Icons.check_circle_outline,
                     size: 24,
                     color:
                         confirmed
@@ -1171,6 +1174,7 @@ class _ClusterRow extends ConsumerWidget {
               actions: DetectionActions(
                 onShare: onShare,
                 onDelete: onDelete,
+                onDeleteSpecies: onDeleteSpecies,
                 onReplace: onReplace,
               ),
               iconColor: theme.colorScheme.onSurface.withAlpha(100),
@@ -1180,9 +1184,13 @@ class _ClusterRow extends ConsumerWidget {
       ),
     );
 
-    // Wrap in Dismissible so a horizontal swipe shortcuts to delete.
-    // The undo SnackBar shown by the host covers misfires, so we omit
-    // the modal confirm dialog entirely - swipe is meant to be fast.
+    // Wrap in Dismissible so horizontal swipes are shortcuts for the
+    // two destructive/structural actions: swipe right (start→end)
+    // deletes the cluster, swipe left (end→start) opens the replace
+    // overlay. The undo SnackBar shown by the host covers misfires for
+    // delete, so we omit the modal confirm dialog entirely. Replace
+    // uses confirmDismiss to keep the row in place while the overlay
+    // opens.
     final firstRecord = cluster.records.first;
     final dismissKey = ValueKey(
       '${firstRecord.scientificName}-${cluster.firstTimestamp.microsecondsSinceEpoch}',
@@ -1190,26 +1198,45 @@ class _ClusterRow extends ConsumerWidget {
     return Dismissible(
       key: dismissKey,
       direction: DismissDirection.horizontal,
-      background: _swipeBackground(theme, alignLeft: true),
-      secondaryBackground: _swipeBackground(theme, alignLeft: false),
+      background: _swipeBackground(
+        theme,
+        alignLeft: true,
+        icon: Icons.delete_outline,
+        color: theme.colorScheme.error,
+      ),
+      secondaryBackground: _swipeBackground(
+        theme,
+        alignLeft: false,
+        icon: Icons.swap_horiz,
+        color: theme.colorScheme.primary,
+      ),
+      confirmDismiss: (direction) async {
+        if (direction == DismissDirection.endToStart) {
+          onReplace();
+          return false;
+        }
+        return true;
+      },
       onDismissed: (_) => onDelete(),
       child: row,
     );
   }
 
-  Widget _swipeBackground(ThemeData theme, {required bool alignLeft}) {
+  Widget _swipeBackground(
+    ThemeData theme, {
+    required bool alignLeft,
+    required IconData icon,
+    required Color color,
+  }) {
     return Container(
       alignment: alignLeft ? Alignment.centerLeft : Alignment.centerRight,
       padding: const EdgeInsets.symmetric(horizontal: 24),
       margin: const EdgeInsets.symmetric(vertical: 1, horizontal: 4),
       decoration: BoxDecoration(
-        color: theme.colorScheme.error.withAlpha(40),
+        color: color.withAlpha(40),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Icon(
-        Icons.delete_outline,
-        color: theme.colorScheme.error,
-      ),
+      child: Icon(icon, color: color),
     );
   }
 }
