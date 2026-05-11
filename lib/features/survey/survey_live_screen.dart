@@ -37,6 +37,7 @@ import '../explore/widgets/species_info_overlay.dart';
 import '../history/session_library_screen.dart';
 import '../history/session_review_screen.dart';
 import '../history/services/detection_sharing_service.dart';
+import '../history/widgets/clip_player_sheet.dart';
 import '../history/widgets/detection_actions.dart';
 import '../live/live_providers.dart';
 import '../live/live_session.dart';
@@ -564,6 +565,18 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
               widget.startLatitude != null && widget.startLongitude != null
                   ? LatLng(widget.startLatitude!, widget.startLongitude!)
                   : null,
+          // Tapping a marker that has a kept clip opens the same
+          // player sheet as the post-session map - so the live and
+          // review surfaces feel like one continuous experience.
+          onMarkerTap: (detection) {
+            showClipPlayerSheet(
+              context,
+              detection: detection,
+              onConfirmChanged: () {
+                if (mounted) setState(() {});
+              },
+            );
+          },
         ),
         _SurveySpectrogram(ringBuffer: ringBuffer, isActive: isActive),
         _SurveySummaryTab(session: session),
