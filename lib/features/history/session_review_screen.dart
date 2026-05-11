@@ -1871,11 +1871,12 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
     final query = _speciesSearchQuery.trim().toLowerCase();
     var groups = _filteredSpeciesGroups;
     if (query.isNotEmpty) {
-      groups = groups.where((g) {
-        final common = localizedCommonName(g).toLowerCase();
-        final sci = g.scientificName.toLowerCase();
-        return common.contains(query) || sci.contains(query);
-      }).toList();
+      groups =
+          groups.where((g) {
+            final common = localizedCommonName(g).toLowerCase();
+            final sci = g.scientificName.toLowerCase();
+            return common.contains(query) || sci.contains(query);
+          }).toList();
     }
 
     // Apply user-selected sort. New list to avoid mutating cached state.
@@ -1883,27 +1884,27 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
     switch (_speciesSort) {
       case SpeciesSortMode.alphabetical:
         sorted.sort(
-          (a, b) => localizedCommonName(a)
-              .toLowerCase()
-              .compareTo(localizedCommonName(b).toLowerCase()),
+          (a, b) => localizedCommonName(
+            a,
+          ).toLowerCase().compareTo(localizedCommonName(b).toLowerCase()),
         );
         break;
       case SpeciesSortMode.count:
         sorted.sort((a, b) {
           final c = b.totalCount.compareTo(a.totalCount);
           if (c != 0) return c;
-          return localizedCommonName(a)
-              .toLowerCase()
-              .compareTo(localizedCommonName(b).toLowerCase());
+          return localizedCommonName(
+            a,
+          ).toLowerCase().compareTo(localizedCommonName(b).toLowerCase());
         });
         break;
       case SpeciesSortMode.confidence:
         sorted.sort((a, b) {
           final c = b.bestConfidence.compareTo(a.bestConfidence);
           if (c != 0) return c;
-          return localizedCommonName(a)
-              .toLowerCase()
-              .compareTo(localizedCommonName(b).toLowerCase());
+          return localizedCommonName(
+            a,
+          ).toLowerCase().compareTo(localizedCommonName(b).toLowerCase());
         });
         break;
       case SpeciesSortMode.firstSeen:
@@ -1982,8 +1983,7 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
             onSeekCluster: _seekToCluster,
             onPause: _pausePlayer,
             onDeleteCluster: _deleteDetectionWithUndo,
-            onDeleteSpecies:
-                () => _deleteSpeciesWithUndo(group.scientificName),
+            onDeleteSpecies: () => _deleteSpeciesWithUndo(group.scientificName),
             onReplaceCluster: _replaceDetection,
             onToggleConfirmCluster: _toggleClusterConfirmation,
             onShareCluster:
@@ -1997,12 +1997,7 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
       );
     }
 
-    return Column(
-      children: [
-        header,
-        Expanded(child: body),
-      ],
-    );
+    return Column(children: [header, Expanded(child: body)]);
   }
 
   /// Sticky header above the species list with a search field and

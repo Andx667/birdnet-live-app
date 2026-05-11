@@ -722,9 +722,18 @@ class _SpeciesTile extends ConsumerWidget {
       child: Column(
         children: [
           // ── Main species row ───────────────────────────────
-          InkWell(
-            onTap: onToggleExpand,
-            onLongPress: onSpeciesInfo,
+          Dismissible(
+            key: ValueKey('species-${group.scientificName}'),
+            direction: DismissDirection.horizontal,
+            background: _swipeSpeciesBackground(theme, alignLeft: true),
+            secondaryBackground: _swipeSpeciesBackground(
+              theme,
+              alignLeft: false,
+            ),
+            onDismissed: (_) => onDeleteSpecies(),
+            child: InkWell(
+              onTap: onToggleExpand,
+              onLongPress: onSpeciesInfo,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Row(
@@ -923,6 +932,7 @@ class _SpeciesTile extends ConsumerWidget {
               ),
             ),
           ),
+          ),
 
           // ── Expanded cluster list ─────────────────────────
           AnimatedCrossFade(
@@ -1000,6 +1010,20 @@ class _SpeciesTile extends ConsumerWidget {
   Color _confidenceColor(double confidence, ThemeData theme) {
     final colors = theme.extension<ScoreColors>() ?? ScoreColors.light;
     return colors.forScore(confidence);
+  }
+
+  /// Background reveal for swipe-to-delete on the species header. Uses
+  /// the sweep icon to mirror the `Delete species` overflow entry and
+  /// distinguish a species-wide swipe from the per-detection delete on
+  /// cluster rows below it.
+  Widget _swipeSpeciesBackground(ThemeData theme, {required bool alignLeft}) {
+    final color = theme.colorScheme.error;
+    return Container(
+      alignment: alignLeft ? Alignment.centerLeft : Alignment.centerRight,
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      decoration: BoxDecoration(color: color.withAlpha(40)),
+      child: Icon(Icons.delete_sweep_outlined, color: color),
+    );
   }
 }
 

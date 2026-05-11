@@ -168,6 +168,5 @@ abstract final class PrefKeys {
   /// confidence, firstSeen). Default `alphabetical` — once a session
   /// has 50+ species, finding one by detection-time order becomes
   /// painful; alphabetical is the predictable fallback.
-  static const String sessionReviewSpeciesSort =
-      'session_review_species_sort';
+  static const String sessionReviewSpeciesSort = 'session_review_species_sort';
 }

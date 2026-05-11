@@ -52,6 +52,8 @@ In the species list you can also act on a detection by swiping the row horizonta
 
 The two backgrounds are color-coded (error red vs primary blue) so the gesture's effect is obvious before you commit.
 
+Swiping a **species header** row (left or right) deletes every detection of that species at once, with the same undo SnackBar. Useful when triaging a session full of misidentified noise.
+
 ### Sharing a single detection
 
 The :material-share-variant: **Share detection** entry opens the platform share sheet with a terse, field-tool-friendly payload — common + scientific name, confidence, ISO 8601 UTC timestamp, and a `geo:` URI when the detection has GPS — and attaches the audio clip whenever one is available. The shared file is named `BirdNET_Live_<timestamp>_<species>.<ext>` to match the ZIP export scheme.
