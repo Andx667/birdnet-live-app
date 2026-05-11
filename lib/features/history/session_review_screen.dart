@@ -1071,6 +1071,9 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
                 // and rebuild so species rows + badges refresh.
                 if (mounted) setState(() => _isDirty = true);
               },
+              onDeleteDetection: (record) {
+                _deleteDetectionWithUndo(_DetectionCluster([record]));
+              },
             ),
       ),
     );
@@ -1980,6 +1983,7 @@ class _FullscreenSurveyMapScreen extends ConsumerStatefulWidget {
     required this.detections,
     this.initialHighlight,
     this.onConfirmChanged,
+    this.onDeleteDetection,
   });
 
   final List<GpsPoint> gpsTrack;
@@ -1989,6 +1993,12 @@ class _FullscreenSurveyMapScreen extends ConsumerStatefulWidget {
   /// [DetectionRecord.confirmedAt]. The host uses this hook to mark the
   /// session dirty and refresh derived UI (species rows, marker badges).
   final VoidCallback? onConfirmChanged;
+
+  /// Invoked when the user picks `Delete detection` from the clip
+  /// player sheet's overflow menu. The host removes the record from
+  /// the session and surfaces the undo SnackBar; this screen rebuilds
+  /// so the corresponding marker disappears immediately.
+  final ValueChanged<DetectionRecord>? onDeleteDetection;
 
   /// Detection that the inline review map was currently focused on. When
   /// non-null the fullscreen map opens centered and zoomed in on this
@@ -2099,6 +2109,13 @@ class _FullscreenSurveyMapScreenState
         if (mounted) setState(() {});
         widget.onConfirmChanged?.call();
       },
+      onDelete:
+          widget.onDeleteDetection == null
+              ? null
+              : () {
+                widget.onDeleteDetection!(detection);
+                if (mounted) setState(() => _highlight = null);
+              },
     );
     if (mounted) setState(() => _highlight = null);
   }
