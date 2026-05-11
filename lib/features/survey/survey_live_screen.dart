@@ -601,7 +601,7 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
                 ? FloatingActionButton.small(
                   onPressed: _addManualObservation,
                   tooltip: l10n.surveyAddObservation,
-                  child: const Icon(Icons.edit_note),
+                  child: const Icon(Icons.add),
                 )
                 : null,
       ),
