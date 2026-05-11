@@ -17,6 +17,7 @@ import 'package:material_design_icons_flutter/material_design_icons_flutter.dart
 import 'package:birdnet_live/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/constants/app_constants.dart';
@@ -36,10 +37,14 @@ import '../live/live_screen.dart';
 import '../live/live_session.dart';
 import '../point_count/point_count_setup_screen.dart';
 import '../survey/survey_setup_screen.dart';
+import 'session_export.dart';
 import 'session_review_screen.dart';
 
 /// How sessions are ordered in the library.
-enum _SortMode { dateDesc, dateAsc, nameAsc, nameDesc }
+enum _SortMode { dateDesc, dateAsc, nameAsc, nameDesc, durationDesc, durationAsc }
+
+/// Actions exposed by the per-row overflow menu in the session library.
+enum _SessionRowAction { open, share, delete }
 
 /// How sessions are presented in the library.
 enum _ViewMode { detailed, compact, bySpecies }
@@ -66,6 +71,10 @@ class _SessionLibraryScreenState extends ConsumerState<SessionLibraryScreen> {
   /// Mode the "new session" FAB will start when tapped. Persisted across
   /// app launches so the FAB remembers the user's last pick.
   SessionType _newSessionMode = SessionType.live;
+
+  /// Session ids whose compact-view rows are currently expanded to show
+  /// the full detailed card body. Not persisted — collapses on rebuild.
+  final Set<String> _expandedCompactCards = <String>{};
 
   @override
   void initState() {
@@ -220,6 +229,10 @@ class _SessionLibraryScreenState extends ConsumerState<SessionLibraryScreen> {
                           (_SortMode.dateAsc, l10n.sessionSortDateOldest),
                           (_SortMode.nameAsc, l10n.sessionSortNameAZ),
                           (_SortMode.nameDesc, l10n.sessionSortNameZA),
+                          (_SortMode.durationDesc,
+                              l10n.sessionSortDurationLongest),
+                          (_SortMode.durationAsc,
+                              l10n.sessionSortDurationShortest),
                         ],
                         onSelected: (m) => update(() => _sortMode = m),
                       ),
@@ -344,6 +357,10 @@ class _SessionLibraryScreenState extends ConsumerState<SessionLibraryScreen> {
       case _SortMode.nameDesc:
         sorted.sort((a, b) =>
             _sessionCardTitle(l10n, b).compareTo(_sessionCardTitle(l10n, a)));
+      case _SortMode.durationDesc:
+        sorted.sort((a, b) => b.duration.compareTo(a.duration));
+      case _SortMode.durationAsc:
+        sorted.sort((a, b) => a.duration.compareTo(b.duration));
     }
     return sorted;
   }
@@ -450,17 +467,42 @@ class _SessionLibraryScreenState extends ConsumerState<SessionLibraryScreen> {
             itemCount: filtered.length,
             itemBuilder: (context, index) {
               final session = filtered[index];
-              if (_viewMode == _ViewMode.compact) {
-                return _CompactSessionTile(
-                  session: session,
-                  onTap: () => _openReview(session),
-                  onDelete: () => _confirmDelete(session),
-                );
-              }
-              return _SessionTile(
+              final tile = _viewMode == _ViewMode.compact
+                  ? _CompactSessionTile(
+                      session: session,
+                      expanded: _expandedCompactCards.contains(session.id),
+                      onTap: () => _openReview(session),
+                      onShare: () => _shareSession(session),
+                      onDelete: () => _confirmDelete(session),
+                      onToggleExpanded: () =>
+                          _toggleCompactExpanded(session.id),
+                    )
+                  : _SessionTile(
+                      session: session,
+                      onTap: () => _openReview(session),
+                      onShare: () => _shareSession(session),
+                      onDelete: () => _confirmDelete(session),
+                    );
+              return _SwipeToDeleteSession(
+                key: ValueKey('swipe-${session.id}'),
                 session: session,
-                onTap: () => _openReview(session),
-                onDelete: () => _confirmDelete(session),
+                onConfirmDelete: () async {
+                  final l10n = AppLocalizations.of(context)!;
+                  return confirmDestructive(
+                    context,
+                    title: l10n.sessionDiscardTitle,
+                    body: l10n.sessionDiscardMessage,
+                    confirmLabel: l10n.sessionDiscard,
+                    cancelLabel: l10n.cancel,
+                  );
+                },
+                onDeleted: () async {
+                  await ref
+                      .read(sessionRepositoryProvider)
+                      .delete(session.id);
+                  ref.invalidate(sessionListProvider);
+                },
+                child: tile,
               );
             },
           );
@@ -590,6 +632,40 @@ class _SessionLibraryScreenState extends ConsumerState<SessionLibraryScreen> {
     await ref.read(sessionRepositoryProvider).delete(session.id);
     ref.invalidate(sessionListProvider);
   }
+
+  /// Opens the platform share sheet with the session exported using the
+  /// user's saved export-format and include-audio preferences. Returns
+  /// silently if the export couldn't be built (e.g. no audio for an
+  /// audio-only export of a metadata-only session).
+  Future<void> _shareSession(LiveSession session) async {
+    final exportFormat = ref.read(exportFormatProvider);
+    final includeAudio = ref.read(includeAudioProvider);
+    final taxonomy = ref.read(taxonomyServiceProvider).valueOrNull;
+    final speciesLocale = ref.read(effectiveSpeciesLocaleProvider);
+    final useAbsoluteSurveyTime =
+        ref.read(timestampDisplayModeProvider) == 'absolute';
+    final exportPath = await buildSessionExport(
+      session,
+      format: exportFormat,
+      includeAudio: includeAudio,
+      taxonomy: taxonomy,
+      speciesLocale: speciesLocale,
+      useAbsoluteSurveyTime: useAbsoluteSurveyTime,
+    );
+    if (exportPath == null) return;
+    await Share.shareXFiles([XFile(exportPath)]);
+  }
+
+  /// Toggles whether a compact-view row is expanded to show the full
+  /// detailed card body. Keyed by session id so each row remembers its
+  /// own state independently within the lifetime of this screen.
+  void _toggleCompactExpanded(String sessionId) {
+    setState(() {
+      if (!_expandedCompactCards.add(sessionId)) {
+        _expandedCompactCards.remove(sessionId);
+      }
+    });
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -600,17 +676,24 @@ class _SessionTile extends ConsumerWidget {
   const _SessionTile({
     required this.session,
     required this.onTap,
+    required this.onShare,
     required this.onDelete,
+    this.leadingExpandToggle,
   });
 
   final LiveSession session;
   final VoidCallback onTap;
+  final VoidCallback onShare;
   final VoidCallback onDelete;
+
+  /// Optional collapse affordance shown before the type icon. Used when
+  /// this tile is rendered inside a compact-view row that the user has
+  /// expanded — letting them collapse it again without scrolling.
+  final Widget? leadingExpandToggle;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context)!;
     final dateStr = DateFormat.yMMMd().format(session.startTime);
     final timeStr = DateFormat.jm().format(session.startTime);
 
@@ -633,6 +716,10 @@ class _SessionTile extends ConsumerWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (leadingExpandToggle != null) ...[
+                    leadingExpandToggle!,
+                    const SizedBox(width: 8),
+                  ],
                   Container(
                     width: 48,
                     height: 48,
@@ -703,13 +790,10 @@ class _SessionTile extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  IconButton(
-                    icon: Icon(Icons.delete_outline,
-                        color: theme.colorScheme.error),
-                    tooltip: l10n.tooltipDeleteSession,
-                    onPressed: onDelete,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
+                  _SessionRowMenu(
+                    onOpen: onTap,
+                    onShare: onShare,
+                    onDelete: onDelete,
                   ),
                 ],
               ),
@@ -783,13 +867,19 @@ class _SessionTile extends ConsumerWidget {
 class _CompactSessionTile extends ConsumerWidget {
   const _CompactSessionTile({
     required this.session,
+    required this.expanded,
     required this.onTap,
+    required this.onShare,
     required this.onDelete,
+    required this.onToggleExpanded,
   });
 
   final LiveSession session;
+  final bool expanded;
   final VoidCallback onTap;
+  final VoidCallback onShare;
   final VoidCallback onDelete;
+  final VoidCallback onToggleExpanded;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -799,6 +889,26 @@ class _CompactSessionTile extends ConsumerWidget {
 
     final duration = session.duration;
     final speciesCount = session.uniqueSpeciesCount;
+
+    // When the row is expanded, swap to the full-detail card body so users
+    // get the same level of information as the detailed view without
+    // leaving the compact list. A trailing collapse button lets them
+    // close it again without scrolling away.
+    if (expanded) {
+      return _SessionTile(
+        session: session,
+        onTap: onTap,
+        onShare: onShare,
+        onDelete: onDelete,
+        leadingExpandToggle: IconButton(
+          icon: const Icon(Icons.expand_less),
+          tooltip: l10n.sessionLibraryCollapse,
+          onPressed: onToggleExpanded,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(),
+        ),
+      );
+    }
 
     return ListTile(
       leading: Icon(
@@ -817,10 +927,9 @@ class _CompactSessionTile extends ConsumerWidget {
         ),
       ),
       trailing: IconButton(
-        icon: Icon(Icons.delete_outline,
-            size: 20, color: theme.colorScheme.error),
-        tooltip: l10n.tooltipDeleteSession,
-        onPressed: onDelete,
+        icon: const Icon(Icons.expand_more, size: 22),
+        tooltip: l10n.sessionLibraryExpand,
+        onPressed: onToggleExpanded,
         padding: EdgeInsets.zero,
         constraints: const BoxConstraints(),
       ),
@@ -915,8 +1024,11 @@ class _SpeciesGroupedView extends ConsumerWidget {
             .compareTo(displayNameOf(a).toLowerCase()));
       case _SortMode.dateAsc:
       case _SortMode.dateDesc:
-        // Species don't have a single date — keep the historical
-        // most-detected-first order, then alphabetical as a tie-break.
+      case _SortMode.durationAsc:
+      case _SortMode.durationDesc:
+        // Species don't have a single date or duration — keep the
+        // historical most-detected-first order, then alphabetical as a
+        // tie-break.
         sorted.sort((a, b) {
           final cmp = b.sessionIds.length.compareTo(a.sessionIds.length);
           if (cmp != 0) return cmp;
@@ -1301,5 +1413,141 @@ String _sessionCardTitle(AppLocalizations l10n, LiveSession session) {
       return l10n.sessionCardPointCountNum(n);
     case SessionType.survey:
       return l10n.sessionCardSurveyNum(n);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Per-row overflow menu (Open / Share / Delete)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Three-dot overflow menu attached to each session card. Replaces the
+/// previous bare trash icon so users can also re-open the review screen
+/// or kick off a share without leaving the library.
+class _SessionRowMenu extends StatelessWidget {
+  const _SessionRowMenu({
+    required this.onOpen,
+    required this.onShare,
+    required this.onDelete,
+  });
+
+  final VoidCallback onOpen;
+  final VoidCallback onShare;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    return PopupMenuButton<_SessionRowAction>(
+      tooltip: l10n.sessionLibraryRowMenuTooltip,
+      icon: const Icon(Icons.more_vert),
+      padding: EdgeInsets.zero,
+      onSelected: (action) {
+        switch (action) {
+          case _SessionRowAction.open:
+            onOpen();
+          case _SessionRowAction.share:
+            onShare();
+          case _SessionRowAction.delete:
+            onDelete();
+        }
+      },
+      itemBuilder: (_) => [
+        PopupMenuItem(
+          value: _SessionRowAction.open,
+          child: ListTile(
+            leading: const Icon(Icons.open_in_new),
+            title: Text(l10n.sessionLibraryRowOpen),
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+        PopupMenuItem(
+          value: _SessionRowAction.share,
+          child: ListTile(
+            leading: const Icon(Icons.share_outlined),
+            title: Text(l10n.sessionLibraryRowShare),
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+        PopupMenuItem(
+          value: _SessionRowAction.delete,
+          child: ListTile(
+            leading:
+                Icon(Icons.delete_outline, color: theme.colorScheme.error),
+            title: Text(
+              l10n.sessionLibraryRowDelete,
+              style: TextStyle(color: theme.colorScheme.error),
+            ),
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Swipe-to-delete wrapper
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Wraps a session card with [Dismissible] so users can swipe in either
+/// direction to delete the session. Both swipe directions show the same
+/// red trash background and route through the same destructive
+/// confirmation dialog as the overflow menu's Delete action.
+class _SwipeToDeleteSession extends StatelessWidget {
+  const _SwipeToDeleteSession({
+    super.key,
+    required this.session,
+    required this.onConfirmDelete,
+    required this.onDeleted,
+    required this.child,
+  });
+
+  final LiveSession session;
+  final Future<bool> Function() onConfirmDelete;
+  final Future<void> Function() onDeleted;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dismissible(
+      key: ValueKey('dismiss-${session.id}'),
+      direction: DismissDirection.horizontal,
+      background: _swipeBackground(context, alignLeft: true),
+      secondaryBackground: _swipeBackground(context, alignLeft: false),
+      confirmDismiss: (_) => onConfirmDelete(),
+      onDismissed: (_) => onDeleted(),
+      child: child,
+    );
+  }
+
+  Widget _swipeBackground(BuildContext context, {required bool alignLeft}) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.errorContainer,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      alignment: alignLeft ? Alignment.centerLeft : Alignment.centerRight,
+      child: Row(
+        mainAxisAlignment:
+            alignLeft ? MainAxisAlignment.start : MainAxisAlignment.end,
+        children: [
+          Icon(Icons.delete_sweep_outlined,
+              color: theme.colorScheme.onErrorContainer),
+          const SizedBox(width: 8),
+          Text(
+            l10n.tooltipDeleteSession,
+            style: TextStyle(color: theme.colorScheme.onErrorContainer),
+          ),
+        ],
+      ),
+    );
   }
 }

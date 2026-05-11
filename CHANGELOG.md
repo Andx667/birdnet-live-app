@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.1] - 2026-05-12
+
+### Added
+
+- **Sort sessions by recording duration.** The Session Library sort sheet now offers "Longest first" and "Shortest first" alongside the existing date and name orderings, so finding the longest survey or the shortest test recording in a large library is a single tap instead of a manual scan. (#33)
+- **Three-dot menu on session rows.** The trash icon on each session card has been replaced by a `more_vert` overflow menu offering Open, Share, and Delete. Share routes through the user's saved export-format and include-audio preferences and opens the platform share sheet directly — no need to open the review screen first to share a session. (#33)
+- **Swipe-to-delete on session cards.** Each row in the Session Library can now be swiped in either direction to delete the session, matching the swipe gesture already used on the Session Review species list. The same destructive-confirmation dialog is shown before the session is removed, so an accidental swipe is still recoverable. (#33)
+
+### Changed
+
+- **Compact view rows expand in place.** In the compact Session Library view, the trailing trash icon has been replaced by an expand affordance. Tapping it expands the row in-place to the full detailed-view card body — top species, duration, species count, detection count, size — without leaving the list or losing scroll position. The same overflow menu and swipe-to-delete gesture are available on the expanded card. (#33)
+
 ## [0.10.4] - 2026-05-12
 
 ### Added

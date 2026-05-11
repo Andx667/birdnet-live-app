@@ -663,6 +663,38 @@
   "@sessionSortNameZA": {
     "description": "Sort sessions alphabetically by name, Z to A"
   },
+  "sessionSortDurationLongest": "Longest first",
+  "@sessionSortDurationLongest": {
+    "description": "Sort sessions by recording duration, longest first"
+  },
+  "sessionSortDurationShortest": "Shortest first",
+  "@sessionSortDurationShortest": {
+    "description": "Sort sessions by recording duration, shortest first"
+  },
+  "sessionLibraryExpand": "Show details",
+  "@sessionLibraryExpand": {
+    "description": "Tooltip on the expand affordance in compact session rows"
+  },
+  "sessionLibraryCollapse": "Hide details",
+  "@sessionLibraryCollapse": {
+    "description": "Tooltip on the collapse affordance shown when a compact session row is expanded"
+  },
+  "sessionLibraryRowMenuTooltip": "More",
+  "@sessionLibraryRowMenuTooltip": {
+    "description": "Tooltip on the per-row overflow menu in the session library"
+  },
+  "sessionLibraryRowOpen": "Open",
+  "@sessionLibraryRowOpen": {
+    "description": "Per-row menu entry to open the session in the review screen"
+  },
+  "sessionLibraryRowShare": "Share",
+  "@sessionLibraryRowShare": {
+    "description": "Per-row menu entry to share the session export"
+  },
+  "sessionLibraryRowDelete": "Delete",
+  "@sessionLibraryRowDelete": {
+    "description": "Per-row menu entry to delete the session"
+  },
   "sessionDeleteDetectionTitle": "Remove Detection?",
   "@sessionDeleteDetectionTitle": {
     "description": "Title for detection deletion confirmation dialog"
