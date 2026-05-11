@@ -488,8 +488,10 @@ class _SpectrogramStripState extends State<_SpectrogramStrip>
     // never further — panning past the end has no value.
     final maxView = math.max(durationSec, _minViewSeconds);
     final newView =
-        ((startView / details.scale).clamp(_minViewSeconds, maxView))
-            .toDouble();
+        ((startView / details.scale).clamp(
+          _minViewSeconds,
+          maxView,
+        )).toDouble();
 
     // focalPointDelta is in pixels relative to the gesture start; convert
     // through the *current* view width so panning feels right at any zoom.

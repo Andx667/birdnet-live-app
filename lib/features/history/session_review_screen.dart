@@ -172,6 +172,12 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
   /// Whether the audio is being decoded and the spectrogram computed.
   bool _decoding = false;
 
+  /// Whether the screen is still doing its one-shot startup work
+  /// (loading audio metadata, decoding the spectrogram, restoring trim).
+  /// Drives the thin LinearProgressIndicator under the AppBar so users
+  /// of large sessions get visible feedback that the screen isn't frozen.
+  bool _initializing = true;
+
   bool get _canUndo => _undoStack.isNotEmpty;
   bool get _canRedo => _redoStack.isNotEmpty;
 
@@ -326,7 +332,10 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
 
   Future<void> _initAudio() async {
     final path = widget.session.recordingPath;
-    if (path == null || !File(path).existsSync()) return;
+    if (path == null || !File(path).existsSync()) {
+      if (mounted) setState(() => _initializing = false);
+      return;
+    }
 
     try {
       final dur = await _player.setFilePath(path);
@@ -364,6 +373,8 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
       await _restoreSavedTrim();
     } catch (_) {
       // Audio not available — review still works without playback.
+    } finally {
+      if (mounted) setState(() => _initializing = false);
     }
   }
 
@@ -1547,6 +1558,18 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
                   ),
             ),
           ],
+          // Indeterminate progress under the AppBar while the screen is
+          // doing its one-shot setup (audio metadata + spectrogram
+          // decode). Keeps the rest of the UI responsive but makes it
+          // obvious that something is loading on large sessions where
+          // decoding can take several seconds.
+          bottom:
+              (_initializing || _decoding)
+                  ? const PreferredSize(
+                    preferredSize: Size.fromHeight(2),
+                    child: LinearProgressIndicator(minHeight: 2),
+                  )
+                  : null,
         ),
         body: _buildReviewBody(context, theme, l10n),
       ),
