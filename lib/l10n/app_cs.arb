@@ -636,6 +636,17 @@
   "settingsRecordingModeFull": "Úplný",
   "settingsRecordingModeDetections": "Jen detekce",
 
+  "settingsLiveAutoStart": "Automaticky spustit nahrávání",
+  "settingsLiveAutoStartDescription": "Spustit nahrávání, jakmile se otevře Živý režim a model je připraven.",
+  "settingsHelpLiveAutoStart": "Když je zapnuto, Živý režim začne nahrávat ihned po načtení modelu bez nutnosti klepnout na tlačítko mikrofonu. Užitečné pro kiosková nasazení nebo použití bez rukou. Ve výchozím stavu vypnuto, aby náhodné klepnutí na dlaždici Živý režim nezahájilo nahrávání.",
+
+  "settingsGpsRefresh": "Aktualizovat GPS",
+  "settingsGpsRefreshSubtitle": "Vynutit nové určení polohy",
+  "settingsGpsRefreshing": "Získávání polohy GPS…",
+  "settingsGpsRefreshed": "Poloha GPS aktualizována",
+  "settingsGpsRefreshFailed": "Polohu GPS se nepodařilo získat",
+  "gpsStaleWarning": "Používá se poslední známá poloha — nový GPS signál není dostupný",
+
   "settingsHighPassFilter": "Horní propust (Hz)",
   "settingsWindowDuration": "Doba okna",
   "settingsConfidenceThreshold": "Práh spolehlivosti",

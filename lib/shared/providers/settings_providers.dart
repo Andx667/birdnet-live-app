@@ -192,6 +192,16 @@ final clipContextProvider = StateNotifierProvider<IntSettingNotifier, int>((
   return IntSettingNotifier(prefs, PrefKeys.clipContext, 1);
 });
 
+/// When true, Live mode auto-starts recording as soon as the model is
+/// ready. Lets the screen run kiosk-style or hands-free without an
+/// extra mic-button tap. Default: false.
+final liveAutoStartProvider = StateNotifierProvider<BoolSettingNotifier, bool>((
+  ref,
+) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return BoolSettingNotifier(prefs, PrefKeys.liveAutoStart, false);
+});
+
 // ---------------------------------------------------------------------------
 // Export Settings
 // ---------------------------------------------------------------------------

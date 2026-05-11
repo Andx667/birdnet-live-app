@@ -8,6 +8,7 @@ import '../../shared/providers/settings_providers.dart';
 import '../../shared/widgets/content_width_constraint.dart';
 import '../about/about_screen.dart';
 import '../audio/audio_providers.dart';
+import '../explore/explore_providers.dart';
 import '../spectrogram/color_maps.dart';
 
 // ---------------------------------------------------------------------------
@@ -465,6 +466,22 @@ class SettingsScreen extends ConsumerWidget {
                   onChanged:
                       (v) => ref.read(recordingFormatProvider.notifier).set(v),
                 ),
+              // Auto-start tile is Live-only — the survey / point-count
+              // setup wizards already gate session start behind their own
+              // multi-step flows where an auto-start would skip required
+              // configuration.
+              if (settingsContext == SettingsContext.live ||
+                  settingsContext == SettingsContext.all)
+                SwitchListTile(
+                  title: _TitleWithHelp(
+                    title: l10n.settingsLiveAutoStart,
+                    helpBody: l10n.settingsHelpLiveAutoStart,
+                  ),
+                  subtitle: Text(l10n.settingsLiveAutoStartDescription),
+                  value: ref.watch(liveAutoStartProvider),
+                  onChanged:
+                      (v) => ref.read(liveAutoStartProvider.notifier).set(v),
+                ),
               const Divider(),
             ],
 
@@ -505,6 +522,7 @@ class SettingsScreen extends ConsumerWidget {
                       (v) => ref.read(manualLongitudeProvider.notifier).set(v),
                 ),
               ],
+              if (ref.watch(useGpsProvider)) const _GpsRefreshTile(),
               _ChoiceTile<String>(
                 title: l10n.settingsSpeciesFilter,
                 helpBody: l10n.settingsHelpSpeciesFilter,
@@ -1227,6 +1245,96 @@ class _SegmentLabel extends StatelessWidget {
       softWrap: true,
       overflow: TextOverflow.ellipsis,
       style: const TextStyle(fontSize: 13, height: 1.1),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// _GpsRefreshTile — manual "Refresh GPS now" entry in the Location section
+// ---------------------------------------------------------------------------
+//
+// Forces the location service to fetch a fresh fix instead of using the
+// FutureProvider-cached value. Useful when the user has moved since last
+// open (the cached value can be miles away) or when they just want to
+// verify the receiver is working.  We also surface the current cached
+// coordinates as the subtitle so users can see at a glance what the app
+// thinks their location is right now.
+// ---------------------------------------------------------------------------
+
+class _GpsRefreshTile extends ConsumerStatefulWidget {
+  const _GpsRefreshTile();
+
+  @override
+  ConsumerState<_GpsRefreshTile> createState() => _GpsRefreshTileState();
+}
+
+class _GpsRefreshTileState extends ConsumerState<_GpsRefreshTile> {
+  bool _refreshing = false;
+
+  Future<void> _refresh() async {
+    if (_refreshing) return;
+    setState(() => _refreshing = true);
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    try {
+      ref.invalidate(currentLocationProvider);
+      final location = await ref.read(currentLocationProvider.future);
+      if (!mounted) return;
+      final svc = ref.read(locationServiceProvider);
+      final String message;
+      if (location == null) {
+        message = l10n.settingsGpsRefreshFailed;
+      } else if (svc.lastFetchUsedCachedFallback) {
+        message = l10n.gpsStaleWarning;
+      } else {
+        message = l10n.settingsGpsRefreshed;
+      }
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(message),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+    } catch (_) {
+      if (!mounted) return;
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(l10n.settingsGpsRefreshFailed),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+    } finally {
+      if (mounted) setState(() => _refreshing = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final loc = ref.watch(currentLocationProvider).valueOrNull;
+    final subtitle =
+        _refreshing
+            ? l10n.settingsGpsRefreshing
+            : loc == null
+            ? l10n.settingsGpsRefreshSubtitle
+            : '${loc.latitude.toStringAsFixed(4)}, ${loc.longitude.toStringAsFixed(4)}';
+    return ListTile(
+      leading: const Icon(Icons.my_location),
+      title: Text(l10n.settingsGpsRefresh),
+      subtitle: Text(subtitle),
+      trailing:
+          _refreshing
+              ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+              : const Icon(Icons.refresh),
+      onTap: _refreshing ? null : _refresh,
     );
   }
 }

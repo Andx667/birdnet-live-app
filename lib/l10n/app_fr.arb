@@ -636,6 +636,17 @@
   "settingsRecordingModeFull": "Complet",
   "settingsRecordingModeDetections": "Détections uniquement",
 
+  "settingsLiveAutoStart": "Démarrer l'enregistrement automatiquement",
+  "settingsLiveAutoStartDescription": "Commencer l'enregistrement dès l'ouverture du mode Live et lorsque le modèle est prêt.",
+  "settingsHelpLiveAutoStart": "Quand activé, le mode Live démarre l'enregistrement dès que le modèle est chargé, sans appui sur le bouton du micro. Utile pour les installations en mode borne ou l'utilisation mains libres. Désactivé par défaut pour qu'un appui accidentel sur la tuile Live ne déclenche pas d'enregistrement.",
+
+  "settingsGpsRefresh": "Actualiser le GPS maintenant",
+  "settingsGpsRefreshSubtitle": "Forcer une nouvelle localisation",
+  "settingsGpsRefreshing": "Acquisition de la position GPS…",
+  "settingsGpsRefreshed": "Position GPS mise à jour",
+  "settingsGpsRefreshFailed": "Impossible d'obtenir une position GPS",
+  "gpsStaleWarning": "Utilisation de la dernière position connue — GPS indisponible",
+
   "settingsHighPassFilter": "Filtre passe-haut (Hz)",
   "settingsWindowDuration": "Durée de la fenêtre",
   "settingsConfidenceThreshold": "Seuil de confiance",

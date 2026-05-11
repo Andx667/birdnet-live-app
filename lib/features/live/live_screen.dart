@@ -56,6 +56,7 @@ class _LiveScreenState extends ConsumerState<LiveScreen>
   bool _isStarting = false;
   Timer? _sessionTimer;
   bool _durationWarningShown = false;
+  bool _autoStartAttempted = false;
 
   /// Duration after which a warning dialog is shown to the user.
   static const _warningDuration = Duration(minutes: 10);
@@ -75,6 +76,16 @@ class _LiveScreenState extends ConsumerState<LiveScreen>
       SchedulerBinding.instance.addPostFrameCallback((_) {
         if (mounted) controller.loadModel();
       });
+    } else {
+      // Model was already loaded on a previous visit, so the controller is
+      // sitting in [LiveState.ready] (or paused/active from a backgrounded
+      // session). The state-change callback won't fire on its own because
+      // nothing actually changes — but we still need to evaluate the
+      // auto-start path for the second/third/Nth Live screen visit. Defer
+      // to post-frame so provider updates don't fire during build.
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _onControllerStateChanged();
+      });
     }
   }
 
@@ -90,6 +101,21 @@ class _LiveScreenState extends ConsumerState<LiveScreen>
     ref.read(sessionDetectionsProvider.notifier).state =
         controller.currentLiveDetections;
     ref.read(currentSessionProvider.notifier).state = controller.session;
+
+    // Auto-start: if the user opted in via the Live setting, kick off a
+    // session as soon as the model finishes loading. Guarded by
+    // [_autoStartAttempted] so a single screen visit only ever auto-starts
+    // once — leaving the user free to stop and manually restart without
+    // the screen re-arming itself.
+    if (!_autoStartAttempted &&
+        !_isStarting &&
+        controller.state == LiveState.ready &&
+        ref.read(liveAutoStartProvider)) {
+      _autoStartAttempted = true;
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _toggleSession();
+      });
+    }
   }
 
   /// Handle the main action button press (pause / resume / start).
@@ -146,9 +172,35 @@ class _LiveScreenState extends ConsumerState<LiveScreen>
 
       // Fetch geo-model scores (if available) for species filtering.
       // Also fetch the full geo-model species names for model intersection.
+      // Invalidating the location provider forces a fresh GPS fix instead
+      // of reusing whatever stale value the FutureProvider cached on a
+      // previous build — important when the user has moved between
+      // sessions (e.g. setting up a survey at one stop and then another).
+      // [LocationService] internally falls back to the OS-cached last
+      // position on a 10s timeout, so we still get something usable
+      // indoors / under poor signal — we just warn the user via SnackBar.
+      final useGps = ref.read(useGpsProvider);
+      if (useGps) {
+        ref.invalidate(currentLocationProvider);
+      }
       final geoScores = await ref.read(geoScoresProvider.future);
-      final geoSpeciesNames =
-          await ref.read(geoModelSpeciesNamesProvider.future);
+      final geoSpeciesNames = await ref.read(
+        geoModelSpeciesNamesProvider.future,
+      );
+      if (useGps && mounted) {
+        final svc = ref.read(locationServiceProvider);
+        if (svc.lastFetchUsedCachedFallback) {
+          final l10n = AppLocalizations.of(context)!;
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              SnackBar(
+                content: Text(l10n.gpsStaleWarning),
+                duration: const Duration(seconds: 4),
+              ),
+            );
+        }
+      }
 
       // Start inference session.
       await controller.startSession(
@@ -255,20 +307,21 @@ class _LiveScreenState extends ConsumerState<LiveScreen>
     final shouldContinue = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.sessionDurationWarningTitle),
-        content: Text(l10n.sessionDurationWarningMessage),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(l10n.sessionStopConfirm),
+      builder:
+          (ctx) => AlertDialog(
+            title: Text(l10n.sessionDurationWarningTitle),
+            content: Text(l10n.sessionDurationWarningMessage),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: Text(l10n.sessionStopConfirm),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: Text(l10n.sessionContinue),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(l10n.sessionContinue),
-          ),
-        ],
-      ),
     );
     if (!mounted) return;
     if (shouldContinue != true) {
@@ -396,9 +449,10 @@ class _LiveScreenState extends ConsumerState<LiveScreen>
         MediaQuery.of(context).orientation == Orientation.landscape;
 
     final statusBar = _CompactStatusBar(liveState: liveState, ref: ref);
-    final errorBanner = liveState == LiveState.error
-        ? _StatusBanner(liveState: liveState, ref: ref)
-        : null;
+    final errorBanner =
+        liveState == LiveState.error
+            ? _StatusBanner(liveState: liveState, ref: ref)
+            : null;
     final spectrogram = Container(
       color: theme.colorScheme.surfaceContainerLowest,
       child: _LiveSpectrogram(isCapturing: isCapturing),
@@ -439,17 +493,11 @@ class _LiveScreenState extends ConsumerState<LiveScreen>
                 Expanded(
                   flex: 1,
                   child: Column(
-                    children: [
-                      Expanded(child: spectrogram),
-                      sessionInfo,
-                    ],
+                    children: [Expanded(child: spectrogram), sessionInfo],
                   ),
                 ),
                 // Right: detection list
-                Expanded(
-                  flex: 1,
-                  child: detectionList,
-                ),
+                Expanded(flex: 1, child: detectionList),
               ],
             ),
           ),
@@ -480,10 +528,7 @@ class _LiveScreenState extends ConsumerState<LiveScreen>
 ///
 /// Height: ~48 dp.  No AppBar — just a thin Row to maximize vertical space.
 class _CompactStatusBar extends StatelessWidget {
-  const _CompactStatusBar({
-    required this.liveState,
-    required this.ref,
-  });
+  const _CompactStatusBar({required this.liveState, required this.ref});
 
   final LiveState liveState;
   final WidgetRef ref;
@@ -567,9 +612,10 @@ class _CompactStatusBar extends StatelessWidget {
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute<void>(
-                  builder: (_) => const SettingsScreen(
-                    settingsContext: SettingsContext.live,
-                  ),
+                  builder:
+                      (_) => const SettingsScreen(
+                        settingsContext: SettingsContext.live,
+                      ),
                 ),
               );
             },
@@ -587,27 +633,25 @@ void _showLiveHelp(BuildContext context) {
   showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    builder: (_) => AppHelpBottomSheet(
-      title: l10n.liveScreenHelpTitle,
-      sections: [
-        AppHelpSection(
-          icon: Icons.mic,
-          body: l10n.liveScreenHelpOverview,
+    builder:
+        (_) => AppHelpBottomSheet(
+          title: l10n.liveScreenHelpTitle,
+          sections: [
+            AppHelpSection(icon: Icons.mic, body: l10n.liveScreenHelpOverview),
+            AppHelpSection(
+              icon: Icons.help_outline_rounded,
+              body: l10n.liveScreenHelpControls,
+            ),
+            AppHelpSection(
+              icon: Icons.info_outline,
+              body: l10n.liveScreenHelpInfoBar,
+            ),
+            AppHelpSection(
+              icon: Icons.library_music_outlined,
+              body: l10n.liveScreenHelpDetections,
+            ),
+          ],
         ),
-        AppHelpSection(
-          icon: Icons.help_outline_rounded,
-          body: l10n.liveScreenHelpControls,
-        ),
-        AppHelpSection(
-          icon: Icons.info_outline,
-          body: l10n.liveScreenHelpInfoBar,
-        ),
-        AppHelpSection(
-          icon: Icons.library_music_outlined,
-          body: l10n.liveScreenHelpDetections,
-        ),
-      ],
-    ),
   );
 }
 
@@ -667,23 +711,25 @@ class _CaptureButton extends StatelessWidget {
           shadowColor: bgColor.withAlpha(120),
           child: InkWell(
             customBorder: const CircleBorder(),
-            onTap: isLoading
-                ? null
-                : () {
-                    HapticFeedback.lightImpact();
-                    onPressed();
-                  },
-            child: isLoading
-                ? Padding(
-                    padding: const EdgeInsets.all(14),
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.5,
-                      color: theme.colorScheme.onPrimary,
+            onTap:
+                isLoading
+                    ? null
+                    : () {
+                      HapticFeedback.lightImpact();
+                      onPressed();
+                    },
+            child:
+                isLoading
+                    ? Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: theme.colorScheme.onPrimary,
+                      ),
+                    )
+                    : ExcludeSemantics(
+                      child: Icon(icon, color: iconColor, size: 28),
                     ),
-                  )
-                : ExcludeSemantics(
-                    child: Icon(icon, color: iconColor, size: 28),
-                  ),
           ),
         ),
       ),
@@ -693,10 +739,7 @@ class _CaptureButton extends StatelessWidget {
 
 /// Banner showing model error state with retry button.
 class _StatusBanner extends StatelessWidget {
-  const _StatusBanner({
-    required this.liveState,
-    required this.ref,
-  });
+  const _StatusBanner({required this.liveState, required this.ref});
 
   final LiveState liveState;
   final WidgetRef ref;
@@ -777,10 +820,11 @@ class _SessionInfoBar extends ConsumerWidget {
     final totalDetections = controller.sessionDetections.length;
 
     // Unique species across the entire session (cumulative).
-    final totalUnique = controller.sessionDetections
-        .map((d) => d.scientificName)
-        .toSet()
-        .length;
+    final totalUnique =
+        controller.sessionDetections
+            .map((d) => d.scientificName)
+            .toSet()
+            .length;
 
     // Duration of the active session.
     int durationSec = 0;
@@ -798,9 +842,10 @@ class _SessionInfoBar extends ConsumerWidget {
         // so this matches the size reported by the session library card.
         // Falls back to 0 (omitted) when recording is off or the directory
         // doesn't exist yet.
-        future: recordingMode == 'off'
-            ? Future.value(0)
-            : _readRecordingBytes(controller.recordingService.sessionDir),
+        future:
+            recordingMode == 'off'
+                ? Future.value(0)
+                : _readRecordingBytes(controller.recordingService.sessionDir),
         builder: (context, snap) {
           final bytes = snap.data ?? 0;
           final List<String> parts = [];
@@ -853,10 +898,14 @@ class _SessionInfoBar extends ConsumerWidget {
         if (entity is File) {
           try {
             total += await entity.length();
-          } catch (_) {/* ignore */}
+          } catch (_) {
+            /* ignore */
+          }
         }
       }
-    } catch (_) {/* ignore */}
+    } catch (_) {
+      /* ignore */
+    }
     return total;
   }
 

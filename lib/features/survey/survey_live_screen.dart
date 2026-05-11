@@ -327,6 +327,7 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
     } else {
       return;
     }
+    messenger.hideCurrentSnackBar();
     messenger.showSnackBar(
       SnackBar(
         content: Row(

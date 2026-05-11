@@ -636,6 +636,17 @@
   "settingsRecordingModeFull": "Completa",
   "settingsRecordingModeDetections": "Solo rilevazioni",
 
+  "settingsLiveAutoStart": "Avvia registrazione automaticamente",
+  "settingsLiveAutoStartDescription": "Iniziare a registrare non appena si apre la modalità Live e il modello è pronto.",
+  "settingsHelpLiveAutoStart": "Se attivata, la modalità Live avvia la registrazione appena il modello è caricato, senza dover toccare il pulsante del microfono. Utile per installazioni a chiosco o uso a mani libere. Disattivata per impostazione predefinita, così un tocco accidentale sulla modalità Live non avvia una registrazione.",
+
+  "settingsGpsRefresh": "Aggiorna GPS ora",
+  "settingsGpsRefreshSubtitle": "Forza una nuova posizione",
+  "settingsGpsRefreshing": "Acquisizione della posizione GPS…",
+  "settingsGpsRefreshed": "Posizione GPS aggiornata",
+  "settingsGpsRefreshFailed": "Impossibile ottenere una posizione GPS",
+  "gpsStaleWarning": "Uso dell'ultima posizione nota — segnale GPS non disponibile",
+
   "settingsHighPassFilter": "Filtro passa-alto (Hz)",
   "settingsWindowDuration": "Durata della finestra",
   "settingsConfidenceThreshold": "Soglia di confidenza",

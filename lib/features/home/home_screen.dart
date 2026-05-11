@@ -49,12 +49,11 @@ class HomeScreen extends ConsumerWidget {
                 vertical: isLandscape ? 12 : 0,
               ),
               child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight: constraints.maxHeight,
-                ),
-                child: isLandscape
-                    ? _LandscapeHomeLayout(l10n: l10n, theme: theme)
-                    : _PortraitHomeLayout(l10n: l10n, theme: theme),
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child:
+                    isLandscape
+                        ? _LandscapeHomeLayout(l10n: l10n, theme: theme)
+                        : _PortraitHomeLayout(l10n: l10n, theme: theme),
               ),
             );
           },
@@ -107,11 +106,7 @@ class _LandscapeHomeLayout extends ConsumerWidget {
         // ── Left: compact logo + title ────────────────────────
         Expanded(
           flex: 2,
-          child: _LogoHeader(
-            l10n: l10n,
-            theme: theme,
-            compact: true,
-          ),
+          child: _LogoHeader(l10n: l10n, theme: theme, compact: true),
         ),
         const SizedBox(width: 32),
         // ── Right: mode grid + footer ─────────────────────────
@@ -253,35 +248,27 @@ class _ModeGrid extends StatelessWidget {
   }
 
   void _openLive(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => const LiveScreen(),
-      ),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const LiveScreen()));
   }
 
   void _openPointCount(BuildContext context) {
     Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => const PointCountSetupScreen(),
-      ),
+      MaterialPageRoute<void>(builder: (_) => const PointCountSetupScreen()),
     );
   }
 
   void _openSurvey(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => const SurveySetupScreen(),
-      ),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const SurveySetupScreen()));
   }
 
   void _openFileAnalysis(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => const FileAnalysisScreen(),
-      ),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const FileAnalysisScreen()));
   }
 }
 
@@ -310,9 +297,10 @@ class _ModeCard extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     return Material(
-      color: isDark
-          ? theme.colorScheme.surfaceContainerHighest.withAlpha(120)
-          : theme.colorScheme.surfaceContainerHighest.withAlpha(180),
+      color:
+          isDark
+              ? theme.colorScheme.surfaceContainerHighest.withAlpha(120)
+              : theme.colorScheme.surfaceContainerHighest.withAlpha(180),
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
@@ -377,46 +365,56 @@ class _Footer extends StatelessWidget {
       alignment: WrapAlignment.center,
       spacing: 12,
       children: [
+        // Sessions first — it's the more frequently used destination
+        // (every recording produces one) so it deserves the leftmost
+        // slot. Settings sits near the end where infrequent prefs
+        // belong (#33).
         _FooterButton(
-          icon: Icons.tune_rounded,
-          label: l10n.settings,
+          icon: Icons.library_music_outlined,
+          label: l10n.sessionLibraryTitle,
           color: color,
-          onPressed: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(builder: (_) => const SettingsScreen()),
-          ),
+          onPressed:
+              () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const SessionLibraryScreen(),
+                ),
+              ),
         ),
         _FooterButton(
           icon: Icons.search_rounded,
           label: l10n.exploreMode,
           color: color,
-          onPressed: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(builder: (_) => const ExploreScreen()),
-          ),
+          onPressed:
+              () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const ExploreScreen()),
+              ),
         ),
         _FooterButton(
-          icon: Icons.library_music_outlined,
-          label: l10n.sessionLibraryTitle,
+          icon: Icons.tune_rounded,
+          label: l10n.settings,
           color: color,
-          onPressed: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(
-                builder: (_) => const SessionLibraryScreen()),
-          ),
+          onPressed:
+              () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const SettingsScreen()),
+              ),
         ),
         _FooterButton(
           icon: Icons.help_outline_rounded,
           label: l10n.helpTitle,
           color: color,
-          onPressed: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(builder: (_) => const HelpScreen()),
-          ),
+          onPressed:
+              () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const HelpScreen()),
+              ),
         ),
         _FooterButton(
           icon: Icons.info_outline,
           label: l10n.about,
           color: color,
-          onPressed: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(builder: (_) => const AboutScreen()),
-          ),
+          onPressed:
+              () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const AboutScreen()),
+              ),
         ),
       ],
     );

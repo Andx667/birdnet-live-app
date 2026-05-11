@@ -26,10 +26,7 @@ import 'package:geolocator/geolocator.dart';
 
 /// Simplified location data — lat/lon only.
 class AppLocation {
-  const AppLocation({
-    required this.latitude,
-    required this.longitude,
-  });
+  const AppLocation({required this.latitude, required this.longitude});
 
   final double latitude;
   final double longitude;
@@ -48,8 +45,18 @@ class LocationService {
 
   AppLocation? _lastKnownLocation;
 
+  /// Whether the most recent [getCurrentLocation] call returned a cached
+  /// last-known position because the live fix timed out. Callers can read
+  /// this immediately after the future resolves to surface a "GPS is
+  /// stale" warning to the user.
+  bool _lastFetchUsedCachedFallback = false;
+
   /// The most recently fetched location (may be stale).
   AppLocation? get lastKnownLocation => _lastKnownLocation;
+
+  /// True when the most recent [getCurrentLocation] returned a cached
+  /// position because the live fix could not be acquired in time.
+  bool get lastFetchUsedCachedFallback => _lastFetchUsedCachedFallback;
 
   /// Check whether the device's location services are enabled.
   Future<bool> isLocationServiceEnabled() async {
@@ -98,7 +105,7 @@ class LocationService {
       try {
         final position = await Geolocator.getCurrentPosition(
           locationSettings: const LocationSettings(
-            accuracy: LocationAccuracy.medium,
+            accuracy: LocationAccuracy.high,
             timeLimit: Duration(seconds: 10),
           ),
         );
@@ -106,6 +113,7 @@ class LocationService {
           latitude: position.latitude,
           longitude: position.longitude,
         );
+        _lastFetchUsedCachedFallback = false;
         debugPrint('[LocationService] got position: $_lastKnownLocation');
         return _lastKnownLocation;
       } on TimeoutException {
@@ -113,7 +121,8 @@ class LocationService {
         // start indoors). Fall back to the OS-cached last-known position so
         // callers still get something usable, then return whatever we have.
         debugPrint(
-            '[LocationService] no fresh fix within 10s, using last known');
+          '[LocationService] no fresh fix within 10s, using last known',
+        );
         final cached = await Geolocator.getLastKnownPosition();
         if (cached != null) {
           _lastKnownLocation = AppLocation(
@@ -121,6 +130,7 @@ class LocationService {
             longitude: cached.longitude,
           );
         }
+        _lastFetchUsedCachedFallback = true;
         return _lastKnownLocation;
       }
     } catch (e) {
@@ -131,9 +141,6 @@ class LocationService {
 
   /// Set a manual location (for testing or user override).
   void setManualLocation(double latitude, double longitude) {
-    _lastKnownLocation = AppLocation(
-      latitude: latitude,
-      longitude: longitude,
-    );
+    _lastKnownLocation = AppLocation(latitude: latitude, longitude: longitude);
   }
 }

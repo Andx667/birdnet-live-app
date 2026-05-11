@@ -124,6 +124,10 @@ When **Detections only** is active, the app shows a single **Clip context** slid
 
 Choose **WAV** or **FLAC**.
 
+### Auto-start recording (Live mode only)
+
+When enabled, Live mode begins recording as soon as the screen opens and the model finishes loading — no need to tap the microphone button. Useful for kiosk-style deployments, hands-free use (e.g. mounting the device in the field), or any workflow where the user already knows that opening Live always means "start now". Disabled by default so an accidental tap on the Live tile from the home screen does not silently begin a session. The auto-start fires only once per screen visit, so stopping a session and tapping the mic again still works as a manual restart.
+
 ## Location
 
 ### Use GPS
@@ -133,6 +137,10 @@ Use device GPS instead of manual coordinates.
 ### Latitude / Longitude
 
 Manual coordinates used when GPS is disabled.
+
+### Refresh GPS now
+
+Forces a fresh location fix instead of reusing the last value the app cached. The intuition: GPS lookups are cached per-screen so a setup screen does not block waiting for a satellite fix on every open, but that cache can be miles out of date if you have driven to a new spot since the last session. Tap this when you have moved and want the geo-filter to use *here*, not where you started the morning. The current cached coordinates are shown in the subtitle so you can verify what the app thinks your location is. If GPS cannot get a fix within ~10 seconds, the app falls back to the OS-provided last-known location and warns you with a snackbar so you know the value is stale.
 
 ### Species filter
 

@@ -30,6 +30,7 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/score_colors.dart';
 import '../../../shared/providers/settings_providers.dart';
 import '../../explore/explore_providers.dart';
+import '../../explore/widgets/species_info_overlay.dart';
 import '../../live/live_session.dart';
 import '../../recording/audio_decoder.dart';
 import '../../recording/native_audio_decoder.dart';
@@ -289,80 +290,103 @@ class _ClipPlayerSheetState extends ConsumerState<_ClipPlayerSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Header: image + species info.
+            // Header: image + species info. Tapping the avatar or the
+            // species name opens [SpeciesInfoOverlay] so users can jump
+            // straight from a marker callout to the full species page
+            // without backing out of the player (#33).
             Row(
               children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: scoreColor, width: 2),
-                  ),
-                  child: ClipOval(
-                    child: Image.asset(
-                      imagePath,
-                      fit: BoxFit.cover,
-                      errorBuilder:
-                          (_, __, ___) => Container(
-                            color: scoreColor.withAlpha(60),
-                            child: Icon(Icons.music_note, color: scoreColor),
-                          ),
+                InkWell(
+                  onTap:
+                      () => SpeciesInfoOverlay.show(
+                        context,
+                        ref,
+                        scientificName: det.scientificName,
+                        commonName: displayName,
+                      ),
+                  customBorder: const CircleBorder(),
+                  child: Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: scoreColor, width: 2),
+                    ),
+                    child: ClipOval(
+                      child: Image.asset(
+                        imagePath,
+                        fit: BoxFit.cover,
+                        errorBuilder:
+                            (_, __, ___) => Container(
+                              color: scoreColor.withAlpha(60),
+                              child: Icon(Icons.music_note, color: scoreColor),
+                            ),
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        displayName,
-                        style: theme.textTheme.titleMedium,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      if (showSciNames)
+                  child: InkWell(
+                    onTap:
+                        () => SpeciesInfoOverlay.show(
+                          context,
+                          ref,
+                          scientificName: det.scientificName,
+                          commonName: displayName,
+                        ),
+                    borderRadius: BorderRadius.circular(6),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         Text(
-                          det.scientificName,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            fontStyle: FontStyle.italic,
-                          ),
+                          displayName,
+                          style: theme.textTheme.titleMedium,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 1,
+                        if (showSciNames)
+                          Text(
+                            det.scientificName,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontStyle: FontStyle.italic,
                             ),
-                            decoration: BoxDecoration(
-                              color: scoreColor.withAlpha(40),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              det.confidencePercent,
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: scoreColor,
-                                fontWeight: FontWeight.w600,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 1,
+                              ),
+                              decoration: BoxDecoration(
+                                color: scoreColor.withAlpha(40),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                det.confidencePercent,
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: scoreColor,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              timeStr,
-                              style: theme.textTheme.labelSmall,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                timeStr,
+                                style: theme.textTheme.labelSmall,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 // Confirm checkmark in the upper-right corner of the header.

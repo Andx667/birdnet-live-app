@@ -2451,6 +2451,44 @@
     "description": "Recording mode option: record only when detections occur"
   },
 
+  "settingsLiveAutoStart": "Auto-start recording",
+  "@settingsLiveAutoStart": {
+    "description": "Switch label for auto-starting Live recording when the screen opens"
+  },
+  "settingsLiveAutoStartDescription": "Begin recording as soon as Live mode opens and the model is ready.",
+  "@settingsLiveAutoStartDescription": {
+    "description": "Subtitle for the auto-start switch"
+  },
+  "settingsHelpLiveAutoStart": "When enabled, Live mode skips the manual mic-button tap and starts a session as soon as the model finishes loading. Useful for kiosk-style installations or hands-free use. Disabled by default so accidental taps on the Live tile do not begin recording.",
+  "@settingsHelpLiveAutoStart": {
+    "description": "Help text for the auto-start setting"
+  },
+
+  "settingsGpsRefresh": "Refresh GPS now",
+  "@settingsGpsRefresh": {
+    "description": "Title for the manual GPS refresh tile in the Location settings section"
+  },
+  "settingsGpsRefreshSubtitle": "Force a fresh location fix",
+  "@settingsGpsRefreshSubtitle": {
+    "description": "Subtitle shown on the GPS refresh tile when no cached location is available"
+  },
+  "settingsGpsRefreshing": "Acquiring GPS fix\u2026",
+  "@settingsGpsRefreshing": {
+    "description": "Subtitle shown while a GPS refresh is in flight"
+  },
+  "settingsGpsRefreshed": "GPS location updated",
+  "@settingsGpsRefreshed": {
+    "description": "Snackbar shown after a successful manual GPS refresh"
+  },
+  "settingsGpsRefreshFailed": "Could not acquire a GPS fix",
+  "@settingsGpsRefreshFailed": {
+    "description": "Snackbar shown when a manual GPS refresh fails"
+  },
+  "gpsStaleWarning": "Using last-known location \u2014 GPS fix unavailable",
+  "@gpsStaleWarning": {
+    "description": "Snackbar warning shown when a GPS fetch had to fall back to the cached last-known position because the live fix timed out"
+  },
+
   "settingsHighPassFilter": "High-pass filter (Hz)",
   "@settingsHighPassFilter": {
     "description": "High-pass filter setting label"

@@ -95,6 +95,10 @@ class _PointCountSetupScreenState extends ConsumerState<PointCountSetupScreen> {
   Future<void> _fetchGpsLocation() async {
     setState(() => _gpsFetching = true);
     try {
+      // Force a fresh fix — the user just tapped this button explicitly
+      // because they wanted up-to-date coordinates, not whatever the
+      // FutureProvider happened to cache on a previous open.
+      ref.invalidate(currentLocationProvider);
       final location = await ref.read(currentLocationProvider.future);
       if (location != null && mounted) {
         setState(() {
@@ -102,6 +106,18 @@ class _PointCountSetupScreenState extends ConsumerState<PointCountSetupScreen> {
           _longitude = location.longitude;
           _gpsFetching = false;
         });
+        final svc = ref.read(locationServiceProvider);
+        if (svc.lastFetchUsedCachedFallback) {
+          final l10n = AppLocalizations.of(context)!;
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              SnackBar(
+                content: Text(l10n.gpsStaleWarning),
+                duration: const Duration(seconds: 4),
+              ),
+            );
+        }
       } else {
         if (mounted) setState(() => _gpsFetching = false);
       }
@@ -143,17 +159,18 @@ class _PointCountSetupScreenState extends ConsumerState<PointCountSetupScreen> {
 
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(
-        builder: (_) => PointCountLiveScreen(
-          durationMinutes: durationMin,
-          latitude: lat,
-          longitude: lon,
-          customName: name.isEmpty ? null : name,
-          observerName: observer.isEmpty ? null : observer,
-          windowDurationOverride: _windowDuration,
-          inferenceRateOverride: _inferenceRate,
-          confidenceThresholdOverride: _confidenceThreshold,
-          speciesFilterModeOverride: _speciesFilterMode,
-        ),
+        builder:
+            (_) => PointCountLiveScreen(
+              durationMinutes: durationMin,
+              latitude: lat,
+              longitude: lon,
+              customName: name.isEmpty ? null : name,
+              observerName: observer.isEmpty ? null : observer,
+              windowDurationOverride: _windowDuration,
+              inferenceRateOverride: _inferenceRate,
+              confidenceThresholdOverride: _confidenceThreshold,
+              speciesFilterModeOverride: _speciesFilterMode,
+            ),
       ),
     );
   }
@@ -164,23 +181,24 @@ class _PointCountSetupScreenState extends ConsumerState<PointCountSetupScreen> {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      builder: (_) => AppHelpBottomSheet(
-        title: l10n.pointCountSetupHelpTitle,
-        sections: [
-          AppHelpSection(
-            icon: Icons.timer_rounded,
-            body: l10n.pointCountSetupHelpSteps,
+      builder:
+          (_) => AppHelpBottomSheet(
+            title: l10n.pointCountSetupHelpTitle,
+            sections: [
+              AppHelpSection(
+                icon: Icons.timer_rounded,
+                body: l10n.pointCountSetupHelpSteps,
+              ),
+              AppHelpSection(
+                icon: Icons.location_on_rounded,
+                body: l10n.pointCountSetupHelpLocation,
+              ),
+              AppHelpSection(
+                icon: Icons.play_arrow_rounded,
+                body: l10n.pointCountSetupHelpStart,
+              ),
+            ],
           ),
-          AppHelpSection(
-            icon: Icons.location_on_rounded,
-            body: l10n.pointCountSetupHelpLocation,
-          ),
-          AppHelpSection(
-            icon: Icons.play_arrow_rounded,
-            body: l10n.pointCountSetupHelpStart,
-          ),
-        ],
-      ),
     );
   }
 
@@ -204,9 +222,10 @@ class _PointCountSetupScreenState extends ConsumerState<PointCountSetupScreen> {
           onPressed: () {
             Navigator.of(context).push(
               MaterialPageRoute<void>(
-                builder: (_) => const SettingsScreen(
-                  settingsContext: SettingsContext.pointCount,
-                ),
+                builder:
+                    (_) => const SettingsScreen(
+                      settingsContext: SettingsContext.pointCount,
+                    ),
               ),
             );
           },
@@ -222,42 +241,40 @@ class _PointCountSetupScreenState extends ConsumerState<PointCountSetupScreen> {
         duration: const Duration(milliseconds: 250),
         child: switch (_step) {
           0 => _DurationStep(
-              key: const ValueKey(0),
-              durations: _durations,
-              nameController: _nameController,
-              observerController: _observerController,
-              locationChoice: _locationChoice,
-              latitude: _latitude,
-              longitude: _longitude,
-              gpsFetching: _gpsFetching,
-              latController: _latController,
-              lonController: _lonController,
-              onLocationChoiceChanged: (c) {
-                setState(() => _locationChoice = c);
-                if (c == _LocationChoice.gps) _fetchGpsLocation();
-              },
-              onFetchGps: _fetchGpsLocation,
-              onMapPick: (lat, lon) {
-                setState(() {
-                  _latitude = lat;
-                  _longitude = lon;
-                });
-              },
-            ),
+            key: const ValueKey(0),
+            durations: _durations,
+            nameController: _nameController,
+            observerController: _observerController,
+            locationChoice: _locationChoice,
+            latitude: _latitude,
+            longitude: _longitude,
+            gpsFetching: _gpsFetching,
+            latController: _latController,
+            lonController: _lonController,
+            onLocationChoiceChanged: (c) {
+              setState(() => _locationChoice = c);
+              if (c == _LocationChoice.gps) _fetchGpsLocation();
+            },
+            onFetchGps: _fetchGpsLocation,
+            onMapPick: (lat, lon) {
+              setState(() {
+                _latitude = lat;
+                _longitude = lon;
+              });
+            },
+          ),
           1 => _ParametersStep(
-              key: const ValueKey(1),
-              windowDuration: _windowDuration,
-              inferenceRate: _inferenceRate,
-              confidenceThreshold: _confidenceThreshold,
-              speciesFilterMode: _speciesFilterMode,
-              onWindowDurationChanged: (v) =>
-                  setState(() => _windowDuration = v),
-              onInferenceRateChanged: (v) => setState(() => _inferenceRate = v),
-              onConfidenceChanged: (v) =>
-                  setState(() => _confidenceThreshold = v),
-              onFilterModeChanged: (v) =>
-                  setState(() => _speciesFilterMode = v),
-            ),
+            key: const ValueKey(1),
+            windowDuration: _windowDuration,
+            inferenceRate: _inferenceRate,
+            confidenceThreshold: _confidenceThreshold,
+            speciesFilterMode: _speciesFilterMode,
+            onWindowDurationChanged: (v) => setState(() => _windowDuration = v),
+            onInferenceRateChanged: (v) => setState(() => _inferenceRate = v),
+            onConfidenceChanged:
+                (v) => setState(() => _confidenceThreshold = v),
+            onFilterModeChanged: (v) => setState(() => _speciesFilterMode = v),
+          ),
           2 => _TipsStep(key: const ValueKey(2)),
           _ => _ReadyStep(key: const ValueKey(3)),
         },
@@ -342,16 +359,17 @@ class _DurationStep extends ConsumerWidget {
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: durations.map((min) {
-            final isSelected = min == selected;
-            return ChoiceChip(
-              label: Text(l10n.pointCountDurationMinutes(min)),
-              selected: isSelected,
-              onSelected: (_) {
-                ref.read(pointCountDurationProvider.notifier).set(min);
-              },
-            );
-          }).toList(),
+          children:
+              durations.map((min) {
+                final isSelected = min == selected;
+                return ChoiceChip(
+                  label: Text(l10n.pointCountDurationMinutes(min)),
+                  selected: isSelected,
+                  onSelected: (_) {
+                    ref.read(pointCountDurationProvider.notifier).set(min);
+                  },
+                );
+              }).toList(),
         ),
 
         const SizedBox(height: 32),
@@ -371,8 +389,11 @@ class _DurationStep extends ConsumerWidget {
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                Icon(Icons.calendar_today_rounded,
-                    size: 18, color: theme.colorScheme.primary),
+                Icon(
+                  Icons.calendar_today_rounded,
+                  size: 18,
+                  color: theme.colorScheme.primary,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   DateFormat.yMMMMd().add_jm().format(DateTime.now()),
@@ -417,18 +438,22 @@ class _DurationStep extends ConsumerWidget {
           const SizedBox(height: 16),
           if (gpsFetching)
             const Center(
-                child: Padding(
-              padding: EdgeInsets.all(16),
-              child: CircularProgressIndicator(),
-            ))
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: CircularProgressIndicator(),
+              ),
+            )
           else if (latitude != null && longitude != null)
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
-                    Icon(Icons.location_on_rounded,
-                        size: 18, color: theme.colorScheme.primary),
+                    Icon(
+                      Icons.location_on_rounded,
+                      size: 18,
+                      color: theme.colorScheme.primary,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -454,9 +479,11 @@ class _DurationStep extends ConsumerWidget {
                 padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
-                    Icon(Icons.location_off_rounded,
-                        size: 18,
-                        color: theme.colorScheme.onSurface.withAlpha(153)),
+                    Icon(
+                      Icons.location_off_rounded,
+                      size: 18,
+                      color: theme.colorScheme.onSurface.withAlpha(153),
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -486,7 +513,9 @@ class _DurationStep extends ConsumerWidget {
                 child: TextField(
                   controller: latController,
                   keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true, signed: true),
+                    decimal: true,
+                    signed: true,
+                  ),
                   decoration: InputDecoration(
                     labelText: l10n.pointCountLatitude,
                     border: const OutlineInputBorder(),
@@ -499,7 +528,9 @@ class _DurationStep extends ConsumerWidget {
                 child: TextField(
                   controller: lonController,
                   keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true, signed: true),
+                    decimal: true,
+                    signed: true,
+                  ),
                   decoration: InputDecoration(
                     labelText: l10n.pointCountLongitude,
                     border: const OutlineInputBorder(),
@@ -514,10 +545,11 @@ class _DurationStep extends ConsumerWidget {
             onPressed: () async {
               final result = await Navigator.of(context).push<LatLng>(
                 MaterialPageRoute<LatLng>(
-                  builder: (_) => MapPickerScreen(
-                    initialLat: double.tryParse(latController.text),
-                    initialLon: double.tryParse(lonController.text),
-                  ),
+                  builder:
+                      (_) => MapPickerScreen(
+                        initialLat: double.tryParse(latController.text),
+                        initialLon: double.tryParse(lonController.text),
+                      ),
                 ),
               );
               if (result != null) {
@@ -760,12 +792,7 @@ class _TipsStep extends StatelessWidget {
               children: [
                 Icon(icon, size: 22, color: theme.colorScheme.secondary),
                 const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    text,
-                    style: theme.textTheme.bodyMedium,
-                  ),
-                ),
+                Expanded(child: Text(text, style: theme.textTheme.bodyMedium)),
               ],
             ),
           );
@@ -793,11 +820,7 @@ class _ReadyStep extends ConsumerWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.timer_rounded,
-            size: 64,
-            color: theme.colorScheme.primary,
-          ),
+          Icon(Icons.timer_rounded, size: 64, color: theme.colorScheme.primary),
           const SizedBox(height: 24),
           Text(
             l10n.pointCountReady,

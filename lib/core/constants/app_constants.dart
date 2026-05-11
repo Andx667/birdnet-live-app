@@ -79,6 +79,10 @@ abstract final class PrefKeys {
   static const String recordingFormat = 'recording_format';
   static const String recordingMode = 'recording_mode';
 
+  /// When true, Live mode auto-starts recording as soon as the model is
+  /// ready (kiosk-style / hands-free use). Default: false.
+  static const String liveAutoStart = 'live_auto_start';
+
   /// Seconds of audio captured before AND after each detection window.
   /// Total clip length = analysis window (e.g. 3 s) + 2 × clipContext.
   static const String clipContext = 'clip_context';
