@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.4] - 2026-05-12
+
+### Added
+
+- **Species search and sort on the Session Review screen.** A sticky search field above the species list filters by common or scientific name (locale-aware), so finding a specific species in a 100-species session is a few keystrokes instead of a long scroll. A new sort menu offers four orderings: A → Z (the new default — first-detection order becomes hard to scan once a session has lots of species), Most detections, Highest confidence, and First detected (the historical default, kept for users who want it). The chosen sort persists across sessions via `SharedPreferences`. Manual swipe-to-delete on the live survey detection list is unchanged. (#33)
+
+### Changed
+
+- Default species sort on the Session Review screen is now alphabetical (was first-detection time). Switch back via the new sort menu if you preferred the old order.
+
 ## [0.10.3] - 2026-05-12
 
 ### Added

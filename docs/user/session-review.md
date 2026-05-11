@@ -23,6 +23,15 @@ Session Review combines playback, spectrogram navigation, and a species list. Fo
 
 Species are grouped into expandable rows. You can inspect detections by species and move through the recording while reviewing them. Cluster rows under an expanded species are indented so the parent species card stays visually distinct from its children.
 
+A search field above the list filters species by common or scientific name, so finding one specific bird in a 100-species session is a few keystrokes instead of a long scroll. The :material-sort: button next to it changes the species order:
+
+- **A → Z** (default) — alphabetical by common name. Predictable, locale-aware, and the easiest to scan once a session has lots of species.
+- **Most detections** — species with the highest detection count first. Good for spotting the dominant choristers.
+- **Highest confidence** — species with the highest single-detection confidence first. Good for triaging the most certain identifications.
+- **First detected** — chronological by first-detection time. The historical default; useful when reviewing alongside the spectrogram timeline.
+
+The chosen sort persists across sessions.
+
 ### Per-detection actions
 
 Every place a detection appears — the species list, the clip player sheet, the live survey list, and the survey map markers — uses the same set of actions:

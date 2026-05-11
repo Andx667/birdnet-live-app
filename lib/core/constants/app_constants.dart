@@ -162,4 +162,12 @@ abstract final class PrefKeys {
   /// Remembers the user's last choice so a single tap re-enters the
   /// preferred workflow.
   static const String sessionLibraryNewMode = 'session_library_new_mode';
+
+  /// Persisted sort order for the species list on the Session Review
+  /// screen (one of `SpeciesSortMode.name`: alphabetical, count,
+  /// confidence, firstSeen). Default `alphabetical` — once a session
+  /// has 50+ species, finding one by detection-time order becomes
+  /// painful; alphabetical is the predictable fallback.
+  static const String sessionReviewSpeciesSort =
+      'session_review_species_sort';
 }

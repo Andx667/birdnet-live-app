@@ -1900,6 +1900,26 @@
   "@detectionSourceManual": {
     "description": "Short label/badge shown on a detection that was entered manually by the user (not produced by the model)."
   },
+  "sessionSpeciesSortMenu": "Sort species",
+  "@sessionSpeciesSortMenu": {
+    "description": "Tooltip on the sort button above the species list in session review."
+  },
+  "sessionSpeciesSortAlphabetical": "A → Z",
+  "@sessionSpeciesSortAlphabetical": {
+    "description": "Sort option: alphabetical by common name."
+  },
+  "sessionSpeciesSortCount": "Most detections",
+  "@sessionSpeciesSortCount": {
+    "description": "Sort option: most detections first."
+  },
+  "sessionSpeciesSortConfidence": "Highest confidence",
+  "@sessionSpeciesSortConfidence": {
+    "description": "Sort option: highest peak confidence first."
+  },
+  "sessionSpeciesSortFirstSeen": "First detected",
+  "@sessionSpeciesSortFirstSeen": {
+    "description": "Sort option: order by first-detection timestamp (the historical default)."
+  },
   "surveyListening": "Listening...",
   "@surveyListening": {
     "description": "Status text while survey is actively listening"

@@ -90,6 +90,14 @@ import 'services/detection_sharing_service.dart';
 
 part 'widgets/session_review_widgets.dart';
 
+/// Sort modes for the species list on the Session Review screen.
+///
+/// Persisted via [PrefKeys.sessionReviewSpeciesSort] (stored as
+/// `name`). [alphabetical] is the new default — first-detection order
+/// becomes hard to scan once a session has 50+ species. [firstSeen]
+/// stays available for users who want the historical behavior.
+enum SpeciesSortMode { alphabetical, count, confidence, firstSeen }
+
 /// Review screen displayed after a live session ends.
 class SessionReviewScreen extends ConsumerStatefulWidget {
   const SessionReviewScreen({super.key, required this.session});
@@ -177,6 +185,18 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
   /// When non-null, the species list is filtered to only show detections
   /// within these bounds.
   LatLngBounds? _visibleMapBounds;
+
+  /// Free-text species filter. Matches case-insensitive substrings of
+  /// the localized common name and the scientific name. Empty string
+  /// = no filtering.
+  String _speciesSearchQuery = '';
+  final TextEditingController _speciesSearchController =
+      TextEditingController();
+
+  /// Active sort mode for the species list. Loaded asynchronously in
+  /// [initState]; defaults to [SpeciesSortMode.alphabetical] which is
+  /// the predictable fallback once a session has lots of species.
+  SpeciesSortMode _speciesSort = SpeciesSortMode.alphabetical;
 
   _ReviewSnapshot _takeSnapshot() => _ReviewSnapshot(
     detections: List.of(_detections),
@@ -281,6 +301,27 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
     );
     _initAudio();
     _resolveLocation();
+    _loadSpeciesSort();
+  }
+
+  Future<void> _loadSpeciesSort() async {
+    final prefs = await SharedPreferences.getInstance();
+    final stored = prefs.getString(PrefKeys.sessionReviewSpeciesSort);
+    if (stored == null || !mounted) return;
+    final mode = SpeciesSortMode.values.firstWhere(
+      (m) => m.name == stored,
+      orElse: () => SpeciesSortMode.alphabetical,
+    );
+    if (mode != _speciesSort) {
+      setState(() => _speciesSort = mode);
+    }
+  }
+
+  Future<void> _setSpeciesSort(SpeciesSortMode mode) async {
+    if (mode == _speciesSort) return;
+    setState(() => _speciesSort = mode);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(PrefKeys.sessionReviewSpeciesSort, mode.name);
   }
 
   Future<void> _initAudio() async {
@@ -547,6 +588,7 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
     _fullSpectrogramImage?.dispose();
     _player.dispose();
     _clipPlayer.dispose();
+    _speciesSearchController.dispose();
     super.dispose();
   }
 
@@ -1813,8 +1855,68 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
   }
 
   Widget _buildSpeciesList(ThemeData theme, AppLocalizations l10n) {
-    if (_filteredSpeciesGroups.isEmpty) {
-      return Center(
+    final speciesLocale = ref.watch(effectiveSpeciesLocaleProvider);
+    final taxonomy = ref.watch(taxonomyServiceProvider).valueOrNull;
+
+    // Locale-aware common-name resolver — mirrors the lookup used by
+    // the species tile so the filter/sort match what the user sees.
+    String localizedCommonName(_SpeciesGroup group) {
+      final localized = taxonomy
+          ?.lookup(group.scientificName)
+          ?.commonNameForLocale(speciesLocale);
+      return localized ?? group.commonName;
+    }
+
+    // Apply free-text filter (locale-aware common name + sci name).
+    final query = _speciesSearchQuery.trim().toLowerCase();
+    var groups = _filteredSpeciesGroups;
+    if (query.isNotEmpty) {
+      groups = groups.where((g) {
+        final common = localizedCommonName(g).toLowerCase();
+        final sci = g.scientificName.toLowerCase();
+        return common.contains(query) || sci.contains(query);
+      }).toList();
+    }
+
+    // Apply user-selected sort. New list to avoid mutating cached state.
+    final sorted = List<_SpeciesGroup>.of(groups);
+    switch (_speciesSort) {
+      case SpeciesSortMode.alphabetical:
+        sorted.sort(
+          (a, b) => localizedCommonName(a)
+              .toLowerCase()
+              .compareTo(localizedCommonName(b).toLowerCase()),
+        );
+        break;
+      case SpeciesSortMode.count:
+        sorted.sort((a, b) {
+          final c = b.totalCount.compareTo(a.totalCount);
+          if (c != 0) return c;
+          return localizedCommonName(a)
+              .toLowerCase()
+              .compareTo(localizedCommonName(b).toLowerCase());
+        });
+        break;
+      case SpeciesSortMode.confidence:
+        sorted.sort((a, b) {
+          final c = b.bestConfidence.compareTo(a.bestConfidence);
+          if (c != 0) return c;
+          return localizedCommonName(a)
+              .toLowerCase()
+              .compareTo(localizedCommonName(b).toLowerCase());
+        });
+        break;
+      case SpeciesSortMode.firstSeen:
+        sorted.sort((a, b) => a.firstTimestamp.compareTo(b.firstTimestamp));
+        break;
+    }
+
+    final header = _buildSpeciesListHeader(theme, l10n);
+    final hasAnyGroups = _filteredSpeciesGroups.isNotEmpty;
+
+    Widget body;
+    if (!hasAnyGroups) {
+      body = Center(
         child: Text(
           l10n.sessionNoDetections,
           style: theme.textTheme.bodyLarge?.copyWith(
@@ -1822,57 +1924,168 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
           ),
         ),
       );
+    } else if (sorted.isEmpty) {
+      // The search filter eliminated every species but the session is
+      // not actually empty — show a query-specific empty state so the
+      // user knows to clear/refine the search instead of suspecting
+      // that detections were lost.
+      body = Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            l10n.sessionNoResultsFor(_speciesSearchQuery),
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurface.withAlpha(140),
+            ),
+          ),
+        ),
+      );
+    } else {
+      body = ListView.builder(
+        padding: const EdgeInsets.only(bottom: 80),
+        itemCount: sorted.length,
+        itemBuilder: (context, index) {
+          final group = sorted[index];
+          final isExpanded = _expandedSpecies.contains(group.scientificName);
+          final isActive =
+              _isSpeciesActive(group) ||
+              (_activeClipCluster != null &&
+                  group.clusters.contains(_activeClipCluster));
+          return _SpeciesTile(
+            group: group,
+            sessionStart: widget.session.startTime,
+            isExpanded: isExpanded,
+            isActive: isActive,
+            activePositionSec:
+                _isPlaying ? _position.inMicroseconds / 1e6 : null,
+            activeCluster: _activeClipCluster,
+            clipOffsetSec: _clipOffsetSec,
+            windowSec: widget.session.settings.windowDuration,
+            isSurvey: widget.session.type == SessionType.survey,
+            audioAvailable: _audioAvailable,
+            onToggleExpand:
+                () => setState(() {
+                  if (isExpanded) {
+                    _expandedSpecies.remove(group.scientificName);
+                  } else {
+                    _expandedSpecies.add(group.scientificName);
+                  }
+                }),
+            onSpeciesInfo:
+                () => SpeciesInfoOverlay.show(
+                  context,
+                  ref,
+                  scientificName: group.scientificName,
+                  commonName: group.commonName,
+                ),
+            onSeekCluster: _seekToCluster,
+            onPause: _pausePlayer,
+            onDeleteCluster: _deleteDetectionWithUndo,
+            onDeleteSpecies:
+                () => _deleteSpeciesWithUndo(group.scientificName),
+            onReplaceCluster: _replaceDetection,
+            onToggleConfirmCluster: _toggleClusterConfirmation,
+            onShareCluster:
+                (cluster) => shareDetection(
+                  cluster.records.first,
+                  session: widget.session,
+                ),
+            onShowOnMap: _showDetectionOnMap,
+          );
+        },
+      );
     }
-    return ListView.builder(
-      padding: const EdgeInsets.only(bottom: 80),
-      itemCount: _filteredSpeciesGroups.length,
-      itemBuilder: (context, index) {
-        final group = _filteredSpeciesGroups[index];
-        final isExpanded = _expandedSpecies.contains(group.scientificName);
-        final isActive =
-            _isSpeciesActive(group) ||
-            (_activeClipCluster != null &&
-                group.clusters.contains(_activeClipCluster));
-        return _SpeciesTile(
-          group: group,
-          sessionStart: widget.session.startTime,
-          isExpanded: isExpanded,
-          isActive: isActive,
-          activePositionSec: _isPlaying ? _position.inMicroseconds / 1e6 : null,
-          activeCluster: _activeClipCluster,
-          clipOffsetSec: _clipOffsetSec,
-          windowSec: widget.session.settings.windowDuration,
-          isSurvey: widget.session.type == SessionType.survey,
-          audioAvailable: _audioAvailable,
-          onToggleExpand:
-              () => setState(() {
-                if (isExpanded) {
-                  _expandedSpecies.remove(group.scientificName);
-                } else {
-                  _expandedSpecies.add(group.scientificName);
-                }
-              }),
-          onSpeciesInfo:
-              () => SpeciesInfoOverlay.show(
-                context,
-                ref,
-                scientificName: group.scientificName,
-                commonName: group.commonName,
+
+    return Column(
+      children: [
+        header,
+        Expanded(child: body),
+      ],
+    );
+  }
+
+  /// Sticky header above the species list with a search field and
+  /// sort menu. Hidden entirely when the session has no detections at
+  /// all so the empty-state message stays prominent.
+  Widget _buildSpeciesListHeader(ThemeData theme, AppLocalizations l10n) {
+    if (_speciesGroups.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 4, 4, 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: SizedBox(
+              height: 36,
+              child: TextField(
+                controller: _speciesSearchController,
+                onChanged: (v) => setState(() => _speciesSearchQuery = v),
+                style: theme.textTheme.bodyMedium,
+                decoration: InputDecoration(
+                  isDense: true,
+                  hintText: l10n.sessionSearchSpecies,
+                  prefixIcon: const Icon(Icons.search, size: 18),
+                  prefixIconConstraints: const BoxConstraints(
+                    minWidth: 32,
+                    minHeight: 32,
+                  ),
+                  suffixIcon:
+                      _speciesSearchQuery.isEmpty
+                          ? null
+                          : IconButton(
+                            icon: const Icon(Icons.clear, size: 18),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                              minWidth: 32,
+                              minHeight: 32,
+                            ),
+                            onPressed: () {
+                              _speciesSearchController.clear();
+                              setState(() => _speciesSearchQuery = '');
+                            },
+                          ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 0,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
               ),
-          onSeekCluster: _seekToCluster,
-          onPause: _pausePlayer,
-          onDeleteCluster: _deleteDetectionWithUndo,
-          onDeleteSpecies: () => _deleteSpeciesWithUndo(group.scientificName),
-          onReplaceCluster: _replaceDetection,
-          onToggleConfirmCluster: _toggleClusterConfirmation,
-          onShareCluster:
-              (cluster) => shareDetection(
-                cluster.records.first,
-                session: widget.session,
-              ),
-          onShowOnMap: _showDetectionOnMap,
-        );
-      },
+            ),
+          ),
+          PopupMenuButton<SpeciesSortMode>(
+            tooltip: l10n.sessionSpeciesSortMenu,
+            icon: const Icon(Icons.sort),
+            initialValue: _speciesSort,
+            onSelected: _setSpeciesSort,
+            itemBuilder:
+                (context) => [
+                  CheckedPopupMenuItem(
+                    value: SpeciesSortMode.alphabetical,
+                    checked: _speciesSort == SpeciesSortMode.alphabetical,
+                    child: Text(l10n.sessionSpeciesSortAlphabetical),
+                  ),
+                  CheckedPopupMenuItem(
+                    value: SpeciesSortMode.count,
+                    checked: _speciesSort == SpeciesSortMode.count,
+                    child: Text(l10n.sessionSpeciesSortCount),
+                  ),
+                  CheckedPopupMenuItem(
+                    value: SpeciesSortMode.confidence,
+                    checked: _speciesSort == SpeciesSortMode.confidence,
+                    child: Text(l10n.sessionSpeciesSortConfidence),
+                  ),
+                  CheckedPopupMenuItem(
+                    value: SpeciesSortMode.firstSeen,
+                    checked: _speciesSort == SpeciesSortMode.firstSeen,
+                    child: Text(l10n.sessionSpeciesSortFirstSeen),
+                  ),
+                ],
+          ),
+        ],
+      ),
     );
   }
 
