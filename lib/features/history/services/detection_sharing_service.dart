@@ -34,8 +34,8 @@
 // =============================================================================
 
 import 'dart:io';
-import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -139,6 +139,12 @@ String _sanitizeFilename(String input) {
 /// to text sharing. The slice spans `windowDuration + 2 ×
 /// clipContextSeconds`, centered on the detection's analysis window, to
 /// match the per-detection clip layout used elsewhere.
+@visibleForTesting
+Future<File?> extractClipFromFullAudio(
+  LiveSession session,
+  DetectionRecord detection,
+) => _extractClipFromFullAudio(session, detection);
+
 Future<File?> _extractClipFromFullAudio(
   LiveSession session,
   DetectionRecord detection,
@@ -229,10 +235,7 @@ Future<Uint8List?> _sliceWav(
     final wave = String.fromCharCodes(headerBytes.sublist(8, 12));
     final fmt = String.fromCharCodes(headerBytes.sublist(12, 16));
     final data = String.fromCharCodes(headerBytes.sublist(36, 40));
-    if (riff != 'RIFF' ||
-        wave != 'WAVE' ||
-        fmt != 'fmt ' ||
-        data != 'data') {
+    if (riff != 'RIFF' || wave != 'WAVE' || fmt != 'fmt ' || data != 'data') {
       throw const FormatException('Unsupported WAV layout');
     }
     final channels = header.getUint16(22, Endian.little);

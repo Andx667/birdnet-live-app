@@ -1062,6 +1062,7 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
       MaterialPageRoute<void>(
         builder:
             (_) => _FullscreenSurveyMapScreen(
+              session: widget.session,
               gpsTrack: widget.session.gpsTrack,
               detections: _detections,
               initialHighlight: _highlightedDetection,
@@ -1865,8 +1866,10 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
           onReplaceCluster: _replaceDetection,
           onToggleConfirmCluster: _toggleClusterConfirmation,
           onShareCluster:
-              (cluster) =>
-                  shareDetection(cluster.records.first, session: widget.session),
+              (cluster) => shareDetection(
+                cluster.records.first,
+                session: widget.session,
+              ),
           onShowOnMap: _showDetectionOnMap,
         );
       },
@@ -2013,12 +2016,18 @@ const double _defaultConfidenceFloor = 0.1;
 /// confidence, single species).
 class _FullscreenSurveyMapScreen extends ConsumerStatefulWidget {
   const _FullscreenSurveyMapScreen({
+    required this.session,
     required this.gpsTrack,
     required this.detections,
     this.initialHighlight,
     this.onConfirmChanged,
     this.onDeleteDetection,
   });
+
+  /// Host session — forwarded to the clip player sheet so its share
+  /// button can fall back to slicing the full recording when a marker
+  /// has no per-detection clip of its own.
+  final LiveSession session;
 
   final List<GpsPoint> gpsTrack;
   final List<DetectionRecord> detections;
@@ -2136,6 +2145,7 @@ class _FullscreenSurveyMapScreenState
     await showClipPlayerSheet(
       context,
       detection: detection,
+      session: widget.session,
       onConfirmChanged: () {
         // Rebuild this screen so the marker's confirmed badge updates
         // immediately, then forward to the host so the session is marked

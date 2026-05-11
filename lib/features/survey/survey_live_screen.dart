@@ -604,6 +604,7 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
             showClipPlayerSheet(
               context,
               detection: detection,
+              session: session,
               onConfirmChanged: () {
                 if (mounted) setState(() {});
               },

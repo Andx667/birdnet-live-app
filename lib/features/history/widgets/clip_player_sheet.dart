@@ -57,6 +57,7 @@ Future<void> showClipPlayerSheet(
   required DetectionRecord detection,
   VoidCallback? onConfirmChanged,
   VoidCallback? onDelete,
+  LiveSession? session,
 }) {
   final path = detection.audioClipPath;
   if (path == null || !File(path).existsSync()) {
@@ -73,6 +74,7 @@ Future<void> showClipPlayerSheet(
           clipPath: path,
           onConfirmChanged: onConfirmChanged,
           onDelete: onDelete,
+          session: session,
         ),
   );
 }
@@ -83,12 +85,14 @@ class _ClipPlayerSheet extends ConsumerStatefulWidget {
     required this.clipPath,
     this.onConfirmChanged,
     this.onDelete,
+    this.session,
   });
 
   final DetectionRecord detection;
   final String clipPath;
   final VoidCallback? onConfirmChanged;
   final VoidCallback? onDelete;
+  final LiveSession? session;
 
   @override
   ConsumerState<_ClipPlayerSheet> createState() => _ClipPlayerSheetState();
@@ -375,7 +379,11 @@ class _ClipPlayerSheetState extends ConsumerState<_ClipPlayerSheet> {
                 // regardless of where they opened the detection.
                 DetectionActionsOverflow(
                   actions: DetectionActions(
-                    onShare: () => shareDetection(widget.detection),
+                    onShare:
+                        () => shareDetection(
+                          widget.detection,
+                          session: widget.session,
+                        ),
                     onDelete:
                         widget.onDelete == null
                             ? null
