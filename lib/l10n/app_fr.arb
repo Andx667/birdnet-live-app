@@ -636,6 +636,10 @@
   "settingsRecordingModeFull": "Complet",
   "settingsRecordingModeDetections": "Détections uniquement",
 
+  "settingsLiveAutoStart": "Démarrer l'enregistrement automatiquement",
+  "settingsLiveAutoStartDescription": "Commencer l'enregistrement dès l'ouverture du mode Live et lorsque le modèle est prêt.",
+  "settingsHelpLiveAutoStart": "Quand activé, le mode Live démarre l'enregistrement dès que le modèle est chargé, sans appui sur le bouton du micro. Utile pour les installations en mode borne ou l'utilisation mains libres. Désactivé par défaut pour qu'un appui accidentel sur la tuile Live ne déclenche pas d'enregistrement.",
+
   "settingsHighPassFilter": "Filtre passe-haut (Hz)",
   "settingsWindowDuration": "Durée de la fenêtre",
   "settingsConfidenceThreshold": "Seuil de confiance",

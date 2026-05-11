@@ -636,6 +636,10 @@
   "settingsRecordingModeFull": "Úplný",
   "settingsRecordingModeDetections": "Jen detekce",
 
+  "settingsLiveAutoStart": "Automaticky spustit nahrávání",
+  "settingsLiveAutoStartDescription": "Spustit nahrávání, jakmile se otevře Živý režim a model je připraven.",
+  "settingsHelpLiveAutoStart": "Když je zapnuto, Živý režim začne nahrávat ihned po načtení modelu bez nutnosti klepnout na tlačítko mikrofonu. Užitečné pro kiosková nasazení nebo použití bez rukou. Ve výchozím stavu vypnuto, aby náhodné klepnutí na dlaždici Živý režim nezahájilo nahrávání.",
+
   "settingsHighPassFilter": "Horní propust (Hz)",
   "settingsWindowDuration": "Doba okna",
   "settingsConfidenceThreshold": "Práh spolehlivosti",

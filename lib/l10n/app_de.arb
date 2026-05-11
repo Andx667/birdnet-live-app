@@ -636,6 +636,10 @@
   "settingsRecordingModeFull": "Vollständig",
   "settingsRecordingModeDetections": "Nur Detektionen",
 
+  "settingsLiveAutoStart": "Aufnahme automatisch starten",
+  "settingsLiveAutoStartDescription": "Aufnahme starten, sobald der Live-Modus geöffnet und das Modell bereit ist.",
+  "settingsHelpLiveAutoStart": "Wenn aktiviert, beginnt der Live-Modus die Aufnahme sofort nach dem Laden des Modells, ohne dass die Mikrofontaste gedrückt werden muss. Nützlich für Kiosk-Installationen oder freihändige Nutzung. Standardmäßig deaktiviert, damit versehentliches Antippen der Live-Kachel keine Aufnahme startet.",
+
   "settingsHighPassFilter": "Hochpassfilter (Hz)",
   "settingsWindowDuration": "Fensterdauer",
   "settingsConfidenceThreshold": "Konfidenzschwellenwert",

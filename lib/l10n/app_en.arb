@@ -2451,6 +2451,19 @@
     "description": "Recording mode option: record only when detections occur"
   },
 
+  "settingsLiveAutoStart": "Auto-start recording",
+  "@settingsLiveAutoStart": {
+    "description": "Switch label for auto-starting Live recording when the screen opens"
+  },
+  "settingsLiveAutoStartDescription": "Begin recording as soon as Live mode opens and the model is ready.",
+  "@settingsLiveAutoStartDescription": {
+    "description": "Subtitle for the auto-start switch"
+  },
+  "settingsHelpLiveAutoStart": "When enabled, Live mode skips the manual mic-button tap and starts a session as soon as the model finishes loading. Useful for kiosk-style installations or hands-free use. Disabled by default so accidental taps on the Live tile do not begin recording.",
+  "@settingsHelpLiveAutoStart": {
+    "description": "Help text for the auto-start setting"
+  },
+
   "settingsHighPassFilter": "High-pass filter (Hz)",
   "@settingsHighPassFilter": {
     "description": "High-pass filter setting label"

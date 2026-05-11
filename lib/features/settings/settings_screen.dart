@@ -465,6 +465,22 @@ class SettingsScreen extends ConsumerWidget {
                   onChanged:
                       (v) => ref.read(recordingFormatProvider.notifier).set(v),
                 ),
+              // Auto-start tile is Live-only — the survey / point-count
+              // setup wizards already gate session start behind their own
+              // multi-step flows where an auto-start would skip required
+              // configuration.
+              if (settingsContext == SettingsContext.live ||
+                  settingsContext == SettingsContext.all)
+                SwitchListTile(
+                  title: _TitleWithHelp(
+                    title: l10n.settingsLiveAutoStart,
+                    helpBody: l10n.settingsHelpLiveAutoStart,
+                  ),
+                  subtitle: Text(l10n.settingsLiveAutoStartDescription),
+                  value: ref.watch(liveAutoStartProvider),
+                  onChanged:
+                      (v) => ref.read(liveAutoStartProvider.notifier).set(v),
+                ),
               const Divider(),
             ],
 
