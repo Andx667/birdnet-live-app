@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.2] - 2026-05-11
+
+### Changed
+
+- **Unified per-detection actions.** Confirm, share, replace, and delete now look and behave the same everywhere a detection appears — the session review species list, the clip player sheet (review and live survey), the live survey detection list, and the survey map markers. Confirm stays inline as a one-tap checkmark; share/replace/delete live behind a single `more_vert` overflow rendered by a new shared widget. The platform-neutral share icon (`Icons.share`) replaces the iOS-specific glyph that was used in some places. (#33)
+- **Faster cleanup of false positives.** Deleting a detection in session review no longer requires confirming a modal dialog. Rows can be swiped horizontally or removed via the overflow menu; an undo SnackBar appears for a few seconds so misfires are reversible. The same undo affordance is available when deleting from the live survey list or a live survey map marker. (#33)
+
+### Added
+
+- **Live survey detection actions.** Detection rows during a survey now show inline confirm + a share/delete overflow so reviewers can validate, share, or remove a detection mid-capture instead of waiting for review. (#33)
+- **Live survey map markers open the clip player.** Tapping a detection marker on the live survey map opens the same review sheet (confirm + share + delete) used elsewhere, closing the gap between the live and post-session map experience. (#33)
+- **Delete from the survey review map.** The clip player sheet now exposes a `Delete detection` entry when opened from the post-session fullscreen survey map, fixing a dead-end where the only review action available there was confirm. (#33)
+
 ## [0.10.1] - 2026-05-06
 
 ### Changed
