@@ -1200,6 +1200,7 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
     messenger.showSnackBar(
       SnackBar(
         content: Text(l10n.sessionDetectionRemoved),
+        duration: const Duration(seconds: 6),
         action: SnackBarAction(
           label: l10n.sessionUndo,
           onPressed: () {
@@ -1231,6 +1232,7 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
     messenger.showSnackBar(
       SnackBar(
         content: Text(l10n.sessionSpeciesRemoved),
+        duration: const Duration(seconds: 6),
         action: SnackBarAction(
           label: l10n.sessionUndo,
           onPressed: () {
