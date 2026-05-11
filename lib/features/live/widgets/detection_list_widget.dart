@@ -82,7 +82,10 @@ class DetectionList extends StatelessWidget {
           ),
           direction: DismissDirection.horizontal,
           background: _swipeDeleteBackground(context, alignLeft: true),
-          secondaryBackground: _swipeDeleteBackground(context, alignLeft: false),
+          secondaryBackground: _swipeDeleteBackground(
+            context,
+            alignLeft: false,
+          ),
           onDismissed: (_) => onDelete(),
           child: tile,
         );
@@ -90,7 +93,10 @@ class DetectionList extends StatelessWidget {
     );
   }
 
-  Widget _swipeDeleteBackground(BuildContext context, {required bool alignLeft}) {
+  Widget _swipeDeleteBackground(
+    BuildContext context, {
+    required bool alignLeft,
+  }) {
     final theme = Theme.of(context);
     return Container(
       alignment: alignLeft ? Alignment.centerLeft : Alignment.centerRight,
