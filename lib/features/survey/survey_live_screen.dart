@@ -171,6 +171,54 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
     );
   }
 
+  /// Open the species picker and, on confirm, log a manual observation.
+  ///
+  /// Manual entries get [DetectionSource.manual], a 1.0 confidence, the
+  /// current GPS fix (if available), and "now" as their timestamp. They
+  /// surface immediately in the live detection list and on the map, and are
+  /// visually distinguished by a small `edit_note` chip + "manual" badge
+  /// everywhere a [DetectionRecord] is rendered.
+  Future<void> _addManualObservation() async {
+    if (!mounted) return;
+    final controller = ref.read(surveyControllerProvider);
+    final session = controller.session;
+    if (session == null) return;
+    final l10n = AppLocalizations.of(context)!;
+    final messenger = ScaffoldMessenger.of(context);
+
+    final positionSec =
+        DateTime.now().difference(session.startTime).inMilliseconds / 1000.0;
+    final result = await Navigator.of(context).push<AddSpeciesResult>(
+      MaterialPageRoute(
+        builder:
+            (_) => AddSpeciesOverlay(
+              sessionStart: session.startTime,
+              positionSec: positionSec,
+              existingDetections: session.detections,
+              initialMode: AddSpeciesInsertMode.atTimestamp,
+              lockMode: true,
+              titleOverride: l10n.surveyAddObservationTitle,
+            ),
+        fullscreenDialog: true,
+      ),
+    );
+    if (result == null || !mounted) return;
+
+    final record = await controller.addManualDetection(
+      scientificName: result.scientificName,
+      commonName: result.commonName,
+    );
+    if (record == null || !mounted) return;
+    setState(() {});
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(l10n.surveyAddObservationSnackbar(record.commonName)),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   void _onAutoStop(String reason) {
     if (!mounted) return;
     final l10n = AppLocalizations.of(context)!;
@@ -545,6 +593,17 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
             ringBuffer: ringBuffer,
           ),
         ),
+        // Manual-observation entry point. Sized .small + endFloat so it
+        // doesn't compete visually with the Stop button in the status bar.
+        // Hidden when the survey isn't active so it can't fire mid-finalize.
+        floatingActionButton:
+            isActive
+                ? FloatingActionButton.small(
+                  onPressed: _addManualObservation,
+                  tooltip: l10n.surveyAddObservation,
+                  child: const Icon(Icons.edit_note),
+                )
+                : null,
       ),
     );
   }

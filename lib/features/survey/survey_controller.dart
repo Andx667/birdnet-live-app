@@ -753,6 +753,49 @@ class SurveyController {
     await _gpsTracker?.captureOnce();
   }
 
+  /// Insert a user-entered species observation into the active session.
+  ///
+  /// Used by the live survey "Add observation" entry point so surveyors can
+  /// log birds they saw or heard but BirdNET didn't detect (or before/after
+  /// inference would catch them). The record:
+  ///
+  ///   - Has [DetectionSource.manual] so it's clearly distinguishable from
+  ///     model detections everywhere it's rendered or exported.
+  ///   - Carries confidence 1.0 (manual entries are by definition certain
+  ///     from the user's point of view).
+  ///   - Is timestamped to the moment the user confirms the entry.
+  ///   - Is GPS-tagged from [SurveyGpsTracker.lastPoint] when available so it
+  ///     appears on the map alongside auto detections.
+  ///   - Skips the [DetectionSampler] (manuals are always kept) and the alert
+  ///     coordinator (the user just typed it; alerting them again is noise).
+  ///   - Does NOT touch [_activeCardSpecies] \u2014 manuals are one-shot and
+  ///     should not interfere with the auto card-visibility pipeline.
+  ///
+  /// Returns the newly-inserted record, or null if no session is active.
+  Future<DetectionRecord?> addManualDetection({
+    required String scientificName,
+    required String commonName,
+  }) async {
+    if (_session == null) return null;
+    final gpsPoint = _gpsTracker?.lastPoint;
+    final record = DetectionRecord(
+      scientificName: scientificName,
+      commonName: commonName,
+      confidence: 1.0,
+      timestamp: DateTime.now(),
+      source: DetectionSource.manual,
+      latitude: gpsPoint?.latitude,
+      longitude: gpsPoint?.longitude,
+    );
+    _session!.addDetection(record);
+    _sessionDetections.insert(0, record);
+    // Persist immediately so the record survives a crash before the next
+    // periodic flush.
+    await _persistSession();
+    _notifyListeners();
+    return record;
+  }
+
   /// Dispose of all resources.
   Future<void> dispose() async {
     _inferenceTimer?.cancel();

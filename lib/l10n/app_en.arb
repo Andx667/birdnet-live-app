@@ -1881,6 +1881,25 @@
   "@surveyStop": {
     "description": "Stop button label"
   },
+  "surveyAddObservation": "Add observation",
+  "@surveyAddObservation": {
+    "description": "FAB / button label on the live survey screen for logging a manual species observation."
+  },
+  "surveyAddObservationTitle": "Log observation",
+  "@surveyAddObservationTitle": {
+    "description": "Title of the species picker shown when adding a manual observation during a live survey."
+  },
+  "surveyAddObservationSnackbar": "Logged {commonName}",
+  "@surveyAddObservationSnackbar": {
+    "description": "Snackbar confirmation after the user logs a manual observation.",
+    "placeholders": {
+      "commonName": { "type": "String" }
+    }
+  },
+  "detectionSourceManual": "Manual",
+  "@detectionSourceManual": {
+    "description": "Short label/badge shown on a detection that was entered manually by the user (not produced by the model)."
+  },
   "surveyListening": "Listening...",
   "@surveyListening": {
     "description": "Status text while survey is actively listening"

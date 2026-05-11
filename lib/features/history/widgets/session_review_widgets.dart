@@ -835,6 +835,25 @@ class _SpeciesTile extends ConsumerWidget {
                                   color: Colors.green.shade600,
                                 ),
                               ),
+                            if (group.allRecords.any(
+                              (r) =>
+                                  r.source == DetectionSource.manual ||
+                                  r.source == DetectionSource.manualGlobal,
+                            ))
+                              Padding(
+                                padding: const EdgeInsets.only(left: 4),
+                                child: Tooltip(
+                                  message:
+                                      AppLocalizations.of(
+                                        context,
+                                      )!.detectionSourceManual,
+                                  child: Icon(
+                                    Icons.edit_note,
+                                    size: 16,
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                ),
+                              ),
                             if (group.totalCount > 1)
                               Container(
                                 margin: const EdgeInsets.only(left: 6),
@@ -1246,7 +1265,7 @@ class _ClusterRow extends ConsumerWidget {
 // ═════════════════════════════════════════════════════════════════════════════
 
 /// Insertion mode chosen by the user when adding a manual species detection.
-enum _InsertMode {
+enum AddSpeciesInsertMode {
   /// Insert a single detection with confidence 1.0 at the session start.
   global,
 
@@ -1259,28 +1278,46 @@ enum _InsertMode {
 
 /// Full-screen overlay for searching and adding a species to the session.
 ///
-/// Returns a [_AddSpeciesResult] or null if canceled.
-class _AddSpeciesOverlay extends ConsumerStatefulWidget {
-  const _AddSpeciesOverlay({
+/// Returns an [AddSpeciesResult] or null if canceled.
+///
+/// Reused by both the post-session review screen (where the user picks how to
+/// insert relative to the playhead and may also replace an existing record)
+/// and the live survey screen (where the mode is implicitly "now", the
+/// segmented selector is hidden via [lockMode], and the result is fed
+/// straight to [SurveyController.addManualDetection]).
+class AddSpeciesOverlay extends ConsumerStatefulWidget {
+  const AddSpeciesOverlay({
+    super.key,
     required this.sessionStart,
     required this.positionSec,
     required this.existingDetections,
     this.initialMode,
     this.initialReplaceTarget,
+    this.lockMode = false,
+    this.titleOverride,
   });
 
   final DateTime sessionStart;
   final double positionSec;
   final List<DetectionRecord> existingDetections;
-  final _InsertMode? initialMode;
+  final AddSpeciesInsertMode? initialMode;
   final DetectionRecord? initialReplaceTarget;
 
+  /// When true, hide the segmented insert-mode selector and use
+  /// [initialMode] as a fixed choice. Used by the live survey entry point
+  /// where only "insert at now" makes sense.
+  final bool lockMode;
+
+  /// Optional override for the AppBar title (defaults to localized
+  /// "Add species" / "Replace detection").
+  final String? titleOverride;
+
   @override
-  ConsumerState<_AddSpeciesOverlay> createState() => _AddSpeciesOverlayState();
+  ConsumerState<AddSpeciesOverlay> createState() => _AddSpeciesOverlayState();
 }
 
-class _AddSpeciesResult {
-  _AddSpeciesResult({
+class AddSpeciesResult {
+  AddSpeciesResult({
     required this.scientificName,
     required this.commonName,
     required this.mode,
@@ -1289,27 +1326,31 @@ class _AddSpeciesResult {
 
   final String scientificName;
   final String commonName;
-  final _InsertMode mode;
+  final AddSpeciesInsertMode mode;
   final DetectionRecord? replaceRecord;
 }
 
-class _AddSpeciesOverlayState extends ConsumerState<_AddSpeciesOverlay> {
+class _AddSpeciesOverlayState extends ConsumerState<AddSpeciesOverlay> {
   final _searchController = TextEditingController();
   List<TaxonomySpecies> _results = [];
-  late _InsertMode _mode;
+  late AddSpeciesInsertMode _mode;
   DetectionRecord? _replaceTarget;
 
   /// True when entered from "Replace this detection" on a specific cluster.
   /// In this case the mode and target are locked and the mode selector is
   /// hidden — the user is only choosing the replacement species.
   bool get _isLockedReplace =>
-      widget.initialMode == _InsertMode.replace &&
+      widget.initialMode == AddSpeciesInsertMode.replace &&
       widget.initialReplaceTarget != null;
+
+  /// True when the segmented insert-mode selector should be hidden,
+  /// either because of a locked replace or an explicit `lockMode: true`.
+  bool get _hideModeSelector => _isLockedReplace || widget.lockMode;
 
   @override
   void initState() {
     super.initState();
-    _mode = widget.initialMode ?? _InsertMode.atTimestamp;
+    _mode = widget.initialMode ?? AddSpeciesInsertMode.atTimestamp;
     _replaceTarget = widget.initialReplaceTarget;
   }
 
@@ -1356,11 +1397,12 @@ class _AddSpeciesOverlayState extends ConsumerState<_AddSpeciesOverlay> {
 
   void _selectSpecies(String sciName, String comName) {
     Navigator.of(context).pop(
-      _AddSpeciesResult(
+      AddSpeciesResult(
         scientificName: sciName,
         commonName: comName,
         mode: _mode,
-        replaceRecord: _mode == _InsertMode.replace ? _replaceTarget : null,
+        replaceRecord:
+            _mode == AddSpeciesInsertMode.replace ? _replaceTarget : null,
       ),
     );
   }
@@ -1375,9 +1417,10 @@ class _AddSpeciesOverlayState extends ConsumerState<_AddSpeciesOverlay> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          _isLockedReplace
-              ? l10n.sessionReplaceDetection
-              : l10n.sessionAddSpecies,
+          widget.titleOverride ??
+              (_isLockedReplace
+                  ? l10n.sessionReplaceDetection
+                  : l10n.sessionAddSpecies),
         ),
         leading: IconButton(
           icon: const Icon(Icons.close),
@@ -1396,18 +1439,18 @@ class _AddSpeciesOverlayState extends ConsumerState<_AddSpeciesOverlay> {
             ),
 
           // ── Insert mode selector (add mode only) ──────────
-          if (!_isLockedReplace)
+          if (!_hideModeSelector)
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-              child: SegmentedButton<_InsertMode>(
+              child: SegmentedButton<AddSpeciesInsertMode>(
                 segments: [
                   ButtonSegment(
-                    value: _InsertMode.atTimestamp,
+                    value: AddSpeciesInsertMode.atTimestamp,
                     label: Text(l10n.sessionInsertAtTimestamp),
                     icon: const Icon(Icons.schedule, size: 18),
                   ),
                   ButtonSegment(
-                    value: _InsertMode.global,
+                    value: AddSpeciesInsertMode.global,
                     label: Text(l10n.sessionInsertGlobally),
                     icon: const Icon(Icons.public, size: 18),
                   ),

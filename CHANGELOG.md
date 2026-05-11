@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.3] - 2026-05-12
+
+### Added
+
+- **Manual species entry during a live survey.** A small `edit_note` floating action button on the live survey screen opens the same species picker used in session review, so surveyors can log birds they saw or heard but BirdNET didn't pick up (or species that called before/after the inference window). Manual entries get `DetectionSource.manual`, are timestamped to the moment of confirmation, are GPS-tagged from the current track, and appear immediately in the live detection list, on the map, in the summary tab, and in every export format. They render with a small `edit_note` icon + "Manual" label everywhere they appear so they're never mistaken for an inference result. (#33)
+
 ## [0.10.2] - 2026-05-11
 
 ### Changed

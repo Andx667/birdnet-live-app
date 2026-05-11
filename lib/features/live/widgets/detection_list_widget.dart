@@ -140,6 +140,29 @@ class DetectionTile extends ConsumerWidget {
                   // Scientific name + confidence on one row
                   Row(
                     children: [
+                      // Manual-entry badge (small icon + label) takes the
+                      // place of the scientific-name field for manual
+                      // detections, since manuals carry confidence 1.0 and
+                      // the user explicitly chose the species — the
+                      // scientific name is less important than making it
+                      // obvious this didn't come from inference.
+                      if (detection.source == DetectionSource.manual ||
+                          detection.source == DetectionSource.manualGlobal) ...[
+                        Icon(
+                          Icons.edit_note,
+                          size: 14,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: 2),
+                        Text(
+                          AppLocalizations.of(context)!.detectionSourceManual,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                      ],
                       if (showSciNames)
                         Expanded(
                           child: Text(

@@ -817,10 +817,10 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
 
   Future<void> _addSpecies() async {
     final positionSec = _position.inMicroseconds / 1000000.0;
-    final result = await Navigator.of(context).push<_AddSpeciesResult>(
+    final result = await Navigator.of(context).push<AddSpeciesResult>(
       MaterialPageRoute(
         builder:
-            (_) => _AddSpeciesOverlay(
+            (_) => AddSpeciesOverlay(
               sessionStart: widget.session.startTime,
               positionSec: positionSec,
               existingDetections: _detections,
@@ -833,7 +833,7 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
     _pushUndo();
     setState(() {
       switch (result.mode) {
-        case _InsertMode.global:
+        case AddSpeciesInsertMode.global:
           // Insert global detection — applies to the whole session.
           _detections.add(
             DetectionRecord(
@@ -846,7 +846,7 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
           );
           break;
 
-        case _InsertMode.atTimestamp:
+        case AddSpeciesInsertMode.atTimestamp:
           // Insert at the current playhead position.
           final ts = widget.session.startTime.add(_position);
           _detections.add(
@@ -860,7 +860,7 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
           );
           break;
 
-        case _InsertMode.replace:
+        case AddSpeciesInsertMode.replace:
           if (result.replaceRecord != null) {
             final idx = _detections.indexOf(result.replaceRecord!);
             if (idx != -1) {
@@ -1395,14 +1395,14 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
   Future<void> _replaceDetection(_DetectionCluster cluster) async {
     final positionSec = _position.inMicroseconds / 1000000.0;
     final target = cluster.records.first;
-    final result = await Navigator.of(context).push<_AddSpeciesResult>(
+    final result = await Navigator.of(context).push<AddSpeciesResult>(
       MaterialPageRoute(
         builder:
-            (_) => _AddSpeciesOverlay(
+            (_) => AddSpeciesOverlay(
               sessionStart: widget.session.startTime,
               positionSec: positionSec,
               existingDetections: _detections,
-              initialMode: _InsertMode.replace,
+              initialMode: AddSpeciesInsertMode.replace,
               initialReplaceTarget: target,
             ),
         fullscreenDialog: true,
