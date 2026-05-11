@@ -182,9 +182,7 @@ Future<File?> _extractClipFromFullAudio(
   final tmp = await getTemporaryDirectory();
   final shareDir = Directory(p.join(tmp.path, 'shared_clips'));
   if (!shareDir.existsSync()) shareDir.createSync(recursive: true);
-  final target = File(
-    p.join(shareDir.path, _exportClipName(detection, ext)),
-  );
+  final target = File(p.join(shareDir.path, _exportClipName(detection, ext)));
 
   try {
     if (ext == '.wav') {
