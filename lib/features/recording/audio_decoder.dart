@@ -252,7 +252,33 @@ class AudioDecoder {
 
   // ── FLAC Decoder ────────────────────────────────────────────────────────
 
-  static DecodedAudio _decodeFlac(Uint8List bytes) {
+  /// Decode just `[startSample, startSample + count)` from a FLAC file.
+  ///
+  /// Walks frames sequentially (FLAC has no built-in random access) but
+  /// only allocates `count` Int16 output samples — so a 7-second slice
+  /// from a 30-minute recording uses ~448 KB instead of ~115 MB. Frames
+  /// outside the range are still bit-decoded (FLAC frame lengths aren't
+  /// readable without decoding) but their samples are dropped.
+  ///
+  /// If the source has fewer than `startSample + count` total samples,
+  /// the trailing remainder of the output stays zero-filled.
+  ///
+  /// Tolerates an unfinalized STREAMINFO (`totalSamples == 0`) — the
+  /// frame loop terminates on EOF instead of trusting the header.
+  static Future<DecodedAudio> decodeFlacRange(
+    String path, {
+    required int startSample,
+    required int count,
+  }) async {
+    final bytes = await File(path).readAsBytes();
+    return _decodeFlac(bytes, rangeStart: startSample, rangeCount: count);
+  }
+
+  static DecodedAudio _decodeFlac(
+    Uint8List bytes, {
+    int? rangeStart,
+    int? rangeCount,
+  }) {
     // Parse STREAMINFO.
     if (bytes.length < 42) {
       throw const FormatException('FLAC file too short for STREAMINFO');
@@ -290,20 +316,41 @@ class AudioDecoder {
       if (isLast) break;
     }
 
+    // Range-decode mode: only allocate what the caller asked for, and
+    // stop walking frames once the requested window is filled.
+    final useRange = rangeStart != null && rangeCount != null;
+    // `totalSamples == 0` happens when the encoder hasn't finalized
+    // STREAMINFO yet (mid-recording). Treat that as "decode until EOF".
+    final hasKnownTotal = totalSamples > 0;
+
+    final outLen = useRange ? rangeCount : totalSamples;
+    final allSamples = Int16List(outLen);
+    final outStart = useRange ? rangeStart : 0;
+    final outEnd = outStart + outLen;
+
     // Decode audio frames.
-    final allSamples = Int16List(totalSamples);
     var samplePos = 0;
     final reader = _BitReader(bytes, pos);
 
-    while (samplePos < totalSamples && reader.bytesRemaining > 2) {
+    while (reader.bytesRemaining > 2) {
+      if (hasKnownTotal && samplePos >= totalSamples) break;
+      if (samplePos >= outEnd) break;
+
       final frameResult = _decodeFrame(reader, maxBlock, bitsPerSample);
       if (frameResult == null) break;
 
-      final count = frameResult.length.clamp(0, totalSamples - samplePos);
-      for (var i = 0; i < count; i++) {
-        allSamples[samplePos + i] = frameResult[i];
+      final frameStart = samplePos;
+      final frameEnd = samplePos + frameResult.length;
+
+      // Compute overlap with the output window and copy only that span.
+      final copyFrom = frameStart > outStart ? frameStart : outStart;
+      final copyTo = frameEnd < outEnd ? frameEnd : outEnd;
+      if (copyTo > copyFrom) {
+        for (var i = copyFrom; i < copyTo; i++) {
+          allSamples[i - outStart] = frameResult[i - frameStart];
+        }
       }
-      samplePos += count;
+      samplePos = frameEnd;
     }
 
     return DecodedAudio(samples: allSamples, sampleRate: sampleRate);

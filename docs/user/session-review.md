@@ -50,10 +50,8 @@ The :material-share-variant: **Share detection** entry opens the platform share 
 The audio attachment is resolved in this order:
 
 1. The detection's own per-detection clip on disk.
-2. **For live survey sessions recording one continuous WAV file**: the relevant audio window is sliced out of the in-progress recording on the fly, so the recipient still gets a clip rather than a text-only message.
+2. **For sessions recording one continuous file**: the relevant audio window is sliced out of the recording on the fly. Both WAV and FLAC continuous recordings are supported; FLAC slices are re-wrapped as WAV in the share so the recipient app doesn't need a FLAC decoder to play them.
 3. If neither is available, the share is text-only — location and timestamp still land in the payload.
-
-Continuous recordings in FLAC format aren't sliced mid-survey; share will fall back to text in that case.
 
 ### Survey track map
 

@@ -17,14 +17,16 @@
 // Audio attachment cascade (best → worst):
 //
 //   1. The detection has a kept per-detection clip on disk — stage and ship.
-//   2. The host passed an in-progress [LiveSession] with a full WAV recording
+//   2. The host passed an in-progress [LiveSession] with a full recording
 //      — slice the relevant `windowDuration + 2 × clipContextSeconds` window
-//      out of the file and ship that. This is what makes "share" work
-//      mid-survey when the user opted for a single continuous recording
-//      instead of per-detection clips.
-//   3. No audio at all (recording mode = off, or full recording is FLAC which
-//      we don't decode here) — share text only. Location + timestamp still
-//      land in the payload via [_buildBody].
+//      out of the file and ship that. Both WAV and FLAC full recordings are
+//      supported; FLAC slices are decoded to PCM and re-wrapped as WAV so
+//      the recipient app doesn't need a FLAC decoder. This is what makes
+//      "share" work mid-survey when the user opted for a single continuous
+//      recording instead of per-detection clips.
+//   3. No audio at all (recording mode = off, or the full recording is in
+//      a container we don't know how to slice) — share text only. Location
+//      + timestamp still land in the payload via [_buildBody].
 //
 // Both audio paths use the same human-readable subject so threaded chat apps
 // group them sensibly.
@@ -42,6 +44,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../live/live_session.dart';
+import '../../recording/audio_decoder.dart';
 
 /// Share a single [detection] using the platform share sheet.
 ///
@@ -135,8 +138,9 @@ String _sanitizeFilename(String input) {
 /// around [detection] into a fresh WAV file in temp storage.
 ///
 /// Returns `null` when no usable full recording is found (no
-/// `recordingPath`, FLAC-only, missing file) so the caller can fall back
-/// to text sharing. The slice spans `windowDuration + 2 ×
+/// `recordingPath`, missing file, unsupported container) so the caller
+/// can fall back to text sharing. Both WAV and FLAC full recordings are
+/// supported. The slice spans `windowDuration + 2 ×
 /// clipContextSeconds`, centered on the detection's analysis window, to
 /// match the per-detection clip layout used elsewhere.
 @visibleForTesting
@@ -149,9 +153,9 @@ Future<File?> _extractClipFromFullAudio(
   LiveSession session,
   DetectionRecord detection,
 ) async {
-  final wavPath = _resolveFullWavPath(session.recordingPath);
-  if (wavPath == null) return null;
-  final src = File(wavPath);
+  final fullPath = _resolveFullAudioPath(session.recordingPath);
+  if (fullPath == null) return null;
+  final src = File(fullPath);
   if (!src.existsSync()) return null;
 
   final settings = session.settings;
@@ -169,14 +173,25 @@ Future<File?> _extractClipFromFullAudio(
   );
 
   Uint8List? sliceBytes;
+  final ext = p.extension(fullPath).toLowerCase();
   try {
-    sliceBytes = await _sliceWav(
-      src,
-      startSec: startSec,
-      durationSec: clipDurationSec.toDouble(),
-    );
+    if (ext == '.wav') {
+      sliceBytes = await _sliceWav(
+        src,
+        startSec: startSec,
+        durationSec: clipDurationSec.toDouble(),
+      );
+    } else if (ext == '.flac') {
+      sliceBytes = await _sliceFlac(
+        src,
+        startSec: startSec,
+        durationSec: clipDurationSec.toDouble(),
+      );
+    } else {
+      return null;
+    }
   } on FormatException {
-    // Header truncated or non-WAV — caller falls back to text.
+    // Header truncated or unsupported — caller falls back to text.
     return null;
   }
   if (sliceBytes == null || sliceBytes.isEmpty) return null;
@@ -191,22 +206,23 @@ Future<File?> _extractClipFromFullAudio(
   return target;
 }
 
-/// Resolves [recordingPath] to a full WAV file on disk, or returns `null`
-/// when none is reachable. Handles both shapes set by the recording
-/// service: a session directory (live, mid-recording) or a finalized file
-/// path (post-stop). FLAC files return null — we don't decode them here.
-String? _resolveFullWavPath(String? recordingPath) {
+/// Resolves [recordingPath] to a full-recording file on disk, or returns
+/// `null` when none is reachable. Handles both shapes set by the
+/// recording service: a session directory (live, mid-recording) or a
+/// finalized file path (post-stop). WAV and FLAC are both supported.
+String? _resolveFullAudioPath(String? recordingPath) {
   if (recordingPath == null) return null;
   // Direct file reference (post-stop in full mode).
   if (FileSystemEntity.isFileSync(recordingPath)) {
-    return p.extension(recordingPath).toLowerCase() == '.wav'
-        ? recordingPath
-        : null;
+    final ext = p.extension(recordingPath).toLowerCase();
+    return (ext == '.wav' || ext == '.flac') ? recordingPath : null;
   }
   // Directory reference (live mode while recording is in progress).
   if (FileSystemEntity.isDirectorySync(recordingPath)) {
     final wav = File(p.join(recordingPath, 'full.wav'));
-    return wav.existsSync() ? wav.path : null;
+    if (wav.existsSync()) return wav.path;
+    final flac = File(p.join(recordingPath, 'full.flac'));
+    if (flac.existsSync()) return flac.path;
   }
   return null;
 }
@@ -272,6 +288,52 @@ Future<Uint8List?> _sliceWav(
   } finally {
     await raf.close();
   }
+}
+
+/// Slices `[startSec, startSec+durationSec)` out of [src] (a 16-bit FLAC
+/// file as written by [FlacEncoder]) and returns it as a self-contained
+/// 16-bit PCM WAV file. WAV is used as the share format even for FLAC
+/// recordings so the recipient app doesn't need a FLAC decoder to play
+/// the snippet.
+///
+/// Tolerant of unfinalized FLAC files: when STREAMINFO's `totalSamples`
+/// is still 0 (mid-recording) the underlying decoder walks frames until
+/// EOF instead of trusting the header.
+Future<Uint8List?> _sliceFlac(
+  File src, {
+  required double startSec,
+  required double durationSec,
+}) async {
+  // The recording pipeline always captures at BirdNET's native 32 kHz,
+  // so we can size the requested range accordingly without parsing the
+  // STREAMINFO ahead of time. The decoder still reports the file's
+  // actual sample rate back via [DecodedAudio.sampleRate] and we use
+  // that for the output WAV header.
+  const assumedRate = 32000;
+  final startSample = (startSec * assumedRate).floor();
+  final count = (durationSec * assumedRate).ceil();
+  if (count <= 0 || startSample < 0) return null;
+
+  final decoded = await AudioDecoder.decodeFlacRange(
+    src.path,
+    startSample: startSample,
+    count: count,
+  );
+  if (decoded.totalSamples == 0) return null;
+
+  // Convert Int16 samples to little-endian PCM bytes.
+  final byteCount = decoded.totalSamples * 2;
+  final pcm = Uint8List(byteCount);
+  final pcmView = ByteData.sublistView(pcm);
+  for (var i = 0; i < decoded.totalSamples; i++) {
+    pcmView.setInt16(i * 2, decoded.samples[i], Endian.little);
+  }
+  return _wrapPcmInWav(
+    pcm,
+    sampleRate: decoded.sampleRate,
+    channels: 1,
+    bitsPerSample: 16,
+  );
 }
 
 /// Wraps an existing PCM byte buffer in a complete WAV file (44-byte
