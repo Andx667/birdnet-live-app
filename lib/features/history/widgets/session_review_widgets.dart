@@ -347,7 +347,6 @@ class _SpectrogramStripState extends State<_SpectrogramStrip>
 
   static const double _defaultViewSeconds = 10.0;
   static const double _minViewSeconds = 1.0;
-  static const double _maxViewSeconds = 60.0;
 
   @override
   void initState() {
@@ -484,10 +483,13 @@ class _SpectrogramStripState extends State<_SpectrogramStrip>
 
     // Two-finger pinch updates the visible time window. Single-finger
     // drags arrive here too with scale == 1.0, so we still get pan.
-    final newView = ((startView / details.scale).clamp(
-      _minViewSeconds,
-      math.min(_maxViewSeconds, math.max(durationSec, _minViewSeconds)),
-    )).toDouble();
+    // Zoom-out is bounded by the actual clip duration so users can fit
+    // the entire recording on screen (mirrors the trim-mode behavior),
+    // never further — panning past the end has no value.
+    final maxView = math.max(durationSec, _minViewSeconds);
+    final newView =
+        ((startView / details.scale).clamp(_minViewSeconds, maxView))
+            .toDouble();
 
     // focalPointDelta is in pixels relative to the gesture start; convert
     // through the *current* view width so panning feels right at any zoom.
@@ -529,6 +531,7 @@ class _ReviewSpectrogramPainter extends CustomPainter {
   final ui.Image spectrogramImage;
   final double centerSec;
   final double durationSec;
+
   /// How many seconds of audio the widget viewport currently shows.
   /// Lives on the painter (instead of being a const) so pinch-zoom can
   /// drive it from the parent state.
