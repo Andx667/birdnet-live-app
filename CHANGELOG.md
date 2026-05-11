@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Distinct swipe shortcuts on session review rows.** Swiping a detection row to the right deletes it (with undo); swiping to the left opens the replace-species overlay. The two backgrounds are color-coded (error red vs primary blue) so the gesture's effect is obvious before the user commits. (#33)
 - **Hierarchy-emphasizing inset.** Cluster rows under an expanded species are now indented so the parent species card is visually distinct from its children. (#33)
 - **Friendlier filename for shared clips.** Sharing a single detection now uses the same `BirdNET_Live_<timestamp>_<species>.<ext>` naming scheme as the ZIP export, instead of the internal `clip_<ms>` filename. (#33)
+- **Share works mid-survey for full recordings.** When a live survey records one continuous WAV file (instead of per-detection clips), sharing a detection now slices the relevant audio window out of the in-progress recording on the fly, so the recipient still gets a clip rather than a text-only message. Sessions without any recording still share text with location and timestamp. (#33)
 
 ### Added
 

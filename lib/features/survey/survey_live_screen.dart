@@ -651,7 +651,7 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
                         detection.isConfirmed ? null : DateTime.now().toUtc();
                   });
                 },
-                onShare: () => shareDetection(detection),
+                onShare: () => shareDetection(detection, session: session),
                 onDelete: () => _deleteLiveDetectionWithUndo(detection),
               ),
         ),

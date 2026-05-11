@@ -1864,7 +1864,9 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
           onDeleteSpecies: () => _deleteSpeciesWithUndo(group.scientificName),
           onReplaceCluster: _replaceDetection,
           onToggleConfirmCluster: _toggleClusterConfirmation,
-          onShareCluster: (cluster) => shareDetection(cluster.records.first),
+          onShareCluster:
+              (cluster) =>
+                  shareDetection(cluster.records.first, session: widget.session),
           onShowOnMap: _showDetectionOnMap,
         );
       },
