@@ -481,32 +481,33 @@ class _SpectrogramStripState extends State<_SpectrogramStrip>
     final startCenter =
         _scaleStartCenterSec ?? widget.position.inMicroseconds / 1000000.0;
 
-    // Two-finger pinch updates the visible time window. Single-finger
-    // drags arrive here too with scale == 1.0, so we still get pan.
-    // Zoom-out is bounded by the actual clip duration so users can fit
-    // the entire recording on screen (mirrors the trim-mode behavior),
-    // never further — panning past the end has no value.
+    // `details.scale` is *cumulative from gesture start*, not per-frame —
+    // so we apply it against the captured `startView` and must NOT reset
+    // the start anchor every frame, or each update compounds on the
+    // previous one and zoom feels exponential. A small exponent dampens
+    // the raw scale so a typical pinch covers a comfortable zoom range
+    // instead of snapping straight to min/max.
+    const zoomDamping = 0.6;
+    final dampedScale = math.pow(details.scale, zoomDamping).toDouble();
     final maxView = math.max(durationSec, _minViewSeconds);
-    final newView =
-        ((startView / details.scale).clamp(
-          _minViewSeconds,
-          maxView,
-        )).toDouble();
+    final newView = (startView / dampedScale).clamp(
+      _minViewSeconds,
+      maxView,
+    );
 
-    // focalPointDelta is in pixels relative to the gesture start; convert
-    // through the *current* view width so panning feels right at any zoom.
+    // `focalPointDelta` is per-frame in pixels, so we *do* integrate it
+    // into the running center. Convert through the current view width so
+    // panning speed feels right at any zoom level.
     final secPerPixel = newView / box.size.width;
-    final newCenter =
-        (startCenter - details.focalPointDelta.dx * secPerPixel)
-            .clamp(0.0, durationSec)
-            .toDouble();
+    final newCenter = (startCenter - details.focalPointDelta.dx * secPerPixel)
+        .clamp(0.0, durationSec)
+        .toDouble();
 
     setState(() {
       _viewSeconds = newView;
       _pannedCenterSec = newCenter;
-      // Keep the start anchors in sync with the running pan so a long
-      // single-finger drag doesn't accumulate rounding error.
-      _scaleStartViewSeconds = newView;
+      // Only the pan anchor is updated each frame — the zoom anchor
+      // stays put for the whole gesture (see comment above).
       _scaleStartCenterSec = newCenter;
     });
   }
