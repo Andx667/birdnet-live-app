@@ -15,9 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Live tunables apply mid-session.** Changing the confidence threshold or score-pooling-window count from Settings while a Live, Point Count, or Survey session is running now pushes the new value straight into the running pipeline — the next inference cycle picks it up without restarting the session. Previously these settings were captured once at session start and silently ignored until restart.
+
 ### Fixed
 
 - **Map tiles now cache to disk.** OpenStreetMap tiles used by the survey map, session map, and location pickers are persisted in a dedicated on-disk cache (90-day retention, 4000-tile cap) instead of being re-downloaded from scratch on every cold start. Repeated panning, zooming, and revisits to previously viewed areas are now instant, and maps remain usable when signal drops mid-survey.
+- **FLAC files now open in strict decoders.** Recorded `.flac` files now carry a real MD5 signature of the unencoded PCM in their STREAMINFO header, and the reported `min_block_size` is clamped to the spec-required minimum of 16 samples even when a session ends on a tiny tail frame. Both changes let strict, libsndfile-based tools — most notably Raven Pro — open and verify our recordings; previously they rejected the files at the metadata-validation step.
 
 ## [0.11.1] - 2026-05-12
 
