@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Per-detection text notes.** Every detection in Session Review now has an "Add note" / "Edit note" entry in the overflow menu (also surfaced in the clip-player sheet). Notes accept short free-form text — e.g. "juvenile, distant, behind tree" — and a small note glyph appears inline on the detection row when one is set, with the note text as a long-press tooltip. Notes round-trip through JSON sessions so they survive export/re-import.
+- **Voice memos on detections.** A new "Record voice memo" / "Replace voice memo" entry in the detection overflow menu lets reviewers attach a short spoken note to any detection. Memos are recorded in AAC/M4A (mono 16 kHz, ~8 KB/s) and stored alongside the session's clips. Rows with a memo show an inline mic glyph that opens the memo for playback or replacement on tap. Memos are bundled into ZIP exports under `memos/` and referenced from a new CSV "Voice Memo" column.
 
 ### Changed
 

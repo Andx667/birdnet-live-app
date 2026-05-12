@@ -280,6 +280,7 @@ String buildCsvExport(
     (d) => d.latitude != null && d.longitude != null,
   );
   final hasNotes = session.detections.any((d) => d.hasNote);
+  final hasMemos = session.detections.any((d) => d.hasVoiceMemo);
   final clipContext =
       (clipContextSecondsOverride ?? session.settings.clipContextSeconds)
           .toDouble();
@@ -299,7 +300,8 @@ String buildCsvExport(
     ',$surveyTimeHeader'
     ',Confirmed,Confirmed At (UTC)'
     '${hasCoords ? ',Latitude,Longitude' : ''}'
-    '${hasNotes ? ',Note' : ''}',
+    '${hasNotes ? ',Note' : ''}'
+    '${hasMemos ? ',Voice Memo' : ''}',
   );
 
   final windowSeconds = session.settings.windowDuration;
@@ -362,6 +364,9 @@ String buildCsvExport(
                 ',${d.longitude?.toStringAsFixed(6) ?? ''}'
             : '';
     final noteRef = hasNotes ? ',${_csvField(d.note ?? '')}' : '';
+    final memoRef = hasMemos
+        ? ',${d.hasVoiceMemo ? 'memos/${p.basename(d.voiceMemoPath!)}' : ''}'
+        : '';
 
     buf.writeln(
       '${d.timestamp.toUtc().toIso8601String()},'
@@ -374,7 +379,8 @@ String buildCsvExport(
       '$surveyTimeRef'
       '$confirmedRef'
       '$coordRef'
-      '$noteRef',
+      '$noteRef'
+      '$memoRef',
     );
   }
 
@@ -617,6 +623,24 @@ Future<String?> buildSessionExport(
     }
 
     archive.addFile(ArchiveFile('$prefix$extension', bytes.length, bytes));
+
+    // Bundle voice memos under a memos/ folder so the CSV's "Voice
+    // Memo" column (relative path: memos/<basename>) resolves inside
+    // the archive. Best-effort: skip any memo whose file is missing.
+    for (final d in session.detections) {
+      final memoPath = d.voiceMemoPath;
+      if (memoPath == null) continue;
+      final memoFile = File(memoPath);
+      if (!await memoFile.exists()) continue;
+      final memoBytes = await memoFile.readAsBytes();
+      archive.addFile(
+        ArchiveFile(
+          'memos/${p.basename(memoPath)}',
+          memoBytes.length,
+          memoBytes,
+        ),
+      );
+    }
 
     // Always drop a metadata side-file when the caller provided one, so
     // the provenance information travels with the bundle regardless of

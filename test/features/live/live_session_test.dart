@@ -239,6 +239,44 @@ void main() {
       expect(record.hasNote, isFalse);
     });
 
+    test(
+      'voiceMemoPath defaults to null, round-trips, and is omitted when empty',
+      () {
+        final empty = DetectionRecord(
+          scientificName: 'Turdus merula',
+          commonName: 'Eurasian Blackbird',
+          confidence: 0.85,
+          timestamp: DateTime(2026, 5, 6, 12, 0, 0),
+        );
+        expect(empty.voiceMemoPath, isNull);
+        expect(empty.hasVoiceMemo, isFalse);
+        expect(empty.toJson().containsKey('voiceMemoPath'), isFalse);
+
+        final withMemo = DetectionRecord(
+          scientificName: 'Turdus merula',
+          commonName: 'Eurasian Blackbird',
+          confidence: 0.85,
+          timestamp: DateTime(2026, 5, 6, 12, 0, 0),
+          voiceMemoPath: '/data/recordings/abc/memos/memo_1.m4a',
+        );
+        final json = withMemo.toJson();
+        expect(json['voiceMemoPath'], '/data/recordings/abc/memos/memo_1.m4a');
+        final rt = DetectionRecord.fromJson(json);
+        expect(rt.voiceMemoPath, '/data/recordings/abc/memos/memo_1.m4a');
+        expect(rt.hasVoiceMemo, isTrue);
+
+        // Legacy JSON without the field deserializes to null.
+        final legacy = DetectionRecord.fromJson({
+          'scientificName': 'Turdus merula',
+          'commonName': 'Eurasian Blackbird',
+          'confidence': 0.85,
+          'timestamp': '2026-05-06T12:00:00.000Z',
+        });
+        expect(legacy.voiceMemoPath, isNull);
+        expect(legacy.hasVoiceMemo, isFalse);
+      },
+    );
+
     test('equality compares key fields', () {
       final ts = DateTime(2026, 2, 28, 14, 30, 0);
       final a = DetectionRecord(

@@ -683,6 +683,8 @@ class _SpeciesTile extends ConsumerWidget {
     required this.onToggleConfirmCluster,
     required this.onShareCluster,
     required this.onEditNoteCluster,
+    required this.onEditVoiceMemoCluster,
+    required this.onDeleteVoiceMemoCluster,
     this.activePositionSec,
     this.activeCluster,
     this.onPause,
@@ -738,6 +740,13 @@ class _SpeciesTile extends ConsumerWidget {
   /// record, since a cluster represents one continuous detection of
   /// the same species and the user typically wants one note per row).
   final ValueChanged<_DetectionCluster> onEditNoteCluster;
+
+  /// Open the voice-memo recorder for a cluster (also edits the
+  /// cluster's first record).
+  final ValueChanged<_DetectionCluster> onEditVoiceMemoCluster;
+
+  /// Delete the voice memo attached to the cluster's first record.
+  final ValueChanged<_DetectionCluster> onDeleteVoiceMemoCluster;
   final ValueChanged<DetectionRecord>? onShowOnMap;
 
   /// Called when the user taps the play affordance on a row that is
@@ -1047,6 +1056,9 @@ class _SpeciesTile extends ConsumerWidget {
                       onToggleConfirm: () => onToggleConfirmCluster(cluster),
                       onShare: () => onShareCluster(cluster),
                       onEditNote: () => onEditNoteCluster(cluster),
+                      onEditVoiceMemo: () => onEditVoiceMemoCluster(cluster),
+                      onDeleteVoiceMemo:
+                          () => onDeleteVoiceMemoCluster(cluster),
                       isSurvey: isSurvey,
                       audioAvailable: audioAvailable,
                       onShowOnMap:
@@ -1130,6 +1142,8 @@ class _ClusterRow extends ConsumerWidget {
     required this.onToggleConfirm,
     required this.onShare,
     required this.onEditNote,
+    required this.onEditVoiceMemo,
+    required this.onDeleteVoiceMemo,
     this.onPause,
     this.clipOffsetSec = 0.0,
     this.windowSec = 3,
@@ -1158,6 +1172,12 @@ class _ClusterRow extends ConsumerWidget {
 
   /// Opens the note editor for this cluster's first record.
   final VoidCallback onEditNote;
+
+  /// Opens the voice-memo recorder for this cluster's first record.
+  final VoidCallback onEditVoiceMemo;
+
+  /// Removes the voice memo from this cluster's first record.
+  final VoidCallback onDeleteVoiceMemo;
 
   /// Pause callback used when this row is currently being played. When
   /// `null`, an active row continues to behave like a re-seek.
@@ -1342,6 +1362,22 @@ class _ClusterRow extends ConsumerWidget {
                   ),
                 ),
               ),
+            if (cluster.records.first.hasVoiceMemo)
+              Tooltip(
+                message: l10n.detectionVoiceMemoTooltip,
+                child: InkWell(
+                  onTap: onEditVoiceMemo,
+                  borderRadius: BorderRadius.circular(24),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Icon(
+                      Icons.mic,
+                      size: 22,
+                      color: theme.colorScheme.primary.withAlpha(180),
+                    ),
+                  ),
+                ),
+              ),
             DetectionActionsOverflow(
               actions: DetectionActions(
                 onShare: onShare,
@@ -1350,6 +1386,9 @@ class _ClusterRow extends ConsumerWidget {
                 onReplace: onReplace,
                 onEditNote: onEditNote,
                 hasNote: cluster.records.first.hasNote,
+                onEditVoiceMemo: onEditVoiceMemo,
+                onDeleteVoiceMemo: onDeleteVoiceMemo,
+                hasVoiceMemo: cluster.records.first.hasVoiceMemo,
               ),
               iconColor: theme.colorScheme.onSurface.withAlpha(100),
             ),

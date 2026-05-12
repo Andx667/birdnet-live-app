@@ -82,6 +82,7 @@ import 'session_export.dart';
 import 'session_map_screen.dart';
 import 'widgets/clip_player_sheet.dart';
 import 'widgets/detection_actions.dart';
+import 'widgets/voice_memo_overlay.dart';
 import '../settings/settings_screen.dart';
 import '../survey/survey_live_screen.dart';
 import '../survey/widgets/survey_map_widget.dart';
@@ -924,6 +925,9 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
                 timestamp: result.replaceRecord!.timestamp,
                 audioClipPath: result.replaceRecord!.audioClipPath,
                 source: DetectionSource.manual,
+                confirmedAt: result.replaceRecord!.confirmedAt,
+                note: result.replaceRecord!.note,
+                voiceMemoPath: result.replaceRecord!.voiceMemoPath,
               );
             }
           }
@@ -1039,6 +1043,9 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
           source: d.source,
           latitude: d.latitude,
           longitude: d.longitude,
+          confirmedAt: d.confirmedAt,
+          note: d.note,
+          voiceMemoPath: d.voiceMemoPath,
         ),
       );
     }
@@ -1126,6 +1133,9 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
                 if (mounted) setState(() => _isDirty = true);
               },
               onNoteChanged: () {
+                if (mounted) setState(() => _isDirty = true);
+              },
+              onVoiceMemoChanged: () {
                 if (mounted) setState(() => _isDirty = true);
               },
               onDeleteDetection: (record) {
@@ -1498,6 +1508,64 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
     );
   }
 
+  Future<void> _editClusterVoiceMemo(_DetectionCluster cluster) async {
+    final l10n = AppLocalizations.of(context)!;
+    final target = cluster.records.first;
+    final result = await showVoiceMemoDialog(
+      context: context,
+      sessionId: widget.session.id,
+      existingMemoPath: target.voiceMemoPath,
+    );
+    if (result == null || !mounted) return;
+    if (result.deleted) {
+      setState(() {
+        target.voiceMemoPath = null;
+        _isDirty = true;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.detectionVoiceMemoDeleted),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } else if (result.savedPath != null) {
+      setState(() {
+        target.voiceMemoPath = result.savedPath;
+        _isDirty = true;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.detectionVoiceMemoSaved),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Future<void> _deleteClusterVoiceMemo(_DetectionCluster cluster) async {
+    final l10n = AppLocalizations.of(context)!;
+    final target = cluster.records.first;
+    final path = target.voiceMemoPath;
+    if (path == null) return;
+    try {
+      final f = File(path);
+      if (await f.exists()) await f.delete();
+    } catch (_) {
+      // best-effort
+    }
+    if (!mounted) return;
+    setState(() {
+      target.voiceMemoPath = null;
+      _isDirty = true;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(l10n.detectionVoiceMemoDeleted),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   Future<void> _replaceDetection(_DetectionCluster cluster) async {
     final positionSec = _position.inMicroseconds / 1000000.0;
     final target = cluster.records.first;
@@ -1528,6 +1596,9 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
             timestamp: result.replaceRecord!.timestamp,
             audioClipPath: result.replaceRecord!.audioClipPath,
             source: DetectionSource.manual,
+            confirmedAt: result.replaceRecord!.confirmedAt,
+            note: result.replaceRecord!.note,
+            voiceMemoPath: result.replaceRecord!.voiceMemoPath,
           );
         }
       }
@@ -2068,6 +2139,8 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
                   session: widget.session,
                 ),
             onEditNoteCluster: _editClusterNote,
+            onEditVoiceMemoCluster: _editClusterVoiceMemo,
+            onDeleteVoiceMemoCluster: _deleteClusterVoiceMemo,
             onShowOnMap: _showDetectionOnMap,
           );
         },
@@ -2307,6 +2380,7 @@ class _FullscreenSurveyMapScreen extends ConsumerStatefulWidget {
     this.initialHighlight,
     this.onConfirmChanged,
     this.onNoteChanged,
+    this.onVoiceMemoChanged,
     this.onDeleteDetection,
   });
 
@@ -2323,6 +2397,7 @@ class _FullscreenSurveyMapScreen extends ConsumerStatefulWidget {
   /// session dirty and refresh derived UI (species rows, marker badges).
   final VoidCallback? onConfirmChanged;
   final VoidCallback? onNoteChanged;
+  final VoidCallback? onVoiceMemoChanged;
 
   /// Invoked when the user picks `Delete detection` from the clip
   /// player sheet's overflow menu. The host removes the record from
@@ -2443,6 +2518,10 @@ class _FullscreenSurveyMapScreenState
       onNoteChanged: () {
         if (mounted) setState(() {});
         widget.onNoteChanged?.call();
+      },
+      onVoiceMemoChanged: () {
+        if (mounted) setState(() {});
+        widget.onVoiceMemoChanged?.call();
       },
       onDelete:
           widget.onDeleteDetection == null

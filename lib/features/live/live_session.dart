@@ -192,6 +192,7 @@ class DetectionRecord {
     this.longitude,
     this.confirmedAt,
     this.note,
+    this.voiceMemoPath,
   });
 
   /// Scientific name of the detected species.
@@ -258,6 +259,20 @@ class DetectionRecord {
   /// Convenience: whether this detection has a non-empty note.
   bool get hasNote => note != null && note!.trim().isNotEmpty;
 
+  /// Path to the voice-memo audio file attached to this detection by the
+  /// reviewer (e.g. an AAC/M4A recording of spoken commentary). Lives in
+  /// the session's `recordings/<sessionId>/memos/` directory and is included
+  /// in ZIP bundle exports under `memos/`.
+  ///
+  /// Mutable: set / cleared from the session-review UI. `null` (rather than
+  /// an empty string) when no memo has ever been recorded, so legacy
+  /// sessions round-trip cleanly.
+  String? voiceMemoPath;
+
+  /// Convenience: whether this detection has a voice memo attached.
+  bool get hasVoiceMemo =>
+      voiceMemoPath != null && voiceMemoPath!.isNotEmpty;
+
   /// Scientific name placeholder for unknown / unidentifiable species.
   static const String unknownSpeciesName = 'Unknown species';
 
@@ -305,6 +320,7 @@ class DetectionRecord {
               ? DateTime.parse(json['confirmedAt'] as String)
               : null,
       note: json['note'] as String?,
+      voiceMemoPath: json['voiceMemoPath'] as String?,
     );
   }
 
@@ -323,6 +339,7 @@ class DetectionRecord {
     if (confirmedAt != null)
       'confirmedAt': confirmedAt!.toUtc().toIso8601String(),
     if (hasNote) 'note': note,
+    if (hasVoiceMemo) 'voiceMemoPath': voiceMemoPath,
   };
 
   /// Confidence expressed as a percentage string, e.g. "87.3 %".
@@ -579,6 +596,9 @@ class LiveSession {
       source: r.source,
       latitude: r.latitude,
       longitude: r.longitude,
+      confirmedAt: r.confirmedAt,
+      note: r.note,
+      voiceMemoPath: r.voiceMemoPath,
     );
   }
 

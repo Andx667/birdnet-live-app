@@ -759,6 +759,54 @@
   "@detectionNoteTooltip": {
     "description": "Tooltip on the note glyph shown next to a detection that has a note"
   },
+  "detectionRecordVoiceMemo": "Record voice memo",
+  "@detectionRecordVoiceMemo": {
+    "description": "Overflow-menu entry that opens the voice-memo recorder when no memo exists yet"
+  },
+  "detectionReplaceVoiceMemo": "Replace voice memo",
+  "@detectionReplaceVoiceMemo": {
+    "description": "Overflow-menu entry that opens the voice-memo recorder when a memo already exists; recording will overwrite it on save"
+  },
+  "detectionDeleteVoiceMemo": "Delete voice memo",
+  "@detectionDeleteVoiceMemo": {
+    "description": "Overflow-menu entry that removes the voice memo attached to a detection"
+  },
+  "detectionVoiceMemoDialogTitle": "Voice memo",
+  "@detectionVoiceMemoDialogTitle": {
+    "description": "Title of the dialog used to record / play back a per-detection voice memo"
+  },
+  "detectionVoiceMemoHint": "Tap the mic to record a short voice note",
+  "@detectionVoiceMemoHint": {
+    "description": "Hint shown in the voice-memo dialog before any recording exists"
+  },
+  "detectionVoiceMemoSaved": "Voice memo saved",
+  "@detectionVoiceMemoSaved": {
+    "description": "Snackbar shown after a voice memo is recorded and saved"
+  },
+  "detectionVoiceMemoDeleted": "Voice memo deleted",
+  "@detectionVoiceMemoDeleted": {
+    "description": "Snackbar shown after a voice memo is removed from a detection"
+  },
+  "detectionVoiceMemoTooltip": "Play voice memo",
+  "@detectionVoiceMemoTooltip": {
+    "description": "Tooltip on the inline voice-memo glyph shown next to a detection that has a memo"
+  },
+  "detectionVoiceMemoMicPermissionDenied": "Microphone permission denied. Enable it in system settings to record voice memos.",
+  "@detectionVoiceMemoMicPermissionDenied": {
+    "description": "Error shown when the user denies microphone permission while trying to record a voice memo"
+  },
+  "detectionVoiceMemoRecording": "Recording…",
+  "@detectionVoiceMemoRecording": {
+    "description": "Status label shown while a voice memo is actively being recorded"
+  },
+  "detectionVoiceMemoTapToStop": "Tap to stop",
+  "@detectionVoiceMemoTapToStop": {
+    "description": "Help text shown under the recording indicator while a voice memo is being captured"
+  },
+  "detectionVoiceMemoTapToRecord": "Tap to record",
+  "@detectionVoiceMemoTapToRecord": {
+    "description": "Help text shown under the mic button when no recording is in progress yet"
+  },
   "sessionDetectionRemoved": "Detection removed",
   "@sessionDetectionRemoved": {
     "description": "Snackbar text after a detection cluster is dismissed via swipe or the overflow menu's delete entry"

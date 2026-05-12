@@ -36,6 +36,7 @@ import '../../recording/audio_decoder.dart';
 import '../../recording/native_audio_decoder.dart';
 import '../../spectrogram/color_maps.dart';
 import '../services/detection_sharing_service.dart';
+import 'voice_memo_overlay.dart';
 import 'detection_actions.dart';
 
 /// Show the modal player for a [detection]'s audio clip.
@@ -59,6 +60,7 @@ Future<void> showClipPlayerSheet(
   VoidCallback? onConfirmChanged,
   VoidCallback? onDelete,
   VoidCallback? onNoteChanged,
+  VoidCallback? onVoiceMemoChanged,
   LiveSession? session,
 }) {
   final path = detection.audioClipPath;
@@ -77,6 +79,7 @@ Future<void> showClipPlayerSheet(
           onConfirmChanged: onConfirmChanged,
           onDelete: onDelete,
           onNoteChanged: onNoteChanged,
+          onVoiceMemoChanged: onVoiceMemoChanged,
           session: session,
         ),
   );
@@ -89,6 +92,7 @@ class _ClipPlayerSheet extends ConsumerStatefulWidget {
     this.onConfirmChanged,
     this.onDelete,
     this.onNoteChanged,
+    this.onVoiceMemoChanged,
     this.session,
   });
 
@@ -97,6 +101,7 @@ class _ClipPlayerSheet extends ConsumerStatefulWidget {
   final VoidCallback? onConfirmChanged;
   final VoidCallback? onDelete;
   final VoidCallback? onNoteChanged;
+  final VoidCallback? onVoiceMemoChanged;
   final LiveSession? session;
 
   @override
@@ -314,6 +319,66 @@ class _ClipPlayerSheetState extends ConsumerState<_ClipPlayerSheet> {
     );
   }
 
+  /// Open the per-detection voice-memo recorder. Mutates the shared
+  /// [DetectionRecord] in place and notifies [widget.onVoiceMemoChanged]
+  /// so the host can mark its session dirty.
+  Future<void> _editVoiceMemo() async {
+    final l10n = AppLocalizations.of(context)!;
+    final det = widget.detection;
+    final session = widget.session;
+    if (session == null) return;
+    final result = await showVoiceMemoDialog(
+      context: context,
+      sessionId: session.id,
+      existingMemoPath: det.voiceMemoPath,
+    );
+    if (result == null || !mounted) return;
+    if (result.deleted) {
+      setState(() => det.voiceMemoPath = null);
+      widget.onVoiceMemoChanged?.call();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.detectionVoiceMemoDeleted),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } else if (result.savedPath != null) {
+      setState(() => det.voiceMemoPath = result.savedPath);
+      widget.onVoiceMemoChanged?.call();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.detectionVoiceMemoSaved),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Future<void> _deleteVoiceMemo() async {
+    final l10n = AppLocalizations.of(context)!;
+    final det = widget.detection;
+    final path = det.voiceMemoPath;
+    if (path == null) return;
+    try {
+      final f = File(path);
+      if (await f.exists()) await f.delete();
+    } catch (_) {
+      // best-effort
+    }
+    if (!mounted) return;
+    setState(() => det.voiceMemoPath = null);
+    widget.onVoiceMemoChanged?.call();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(l10n.detectionVoiceMemoDeleted),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -476,6 +541,16 @@ class _ClipPlayerSheetState extends ConsumerState<_ClipPlayerSheet> {
                             ? null
                             : _editNote,
                     hasNote: widget.detection.hasNote,
+                    onEditVoiceMemo:
+                        widget.onVoiceMemoChanged == null ||
+                                widget.session == null
+                            ? null
+                            : _editVoiceMemo,
+                    onDeleteVoiceMemo:
+                        widget.onVoiceMemoChanged == null
+                            ? null
+                            : _deleteVoiceMemo,
+                    hasVoiceMemo: widget.detection.hasVoiceMemo,
                   ),
                   iconColor: theme.colorScheme.onSurface.withAlpha(140),
                 ),
