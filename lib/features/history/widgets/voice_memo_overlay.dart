@@ -22,6 +22,18 @@
 //   enough fidelity for spoken commentary, and yields ~8 KB/s — a 30-s
 //   memo is ~240 KB, comfortable to bundle in ZIP exports.
 //
+// UI design:
+//   The dialog has a single transport area that switches between three
+//   mutually exclusive states — idle / recording / has-memo — so there is
+//   never more than one play-or-record affordance competing for the same
+//   tap. During recording we sample the recorder's amplitude stream at
+//   ~10 Hz and render a live bar waveform that grows from the right; the
+//   captured samples are then re-used as the static waveform during
+//   playback, with a left-to-right progress fill driven by the
+//   AudioPlayer's position stream. A subtle "Re-record" outlined button
+//   below the player lets the user replace the take without involving the
+//   big mic button again.
+//
 // Permission handling:
 //   Live and Survey modes already prompt for mic permission at startup.
 //   File-Analysis sessions never touch the mic, so this is the first
@@ -32,6 +44,7 @@
 
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
@@ -93,28 +106,59 @@ class _VoiceMemoDialogState extends State<_VoiceMemoDialog> {
   late final AudioRecorder _recorder = AudioRecorder();
   late final AudioPlayer _player = AudioPlayer();
   Timer? _elapsedTimer;
+  StreamSubscription<Amplitude>? _ampSub;
+  StreamSubscription<Duration>? _posSub;
+  StreamSubscription<Duration?>? _durSub;
+  StreamSubscription<PlayerState>? _playerStateSub;
   Duration _elapsed = Duration.zero;
+  Duration _playPosition = Duration.zero;
+  Duration _playDuration = Duration.zero;
   bool _isRecording = false;
   bool _isPlaying = false;
   String? _pendingPath; // freshly-recorded but not yet committed
   String? _committedExistingPath; // the original memo if any
   String? _errorMessage;
 
+  /// Normalized amplitude history (0..1) captured during recording.
+  /// Reused as the static waveform during playback so the user gets a
+  /// visual reference of what they recorded. New samples are appended at
+  /// the end; we trim to [_kMaxWaveBars] to keep the painter cheap.
+  final List<double> _waveform = <double>[];
+  static const int _kMaxWaveBars = 64;
+
   @override
   void initState() {
     super.initState();
     _committedExistingPath = widget.existingMemoPath;
-    _player.playerStateStream.listen((s) {
+    _playerStateSub = _player.playerStateStream.listen((s) {
       if (!mounted) return;
+      final playing =
+          s.playing && s.processingState != ProcessingState.completed;
       if (s.processingState == ProcessingState.completed) {
-        setState(() => _isPlaying = false);
+        _player.seek(Duration.zero);
+        _player.pause();
+        if (_isPlaying) setState(() => _isPlaying = false);
+      } else if (playing != _isPlaying) {
+        setState(() => _isPlaying = playing);
       }
+    });
+    _posSub = _player.positionStream.listen((pos) {
+      if (!mounted) return;
+      setState(() => _playPosition = pos);
+    });
+    _durSub = _player.durationStream.listen((d) {
+      if (!mounted || d == null) return;
+      setState(() => _playDuration = d);
     });
   }
 
   @override
   void dispose() {
     _elapsedTimer?.cancel();
+    _ampSub?.cancel();
+    _posSub?.cancel();
+    _durSub?.cancel();
+    _playerStateSub?.cancel();
     _recorder.dispose();
     _player.dispose();
     // If the user opened the dialog, recorded something, then closed it
@@ -156,7 +200,7 @@ class _VoiceMemoDialogState extends State<_VoiceMemoDialog> {
       }
 
       // Stop playback if it's running so the mic isn't competing.
-      if (_isPlaying) {
+      if (_player.playing) {
         await _player.stop();
       }
 
@@ -172,11 +216,33 @@ class _VoiceMemoDialogState extends State<_VoiceMemoDialog> {
       );
 
       _elapsed = Duration.zero;
+      _waveform.clear();
+      _playPosition = Duration.zero;
+      _playDuration = Duration.zero;
       _elapsedTimer?.cancel();
       _elapsedTimer = Timer.periodic(
         const Duration(milliseconds: 250),
         (_) => setState(() => _elapsed += const Duration(milliseconds: 250)),
       );
+      // Sample amplitude ~10 Hz so the live waveform animates smoothly
+      // without flooding setState.
+      _ampSub?.cancel();
+      _ampSub = _recorder
+          .onAmplitudeChanged(const Duration(milliseconds: 100))
+          .listen((amp) {
+            if (!mounted) return;
+            // `current` is dBFS (≤ 0). -50 dB is roughly speech-quiet,
+            // 0 dB is full scale. Map [-50, 0] dB → [0, 1] linearly so
+            // the bars feel responsive without pinning at the top.
+            final db = amp.current.isFinite ? amp.current : -60.0;
+            final normalized = ((db + 50.0) / 50.0).clamp(0.0, 1.0);
+            setState(() {
+              _waveform.add(normalized);
+              if (_waveform.length > _kMaxWaveBars) {
+                _waveform.removeAt(0);
+              }
+            });
+          });
 
       setState(() {
         _isRecording = true;
@@ -189,10 +255,23 @@ class _VoiceMemoDialogState extends State<_VoiceMemoDialog> {
 
   Future<void> _stopRecording() async {
     _elapsedTimer?.cancel();
+    _ampSub?.cancel();
+    _ampSub = null;
     try {
       await _recorder.stop();
     } catch (_) {
       // The recorder is best-effort; ignore stop errors.
+    }
+    if (!mounted) return;
+    // Pre-load the freshly-recorded file into the player so the play
+    // affordance lights up with an accurate duration.
+    final path = _pendingPath;
+    if (path != null) {
+      try {
+        await _player.setFilePath(path);
+      } catch (_) {
+        // Non-fatal: playback simply won't be available until Save.
+      }
     }
     if (!mounted) return;
     setState(() => _isRecording = false);
@@ -202,15 +281,20 @@ class _VoiceMemoDialogState extends State<_VoiceMemoDialog> {
     final path = _pendingPath ?? _committedExistingPath;
     if (path == null) return;
     if (_isPlaying) {
-      await _player.stop();
-      if (mounted) setState(() => _isPlaying = false);
+      await _player.pause();
       return;
     }
     try {
-      await _player.setFilePath(path);
-      await _player.seek(Duration.zero);
+      // Lazy-load: only call setFilePath when the source isn't already
+      // wired up (existing memo on first play). This avoids a re-load
+      // round-trip on every play/pause toggle.
+      if (_player.duration == null) {
+        await _player.setFilePath(path);
+      }
+      if (_player.processingState == ProcessingState.completed) {
+        await _player.seek(Duration.zero);
+      }
       await _player.play();
-      if (mounted) setState(() => _isPlaying = true);
     } catch (e) {
       if (mounted) setState(() => _errorMessage = e.toString());
     }
@@ -254,74 +338,46 @@ class _VoiceMemoDialogState extends State<_VoiceMemoDialog> {
     final theme = Theme.of(context);
     final hasExisting = _committedExistingPath != null && _pendingPath == null;
     final hasPending = _pendingPath != null;
-    final canPlay = (hasExisting || hasPending) && !_isRecording;
+    final hasMemo = hasExisting || hasPending;
+
+    // Decide what the "transport" area shows. Three mutually exclusive
+    // states keep the dialog free of competing affordances:
+    //
+    //  • Empty       → big record CTA (no memo yet, no recording).
+    //  • Recording   → live waveform + stop button + elapsed counter.
+    //  • Has memo    → compact player row (play/pause + waveform with
+    //                  progress fill + position/duration), plus a quiet
+    //                  "Re-record" outlined button below.
+    Widget transport;
+    if (_isRecording) {
+      transport = _buildRecordingTransport(theme, l10n);
+    } else if (hasMemo) {
+      transport = _buildPlayerTransport(theme, l10n);
+    } else {
+      transport = _buildIdleTransport(theme, l10n);
+    }
 
     return AlertDialog(
       title: Text(l10n.detectionVoiceMemoDialogTitle),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Big circular record / stop button.
-          GestureDetector(
-            onTap: _isRecording ? _stopRecording : _startRecording,
-            child: Container(
-              width: 96,
-              height: 96,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color:
-                    _isRecording
-                        ? theme.colorScheme.error
-                        : theme.colorScheme.primaryContainer,
+      content: SizedBox(
+        width: 320,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            transport,
+            if (_errorMessage != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                _errorMessage!,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.error,
+                ),
+                textAlign: TextAlign.center,
               ),
-              child: Icon(
-                _isRecording ? Icons.stop : Icons.mic,
-                size: 48,
-                color:
-                    _isRecording
-                        ? theme.colorScheme.onError
-                        : theme.colorScheme.onPrimaryContainer,
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            _isRecording
-                ? '${l10n.detectionVoiceMemoRecording} ${_fmtDuration(_elapsed)}'
-                : (hasPending || hasExisting)
-                ? _fmtDuration(_elapsed)
-                : l10n.detectionVoiceMemoHint,
-            style: theme.textTheme.bodyMedium,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            _isRecording
-                ? l10n.detectionVoiceMemoTapToStop
-                : l10n.detectionVoiceMemoTapToRecord,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          if (canPlay) ...[
-            const SizedBox(height: 12),
-            IconButton.filledTonal(
-              icon: Icon(_isPlaying ? Icons.stop : Icons.play_arrow),
-              tooltip: l10n.detectionVoiceMemoTooltip,
-              onPressed: _togglePlay,
-            ),
+            ],
           ],
-          if (_errorMessage != null) ...[
-            const SizedBox(height: 12),
-            Text(
-              _errorMessage!,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.error,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ],
+        ),
       ),
       actions: [
         if (hasExisting && !hasPending)
@@ -342,5 +398,314 @@ class _VoiceMemoDialogState extends State<_VoiceMemoDialog> {
         ),
       ],
     );
+  }
+
+  /// No memo yet, not recording — single big mic CTA.
+  Widget _buildIdleTransport(ThemeData theme, AppLocalizations l10n) {
+    return Column(
+      children: [
+        const SizedBox(height: 8),
+        _RecordButton(isRecording: false, onTap: _startRecording),
+        const SizedBox(height: 14),
+        Text(
+          l10n.detectionVoiceMemoHint,
+          style: theme.textTheme.bodyMedium,
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 2),
+        Text(
+          l10n.detectionVoiceMemoTapToRecord,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Recording in progress — live waveform plus stop button.
+  Widget _buildRecordingTransport(ThemeData theme, AppLocalizations l10n) {
+    return Column(
+      children: [
+        const SizedBox(height: 4),
+        SizedBox(
+          height: 56,
+          child: _Waveform(
+            samples: _waveform,
+            progress: 1.0, // every captured bar is "live"
+            color: theme.colorScheme.error,
+            inactiveColor: theme.colorScheme.error.withAlpha(60),
+            growFromEnd: true,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          _fmtDuration(_elapsed),
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontFeatures: const [FontFeature.tabularFigures()],
+            color: theme.colorScheme.error,
+          ),
+        ),
+        const SizedBox(height: 12),
+        _RecordButton(isRecording: true, onTap: _stopRecording),
+        const SizedBox(height: 8),
+        Text(
+          l10n.detectionVoiceMemoTapToStop,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// A memo exists — compact media-player row plus discreet re-record.
+  Widget _buildPlayerTransport(ThemeData theme, AppLocalizations l10n) {
+    final dur = _playDuration > Duration.zero ? _playDuration : _elapsed;
+    final pos = _playPosition;
+    final progress =
+        dur.inMilliseconds > 0
+            ? (pos.inMilliseconds / dur.inMilliseconds).clamp(0.0, 1.0)
+            : 0.0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            IconButton.filled(
+              icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),
+              tooltip: l10n.detectionVoiceMemoTooltip,
+              onPressed: _togglePlay,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: SizedBox(
+                height: 44,
+                child: _Waveform(
+                  samples: _waveform,
+                  progress: progress,
+                  color: theme.colorScheme.primary,
+                  inactiveColor: theme.colorScheme.primary.withAlpha(60),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Padding(
+          padding: const EdgeInsets.only(left: 60, right: 4),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                _fmtDuration(pos),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+              Text(
+                _fmtDuration(dur),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        Center(
+          child: OutlinedButton.icon(
+            onPressed: _startRecording,
+            icon: const Icon(Icons.fiber_manual_record, size: 16),
+            label: Text(l10n.detectionReplaceVoiceMemo),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helper widgets
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Big circular record / stop button used in idle and recording states.
+///
+/// Pulled out so the two transport layouts share the exact same affordance
+/// (size, color treatment, hit area), instead of duplicating the
+/// `Container + GestureDetector` recipe inline.
+class _RecordButton extends StatelessWidget {
+  const _RecordButton({required this.isRecording, required this.onTap});
+
+  final bool isRecording;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Semantics(
+      button: true,
+      label: isRecording ? 'Stop recording' : 'Start recording',
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 80,
+          height: 80,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color:
+                isRecording
+                    ? theme.colorScheme.error
+                    : theme.colorScheme.primaryContainer,
+            boxShadow:
+                isRecording
+                    ? [
+                      BoxShadow(
+                        color: theme.colorScheme.error.withAlpha(80),
+                        blurRadius: 16,
+                        spreadRadius: 2,
+                      ),
+                    ]
+                    : null,
+          ),
+          child: Icon(
+            isRecording ? Icons.stop : Icons.mic,
+            size: 40,
+            color:
+                isRecording
+                    ? theme.colorScheme.onError
+                    : theme.colorScheme.onPrimaryContainer,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Bar-style waveform with a left-to-right progress fill.
+///
+/// During recording, [growFromEnd] makes the freshest bars appear on the
+/// right edge so the user sees the live response. During playback, all
+/// captured bars are shown statically and [progress] (0..1) controls how
+/// many are drawn in the active color.
+///
+/// When [samples] is empty (e.g. an existing memo loaded from disk with no
+/// in-memory amplitude history) the painter renders a flat decorative
+/// pattern so the player row never collapses to zero height.
+class _Waveform extends StatelessWidget {
+  const _Waveform({
+    required this.samples,
+    required this.progress,
+    required this.color,
+    required this.inactiveColor,
+    this.growFromEnd = false,
+  });
+
+  final List<double> samples;
+  final double progress;
+  final Color color;
+  final Color inactiveColor;
+  final bool growFromEnd;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: _WaveformPainter(
+        samples: samples,
+        progress: progress,
+        color: color,
+        inactiveColor: inactiveColor,
+        growFromEnd: growFromEnd,
+      ),
+      size: Size.infinite,
+    );
+  }
+}
+
+class _WaveformPainter extends CustomPainter {
+  _WaveformPainter({
+    required this.samples,
+    required this.progress,
+    required this.color,
+    required this.inactiveColor,
+    required this.growFromEnd,
+  });
+
+  final List<double> samples;
+  final double progress;
+  final Color color;
+  final Color inactiveColor;
+  final bool growFromEnd;
+
+  static const int _kBarCount = 48;
+  static const double _kBarGap = 2.0;
+  static const double _kMinBarHeight = 3.0;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final barCount = _kBarCount;
+    final totalGap = _kBarGap * (barCount - 1);
+    final barWidth = (size.width - totalGap) / barCount;
+    final centerY = size.height / 2;
+    final maxBarHeight = size.height;
+
+    // Build the bar-height array. If we have real samples, fit them onto
+    // the painter's bar count by either down-sampling (recording: keep
+    // the most recent), or by stretching across the full width (playback).
+    final heights = List<double>.filled(barCount, 0);
+    if (samples.isEmpty) {
+      // Decorative idle pattern so the row never looks empty.
+      for (int i = 0; i < barCount; i++) {
+        final t = i / (barCount - 1);
+        heights[i] = 0.15 + 0.10 * math.sin(t * math.pi * 4);
+      }
+    } else if (growFromEnd) {
+      // Recording: pin samples to the right edge, oldest fade left.
+      final n = samples.length.clamp(0, barCount);
+      for (int i = 0; i < n; i++) {
+        final srcIdx = samples.length - n + i;
+        heights[barCount - n + i] = samples[srcIdx];
+      }
+    } else {
+      // Playback: stretch the captured samples across all bars.
+      for (int i = 0; i < barCount; i++) {
+        final srcIdx = (i * samples.length / barCount).floor().clamp(
+          0,
+          samples.length - 1,
+        );
+        heights[i] = samples[srcIdx];
+      }
+    }
+
+    final activePaint = Paint()..color = color;
+    final inactivePaint = Paint()..color = inactiveColor;
+    final fillCutoff = progress * barCount;
+
+    for (int i = 0; i < barCount; i++) {
+      final h = (heights[i].clamp(0.0, 1.0) * maxBarHeight).clamp(
+        _kMinBarHeight,
+        maxBarHeight,
+      );
+      final x = i * (barWidth + _kBarGap);
+      final rect = RRect.fromRectAndRadius(
+        Rect.fromLTWH(x, centerY - h / 2, barWidth, h),
+        Radius.circular(barWidth / 2),
+      );
+      canvas.drawRRect(rect, i < fillCutoff ? activePaint : inactivePaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _WaveformPainter old) {
+    return old.progress != progress ||
+        old.color != color ||
+        old.inactiveColor != inactiveColor ||
+        old.growFromEnd != growFromEnd ||
+        !identical(old.samples, samples) ||
+        old.samples.length != samples.length;
   }
 }
