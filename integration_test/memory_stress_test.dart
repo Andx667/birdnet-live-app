@@ -134,11 +134,16 @@ void main() {
   // Main stress test
   // -------------------------------------------------------------------------
 
-  testWidgets('Inference loop memory stays bounded over 240 cycles',
+  testWidgets('Inference loop memory stays bounded over 60 cycles',
       (tester) async {
-    // Simulate ~4 minutes of live mode at 1 Hz inference rate.
-    // 240 cycles × 1 inference/cycle = 240 inferences.
-    const totalCycles = 240;
+    // Simulate ~1 minute of live mode at 1 Hz inference rate.
+    // 60 cycles × 1 inference/cycle = 60 inferences. This used to be 240
+    // (4 minutes) but the test ended up running for ~15 minutes on real
+    // hardware and tripping CI / local timeouts. 60 cycles is enough to
+    // catch a per-cycle leak — a real leak shows up in the first dozen
+    // iterations as a clear linear slope, not as something that only
+    // manifests after the fourth minute.
+    const totalCycles = 60;
     const sampleRate = 32000;
     const windowSamples = sampleRate * 3;
     const confidenceThreshold = 0.25;
@@ -263,5 +268,5 @@ void main() {
           'over ${totalCycles * 2} inference cycles — likely a memory leak. '
           'Check the per-cycle logs above to identify the growth point.',
     );
-  });
+  }, timeout: const Timeout(Duration(minutes: 5)));
 }

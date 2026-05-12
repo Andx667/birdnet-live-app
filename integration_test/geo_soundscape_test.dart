@@ -114,7 +114,7 @@ void main() {
     expect(hasHighProb, isTrue,
         reason:
             'Some species should be highly probable in Berlin during summer');
-  });
+  }, timeout: const Timeout(Duration(minutes: 2)));
 
   testWidgets(
       'Audio classifier on soundscape_32k.raw detects birds (Blue Jay, House Finch)',
@@ -202,5 +202,5 @@ void main() {
         reason: 'Blue Jay should be detected in soundscape');
     expect(foundHouseFinch, isTrue,
         reason: 'House Finch should be detected in soundscape');
-  });
+  }, timeout: const Timeout(Duration(minutes: 5)));
 }

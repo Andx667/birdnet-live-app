@@ -189,7 +189,7 @@ void main() {
         'Model output validation failed:\n\n${failures.join('\n\n')}',
       );
     }
-  });
+  }, timeout: const Timeout(Duration(minutes: 5)));
 
   testWidgets('Model output tensor has expected size', (tester) async {
     // Use the first fixture window.
