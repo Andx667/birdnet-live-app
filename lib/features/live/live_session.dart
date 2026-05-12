@@ -173,6 +173,13 @@ enum DetectionSource {
   /// Manually added as a session-wide (global) annotation — not tied to a
   /// specific time window.
   manualGlobal,
+
+  /// Free-text "Other (specify)" species typed by the user (e.g. "dog",
+  /// "frog", "helicopter") rather than picked from the taxonomy. The
+  /// scientific name is empty by convention; the user-supplied label
+  /// lives in [DetectionRecord.commonName]. Treated like [manual] /
+  /// [manualGlobal] for filtering and exports.
+  userSpecified,
 }
 
 /// A timestamped detection record for session persistence.
@@ -311,6 +318,7 @@ class DetectionRecord {
       source: switch (json['source'] as String?) {
         'manual' => DetectionSource.manual,
         'manualGlobal' => DetectionSource.manualGlobal,
+        'userSpecified' => DetectionSource.userSpecified,
         _ => DetectionSource.auto,
       },
       latitude: (json['detLat'] as num?)?.toDouble(),

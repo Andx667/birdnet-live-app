@@ -942,7 +942,8 @@ class _SpeciesTile extends ConsumerWidget {
                               if (group.allRecords.any(
                                 (r) =>
                                     r.source == DetectionSource.manual ||
-                                    r.source == DetectionSource.manualGlobal,
+                                    r.source == DetectionSource.manualGlobal ||
+                                    r.source == DetectionSource.userSpecified,
                               ))
                                 Padding(
                                   padding: const EdgeInsets.only(left: 4),
@@ -1232,7 +1233,8 @@ class _ClusterRow extends ConsumerWidget {
     final isManual = cluster.records.every(
       (r) =>
           r.source == DetectionSource.manual ||
-          r.source == DetectionSource.manualGlobal,
+          r.source == DetectionSource.manualGlobal ||
+          r.source == DetectionSource.userSpecified,
     );
 
     final row = AnimatedContainer(
@@ -1516,12 +1518,19 @@ class AddSpeciesResult {
     required this.commonName,
     required this.mode,
     this.replaceRecord,
+    this.userSpecified = false,
   });
 
   final String scientificName;
   final String commonName;
   final AddSpeciesInsertMode mode;
   final DetectionRecord? replaceRecord;
+
+  /// True when the user typed a free-text label via the "Other
+  /// (specify)" entry instead of picking a species from the taxonomy.
+  /// Callers should map this to [DetectionSource.userSpecified] so the
+  /// record is recognizable as a user-supplied label.
+  final bool userSpecified;
 }
 
 class _AddSpeciesOverlayState extends ConsumerState<AddSpeciesOverlay> {
@@ -1597,6 +1606,53 @@ class _AddSpeciesOverlayState extends ConsumerState<AddSpeciesOverlay> {
         mode: _mode,
         replaceRecord:
             _mode == AddSpeciesInsertMode.replace ? _replaceTarget : null,
+      ),
+    );
+  }
+
+  /// Open a small text-entry dialog for the "Other (specify)" entry
+  /// in the empty-state, then pop with [AddSpeciesResult.userSpecified]
+  /// set so the host marks the new record's source accordingly.
+  Future<void> _pickOther() async {
+    final l10n = AppLocalizations.of(context)!;
+    final controller = TextEditingController();
+    final typed = await showDialog<String>(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            title: Text(l10n.sessionOtherSpeciesDialogTitle),
+            content: TextField(
+              controller: controller,
+              autofocus: true,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: InputDecoration(
+                hintText: l10n.sessionOtherSpeciesHint,
+              ),
+              onSubmitted: (v) => Navigator.of(ctx).pop(v),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text(l10n.cancel),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(controller.text),
+                child: Text(l10n.sessionSave),
+              ),
+            ],
+          ),
+    );
+    if (typed == null || !mounted) return;
+    final trimmed = typed.trim();
+    if (trimmed.isEmpty) return;
+    Navigator.of(context).pop(
+      AddSpeciesResult(
+        scientificName: '',
+        commonName: trimmed,
+        mode: _mode,
+        replaceRecord:
+            _mode == AddSpeciesInsertMode.replace ? _replaceTarget : null,
+        userSpecified: true,
       ),
     );
   }
@@ -1696,6 +1752,7 @@ class _AddSpeciesOverlayState extends ConsumerState<AddSpeciesOverlay> {
                             DetectionRecord.unknownSpeciesName,
                             DetectionRecord.unknownCommonName,
                           ),
+                      onPickOther: _pickOther,
                     )
                     : _results.isEmpty
                     ? _NoResultsState(query: _searchController.text.trim())
@@ -1862,11 +1919,19 @@ class _SpeciesResultTile extends ConsumerWidget {
 }
 
 /// Empty state shown before the user has typed anything: gives a hint and
-/// surfaces the "Unknown / Other" quick action.
+/// surfaces the "Unknown / Other" + "Other (specify)" quick actions. The
+/// two are intentionally split: "Unknown" is a sentinel for "I heard
+/// something but can't identify it," while "Other (specify)" lets the
+/// user attach a free-text label (e.g. "dog", "frog", "helicopter") that
+/// isn't a taxonomy species at all.
 class _SearchEmptyState extends StatelessWidget {
-  const _SearchEmptyState({required this.onPickUnknown});
+  const _SearchEmptyState({
+    required this.onPickUnknown,
+    required this.onPickOther,
+  });
 
   final VoidCallback onPickUnknown;
+  final VoidCallback onPickOther;
 
   @override
   Widget build(BuildContext context) {
@@ -1897,6 +1962,17 @@ class _SearchEmptyState extends StatelessWidget {
             ),
           ),
           onTap: onPickUnknown,
+        ),
+        ListTile(
+          leading: Icon(Icons.edit_note, color: theme.colorScheme.tertiary),
+          title: Text(l10n.sessionOtherSpecies),
+          subtitle: Text(
+            l10n.sessionOtherSpeciesHint,
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+          onTap: onPickOther,
         ),
       ],
     );

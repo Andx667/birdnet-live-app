@@ -872,6 +872,18 @@
   "@sessionUnknownSpecies": {
     "description": "Label for the unknown or unidentified species category"
   },
+  "sessionOtherSpecies": "Other (specify)",
+  "@sessionOtherSpecies": {
+    "description": "Label for the free-text 'Other species' entry in the add-species picker; opens a small dialog where the user types any label (dog, frog, helicopter, etc.) that isn't a taxonomy species"
+  },
+  "sessionOtherSpeciesDialogTitle": "Other species",
+  "@sessionOtherSpeciesDialogTitle": {
+    "description": "Title of the dialog opened by the 'Other (specify)' entry where the user types a free-text species / sound label"
+  },
+  "sessionOtherSpeciesHint": "Type a name (e.g. dog, frog, helicopter)",
+  "@sessionOtherSpeciesHint": {
+    "description": "Hint text shown in the 'Other species' dialog's input field, plus as the subtitle on the 'Other (specify)' tile"
+  },
   "sessionReplacingLabel": "Replacing",
   "@sessionReplacingLabel": {
     "description": "Label shown above the detection being replaced in the species picker"
