@@ -2040,6 +2040,14 @@
       "commonName": { "type": "String" }
     }
   },
+  "surveyAddMenuTitle": "Add to survey",
+  "@surveyAddMenuTitle": {
+    "description": "Header label on the bottom sheet that opens when the user taps the survey-live FAB and exposes 'add species' and 'add note' actions."
+  },
+  "surveyAddNoteSnackbar": "Note saved",
+  "@surveyAddNoteSnackbar": {
+    "description": "Snackbar confirmation after the user attaches a session-level note to a live survey."
+  },
   "detectionSourceManual": "Manual",
   "@detectionSourceManual": {
     "description": "Short label/badge shown on a detection that was entered manually by the user (not produced by the model)."

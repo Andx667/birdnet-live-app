@@ -812,6 +812,24 @@ class SurveyController {
     return record;
   }
 
+  /// Append a session-level [SessionAnnotation] to the active survey.
+  ///
+  /// Mirrors [addManualDetection]: the annotation is stored on the live
+  /// session, persisted immediately so a crash before the next periodic
+  /// flush doesn't lose it, and listeners are notified so any in-tree
+  /// chip rows can repaint. Voice memos are intentionally not allowed
+  /// here — recording one would conflict with the active capture mic;
+  /// memos are added in Session Review after the survey ends.
+  ///
+  /// Returns the appended annotation, or null if no session is active.
+  Future<SessionAnnotation?> addAnnotation(SessionAnnotation annotation) async {
+    if (_session == null) return null;
+    _session!.annotations.add(annotation);
+    await _persistSession();
+    _notifyListeners();
+    return annotation;
+  }
+
   // ── Live setting hot-apply ────────────────────────────────────────────
 
   /// Update the confidence threshold (0–100 scale) used by the inference

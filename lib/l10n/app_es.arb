@@ -539,6 +539,8 @@
   "surveyAddObservation": "Añadir observación",
   "surveyAddObservationTitle": "Registrar observación",
   "surveyAddObservationSnackbar": "{commonName} registrado",
+  "surveyAddMenuTitle": "Añadir al recorrido",
+  "surveyAddNoteSnackbar": "Nota guardada",
   "detectionSourceManual": "Manual",
   "sessionSpeciesSortMenu": "Ordenar especies",
   "sessionSpeciesSortAlphabetical": "A → Z",

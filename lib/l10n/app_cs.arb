@@ -539,6 +539,8 @@
   "surveyAddObservation": "Přidat pozorování",
   "surveyAddObservationTitle": "Zaznamenat pozorování",
   "surveyAddObservationSnackbar": "Zaznamenáno: {commonName}",
+  "surveyAddMenuTitle": "Přidat k průzkumu",
+  "surveyAddNoteSnackbar": "Poznámka uložena",
   "detectionSourceManual": "Ručně",
   "sessionSpeciesSortMenu": "Seřadit druhy",
   "sessionSpeciesSortAlphabetical": "A → Z",

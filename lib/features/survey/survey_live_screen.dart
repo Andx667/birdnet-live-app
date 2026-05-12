@@ -219,6 +219,134 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
     );
   }
 
+  /// Bottom-sheet entry point for the survey-live FAB. Mirrors the
+  /// "Add ___" menu in Session Review but only exposes the actions that
+  /// are safe during an active capture: a manual species observation
+  /// and a session-level text note. Voice memos require the mic, which
+  /// is busy with the survey's own capture, so they are intentionally
+  /// omitted here — users can still attach memos in Session Review
+  /// after the survey ends.
+  Future<void> _showAddMenu() async {
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
+    final value = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.add_circle_outline),
+              title: Text(l10n.sessionAddSpecies),
+              onTap: () => Navigator.of(ctx).pop('species'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.note_add_outlined),
+              title: Text(l10n.sessionAddAnnotationOption),
+              onTap: () => Navigator.of(ctx).pop('annotation'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || value == null) return;
+    if (value == 'species') {
+      await _addManualObservation();
+    } else if (value == 'annotation') {
+      await _addNote();
+    }
+  }
+
+  /// Capture a session-level text note (title + body) and append it to
+  /// the active survey via [SurveyController.addAnnotation]. Notes here
+  /// are always session-global — there is no playhead to anchor a
+  /// timestamp to during a live survey.
+  Future<void> _addNote() async {
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
+    final controller = ref.read(surveyControllerProvider);
+    final session = controller.session;
+    if (session == null) return;
+    final messenger = ScaffoldMessenger.of(context);
+
+    final titleController = TextEditingController();
+    final bodyController = TextEditingController();
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        title: Text(l10n.sessionAddAnnotationOption),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: InputDecoration(
+                  hintText: l10n.sessionAnnotationName,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                textCapitalization: TextCapitalization.sentences,
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: bodyController,
+                decoration: InputDecoration(
+                  hintText: l10n.sessionAddAnnotation,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                maxLines: 5,
+                minLines: 2,
+                autofocus: true,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () {
+              final text = bodyController.text.trim();
+              final title = titleController.text.trim();
+              if (text.isEmpty && title.isEmpty) return;
+              Navigator.of(ctx).pop(true);
+            },
+            child: Text(l10n.sessionSave),
+          ),
+        ],
+      ),
+    );
+    final noteTitle = titleController.text.trim();
+    final noteBody = bodyController.text.trim();
+    titleController.dispose();
+    bodyController.dispose();
+    if (!mounted || saved != true) return;
+
+    final annotation = SessionAnnotation(
+      title: noteTitle,
+      text: noteBody,
+      createdAt: DateTime.now(),
+    );
+    await controller.addAnnotation(annotation);
+    if (!mounted) return;
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(l10n.surveyAddNoteSnackbar),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   void _onAutoStop(String reason) {
     if (!mounted) return;
     final l10n = AppLocalizations.of(context)!;
@@ -627,14 +755,14 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
             ringBuffer: ringBuffer,
           ),
         ),
-        // Manual-observation entry point. Sized .small + endFloat so it
-        // doesn't compete visually with the Stop button in the status bar.
+        // Add-menu entry point. Sized .small + endFloat so it doesn't
+        // compete visually with the Stop button in the status bar.
         // Hidden when the survey isn't active so it can't fire mid-finalize.
         floatingActionButton:
             isActive
                 ? FloatingActionButton.small(
-                  onPressed: _addManualObservation,
-                  tooltip: l10n.surveyAddObservation,
+                  onPressed: _showAddMenu,
+                  tooltip: l10n.surveyAddMenuTitle,
                   child: const Icon(Icons.add),
                 )
                 : null,

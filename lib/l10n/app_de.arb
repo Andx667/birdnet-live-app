@@ -539,6 +539,8 @@
   "surveyAddObservation": "Beobachtung hinzufügen",
   "surveyAddObservationTitle": "Beobachtung erfassen",
   "surveyAddObservationSnackbar": "{commonName} erfasst",
+  "surveyAddMenuTitle": "Zur Erfassung hinzufügen",
+  "surveyAddNoteSnackbar": "Notiz gespeichert",
   "detectionSourceManual": "Manuell",
   "sessionSpeciesSortMenu": "Arten sortieren",
   "sessionSpeciesSortAlphabetical": "A → Z",
