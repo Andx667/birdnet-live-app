@@ -731,6 +731,11 @@ String _buildAnnotationsText(LiveSession session) {
     } else {
       buf.write('[Global] ');
     }
+    // Optional title is prefixed in bold-ish "Title: " form so the
+    // exported text mirrors what the user sees on the chip.
+    if (a.title.trim().isNotEmpty) {
+      buf.write('${a.title.trim()}: ');
+    }
     if (a.text.trim().isNotEmpty) {
       buf.write(a.text);
       if (a.hasVoiceMemo) {

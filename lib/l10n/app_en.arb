@@ -973,6 +973,18 @@
   "@sessionAnnotationVoiceMemoLabel": {
     "description": "Placeholder text shown for memo-only annotations that have no text"
   },
+  "sessionAnnotationName": "Name (optional)",
+  "@sessionAnnotationName": {
+    "description": "Hint for the optional name/title field shown when adding or editing a session annotation"
+  },
+  "sessionEditAnnotation": "Edit annotation",
+  "@sessionEditAnnotation": {
+    "description": "Tooltip and dialog title for editing an existing session annotation"
+  },
+  "sessionEditVoiceMemo": "Edit voice memo",
+  "@sessionEditVoiceMemo": {
+    "description": "Tooltip and dialog title for editing an existing voice-memo annotation"
+  },
   "sessionTypeLive": "Live Session",
   "@sessionTypeLive": {
     "description": "Title for a live recording session"

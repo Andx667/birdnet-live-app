@@ -961,6 +961,41 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
     });
   }
 
+  /// Swap the annotation at [index] for [annotation], deleting the
+  /// previous voice-memo file if the new entry no longer references it.
+  /// Used by the chip-tap edit flow.
+  void _replaceAnnotation(int index, SessionAnnotation annotation) {
+    _pushUndo();
+    final old = _annotations[index];
+    final oldMemo = old.voiceMemoPath;
+    setState(() {
+      _annotations[index] = annotation;
+      _isDirty = true;
+    });
+    if (oldMemo != null && oldMemo != annotation.voiceMemoPath) {
+      Future<void>(() async {
+        try {
+          final f = File(oldMemo);
+          if (await f.exists()) await f.delete();
+        } catch (_) {
+          // Ignore — best-effort cleanup.
+        }
+      });
+    }
+  }
+
+  /// Reopen the appropriate editor for an existing annotation. Wired
+  /// to the chip's `onPressed` so users can rename, re-scope, or (for
+  /// memos) re-record after the fact.
+  void _editAnnotation(int index) {
+    final a = _annotations[index];
+    if (a.hasVoiceMemo) {
+      _showVoiceMemoInput(editingIndex: index);
+    } else {
+      _showAnnotationInput(editingIndex: index);
+    }
+  }
+
   void _deleteAnnotation(int index) {
     _pushUndo();
     final removed = _annotations[index];
@@ -1405,72 +1440,183 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
     }
   }
 
-  Future<void> _showVoiceMemoInput() async {
+  /// Add or edit a voice-memo annotation.
+  ///
+  /// When [editingIndex] is null: opens the memo recorder, then a
+  /// title+scope dialog to capture the new annotation's metadata.
+  ///
+  /// When [editingIndex] is set: skips straight to the title+scope
+  /// dialog, prefilled from the existing entry. The dialog also exposes
+  /// a "Replace recording…" button that re-opens the memo recorder
+  /// without losing the title or scope.
+  Future<void> _showVoiceMemoInput({int? editingIndex}) async {
     final l10n = AppLocalizations.of(context)!;
-    final result = await showVoiceMemoDialog(
-      context: context,
-      sessionId: widget.session.id,
-    );
-    if (!mounted || result == null || result.savedPath == null) return;
+    final isEdit = editingIndex != null;
+    final existing = isEdit ? _annotations[editingIndex] : null;
+
+    String? memoPath;
+    if (isEdit) {
+      memoPath = existing!.voiceMemoPath;
+    } else {
+      final result = await showVoiceMemoDialog(
+        context: context,
+        sessionId: widget.session.id,
+      );
+      if (!mounted || result == null || result.savedPath == null) return;
+      memoPath = result.savedPath;
+    }
 
     // Default scope mirrors text annotations: at-current-position when
     // playback has progressed past the start, otherwise session-global.
     final positionSec = _position.inMicroseconds / 1000000.0;
-    var atTimestamp = positionSec > 0.5;
-    final scopeChoice = await showDialog<bool>(
+    var atTimestamp =
+        isEdit ? existing!.offsetInRecording != null : positionSec > 0.5;
+    final titleController = TextEditingController(
+      text: isEdit ? existing!.title : '',
+    );
+    var savedOffset =
+        isEdit
+            ? existing!.offsetInRecording
+            : (atTimestamp ? positionSec : null);
+    var currentMemoPath = memoPath;
+
+    final saved = await showDialog<bool>(
       context: context,
       builder:
           (ctx) => StatefulBuilder(
             builder:
                 (ctx, setDialogState) => AlertDialog(
-                  title: Text(l10n.sessionAddVoiceMemoOption),
-                  content: Wrap(
-                    spacing: 8,
-                    children: [
-                      ChoiceChip(
-                        avatar: const Icon(Icons.public, size: 18),
-                        label: Text(l10n.sessionAnnotationGlobal),
-                        selected: !atTimestamp,
-                        onSelected:
-                            (_) => setDialogState(() => atTimestamp = false),
-                      ),
-                      ChoiceChip(
-                        avatar: const Icon(Icons.schedule, size: 18),
-                        label: Text(l10n.sessionInsertAtTimestamp),
-                        selected: atTimestamp,
-                        onSelected:
-                            (_) => setDialogState(() => atTimestamp = true),
-                      ),
-                    ],
+                  title: Text(
+                    isEdit
+                        ? l10n.sessionEditVoiceMemo
+                        : l10n.sessionAddVoiceMemoOption,
+                  ),
+                  content: SizedBox(
+                    width: double.maxFinite,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        TextField(
+                          controller: titleController,
+                          decoration: InputDecoration(
+                            hintText: l10n.sessionAnnotationName,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          textCapitalization: TextCapitalization.sentences,
+                          autofocus: !isEdit,
+                        ),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8,
+                          children: [
+                            ChoiceChip(
+                              avatar: const Icon(Icons.public, size: 18),
+                              label: Text(l10n.sessionAnnotationGlobal),
+                              selected: !atTimestamp,
+                              onSelected: (_) {
+                                setDialogState(() {
+                                  atTimestamp = false;
+                                  savedOffset = null;
+                                });
+                              },
+                            ),
+                            ChoiceChip(
+                              avatar: const Icon(Icons.schedule, size: 18),
+                              label: Text(l10n.sessionInsertAtTimestamp),
+                              selected: atTimestamp,
+                              onSelected: (_) {
+                                setDialogState(() {
+                                  atTimestamp = true;
+                                  savedOffset = positionSec;
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                        if (isEdit) ...[
+                          const SizedBox(height: 12),
+                          OutlinedButton.icon(
+                            icon: const Icon(Icons.mic, size: 18),
+                            label: Text(l10n.detectionReplaceVoiceMemo),
+                            onPressed: () async {
+                              final result = await showVoiceMemoDialog(
+                                context: ctx,
+                                sessionId: widget.session.id,
+                                existingMemoPath: currentMemoPath,
+                              );
+                              if (result?.savedPath != null) {
+                                setDialogState(
+                                  () => currentMemoPath = result!.savedPath,
+                                );
+                              }
+                            },
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
                   actions: [
                     TextButton(
-                      onPressed: () => Navigator.of(ctx).pop(),
+                      onPressed: () => Navigator.of(ctx).pop(false),
                       child: Text(l10n.cancel),
                     ),
                     FilledButton(
-                      onPressed: () => Navigator.of(ctx).pop(atTimestamp),
+                      onPressed: () => Navigator.of(ctx).pop(true),
                       child: Text(l10n.sessionSave),
                     ),
                   ],
                 ),
           ),
     );
-    if (!mounted || scopeChoice == null) return;
-    _addAnnotation(
-      SessionAnnotation(
-        text: '',
-        createdAt: DateTime.now(),
-        offsetInRecording: scopeChoice ? positionSec : null,
-        voiceMemoPath: result.savedPath,
-      ),
+
+    if (!mounted || saved != true) {
+      // User cancelled. If this was a brand-new memo (not yet committed
+      // to an annotation), the recorded file would otherwise leak.
+      if (!isEdit && currentMemoPath != null) {
+        Future<void>(() async {
+          try {
+            final f = File(currentMemoPath!);
+            if (await f.exists()) await f.delete();
+          } catch (_) {
+            // Best-effort.
+          }
+        });
+      }
+      return;
+    }
+
+    final annotation = SessionAnnotation(
+      text: '',
+      title: titleController.text.trim(),
+      createdAt: isEdit ? existing!.createdAt : DateTime.now(),
+      offsetInRecording: savedOffset,
+      voiceMemoPath: currentMemoPath,
     );
+    if (isEdit) {
+      _replaceAnnotation(editingIndex, annotation);
+    } else {
+      _addAnnotation(annotation);
+    }
   }
 
-  void _showAnnotationInput() {
+  /// Add or edit a text annotation.
+  ///
+  /// Pass [editingIndex] to prefill the dialog from an existing entry
+  /// and replace it on save (used by the chip-tap edit flow).
+  void _showAnnotationInput({int? editingIndex}) {
     final l10n = AppLocalizations.of(context)!;
-    final controller = TextEditingController();
-    var atTimestamp = false;
+    final isEdit = editingIndex != null;
+    final existing = isEdit ? _annotations[editingIndex] : null;
+    final titleController = TextEditingController(
+      text: isEdit ? existing!.title : '',
+    );
+    final controller = TextEditingController(
+      text: isEdit ? existing!.text : '',
+    );
+    var atTimestamp = isEdit ? existing!.offsetInRecording != null : false;
     showDialog<void>(
       context: context,
       builder:
@@ -1481,13 +1627,28 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
                     horizontal: 16,
                     vertical: 24,
                   ),
-                  title: Text(l10n.sessionAddAnnotationOption),
+                  title: Text(
+                    isEdit
+                        ? l10n.sessionEditAnnotation
+                        : l10n.sessionAddAnnotationOption,
+                  ),
                   content: SizedBox(
                     width: double.maxFinite,
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        TextField(
+                          controller: titleController,
+                          decoration: InputDecoration(
+                            hintText: l10n.sessionAnnotationName,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          textCapitalization: TextCapitalization.sentences,
+                        ),
+                        const SizedBox(height: 8),
                         TextField(
                           controller: controller,
                           decoration: InputDecoration(
@@ -1533,19 +1694,33 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
                     FilledButton(
                       onPressed: () {
                         final text = controller.text.trim();
-                        if (text.isEmpty) return;
+                        final title = titleController.text.trim();
+                        // Need at least *some* content — title or body.
+                        if (text.isEmpty && title.isEmpty) return;
                         final positionSec =
-                            _position.inMicroseconds / 1000000.0;
-                        _addAnnotation(
-                          SessionAnnotation(
-                            text: text,
-                            createdAt: DateTime.now(),
-                            offsetInRecording: atTimestamp ? positionSec : null,
-                          ),
+                            isEdit
+                                ? (existing!.offsetInRecording ??
+                                    _position.inMicroseconds / 1000000.0)
+                                : _position.inMicroseconds / 1000000.0;
+                        final annotation = SessionAnnotation(
+                          text: text,
+                          title: title,
+                          createdAt:
+                              isEdit ? existing!.createdAt : DateTime.now(),
+                          offsetInRecording: atTimestamp ? positionSec : null,
                         );
+                        if (isEdit) {
+                          _replaceAnnotation(editingIndex, annotation);
+                        } else {
+                          _addAnnotation(annotation);
+                        }
                         Navigator.of(ctx).pop();
                       },
-                      child: Text(l10n.sessionAddAnnotationOption),
+                      child: Text(
+                        isEdit
+                            ? l10n.sessionSave
+                            : l10n.sessionAddAnnotationOption,
+                      ),
                     ),
                   ],
                 ),
@@ -2074,27 +2249,49 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
             runSpacing: 4,
             children: [
               for (var i = 0; i < _annotations.length; i++)
-                Chip(
-                  label: Text(
-                    _annotations[i].text,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  avatar: Icon(
-                    _annotations[i].offsetInRecording != null
-                        ? Icons.schedule
-                        : Icons.public,
-                    size: 16,
-                  ),
-                  deleteIcon: const Icon(Icons.delete_outline, size: 16),
-                  onDeleted: () => _deleteAnnotation(i),
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  visualDensity: VisualDensity.compact,
-                ),
+                _buildAnnotationChip(i),
             ],
           ),
         ),
     ];
+  }
+
+  /// Compact chip for a single annotation. Tapping reopens the editor
+  /// (text dialog or voice-memo dialog depending on the kind), and the
+  /// trailing × button deletes the entry. Label priority is title →
+  /// text excerpt → "Voice memo" placeholder, so memo-only entries
+  /// without a title still show *something* meaningful.
+  Widget _buildAnnotationChip(int i) {
+    final l10n = AppLocalizations.of(context)!;
+    final a = _annotations[i];
+    final title = a.title.trim();
+    final text = a.text.trim();
+    final String label;
+    if (title.isNotEmpty) {
+      label = title;
+    } else if (text.isNotEmpty) {
+      label = text;
+    } else {
+      label = l10n.sessionAnnotationVoiceMemoLabel;
+    }
+    return InputChip(
+      label: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+      avatar: Icon(
+        a.hasVoiceMemo
+            ? Icons.mic
+            : (a.offsetInRecording != null ? Icons.schedule : Icons.public),
+        size: 16,
+      ),
+      onPressed: () => _editAnnotation(i),
+      tooltip:
+          a.hasVoiceMemo
+              ? l10n.sessionEditVoiceMemo
+              : l10n.sessionEditAnnotation,
+      deleteIcon: const Icon(Icons.close, size: 16),
+      onDeleted: () => _deleteAnnotation(i),
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      visualDensity: VisualDensity.compact,
+    );
   }
 
   Widget _buildSpeciesList(ThemeData theme, AppLocalizations l10n) {

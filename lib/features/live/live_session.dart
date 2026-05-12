@@ -379,9 +379,16 @@ class SessionAnnotation {
   const SessionAnnotation({
     required this.text,
     required this.createdAt,
+    this.title = '',
     this.offsetInRecording,
     this.voiceMemoPath,
   });
+
+  /// Optional short label shown on the annotation chip in Session Review
+  /// and in exports. Especially useful for voice-memo-only entries (which
+  /// have an empty [text]) and for global text annotations whose body
+  /// would otherwise overflow the chip. May be empty.
+  final String title;
 
   /// Free-form annotation text. May be empty when the annotation is a
   /// memo-only entry (in that case [voiceMemoPath] is non-null).
@@ -405,6 +412,7 @@ class SessionAnnotation {
   factory SessionAnnotation.fromJson(Map<String, dynamic> json) {
     return SessionAnnotation(
       text: json['text'] as String,
+      title: (json['title'] as String?) ?? '',
       createdAt: DateTime.parse(json['createdAt'] as String),
       offsetInRecording: (json['offsetInRecording'] as num?)?.toDouble(),
       voiceMemoPath: json['voiceMemoPath'] as String?,
@@ -413,6 +421,7 @@ class SessionAnnotation {
 
   Map<String, dynamic> toJson() => {
     'text': text,
+    if (title.isNotEmpty) 'title': title,
     'createdAt': createdAt.toUtc().toIso8601String(),
     if (offsetInRecording != null) 'offsetInRecording': offsetInRecording,
     if (voiceMemoPath != null) 'voiceMemoPath': voiceMemoPath,
