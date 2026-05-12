@@ -145,6 +145,11 @@ class LiveController {
   /// picked up on the next cycle.
   int _confidenceThreshold = 50;
 
+  /// Live-tunable sensitivity (typically 0.5–1.5). Shifts the sigmoid
+  /// horizontally in logit space — see [PostProcessor.applySensitivity].
+  /// Updated by [setSensitivity] mid-session without restart.
+  double _sensitivity = 1.0;
+
   /// Species currently shown on the live screen (have visible cards).
   ///
   /// Maps scientific name → active [DetectionRecord] in [_sessionDetections].
@@ -282,6 +287,7 @@ class LiveController {
     double geoThreshold = 0.03,
     Set<String>? geoModelSpeciesNames,
     int? poolingWindows,
+    double sensitivity = 1.0,
   }) async {
     if (_state != LiveState.ready) return;
 
@@ -303,6 +309,7 @@ class LiveController {
     _currentLiveDetections = const [];
     _activeCardSpecies.clear();
     _confidenceThreshold = confidenceThreshold;
+    _sensitivity = sensitivity;
     _isolate.setMaxPoolWindows(poolingWindows);
     _isolate.resetPooling();
     _inferenceCycleCount = 0;
@@ -492,6 +499,13 @@ class LiveController {
     _confidenceThreshold = value;
   }
 
+  /// Update the sigmoid-shift sensitivity used by inference. Takes
+  /// effect on the next cycle. The original session-start value is
+  /// preserved in `SessionSettings` for context.
+  void setSensitivity(double value) {
+    _sensitivity = value;
+  }
+
   /// Update the score-pooling window count and forward to the inference
   /// isolate. Pass `null` to use the model-config default.
   void setPoolingWindows(int? value) {
@@ -526,6 +540,7 @@ class LiveController {
     // Snapshot the live-tunable threshold for this cycle so a mid-cycle
     // setter call can't half-apply.
     final confidenceThreshold = _confidenceThreshold;
+    final sensitivity = _sensitivity;
 
     try {
       final sampleRate = _config?.audio.sampleRate ?? AppConstants.sampleRate;
@@ -541,6 +556,7 @@ class LiveController {
       final detections = await _isolate.infer(
         audioSamples,
         windowSeconds: windowDuration,
+        sensitivity: sensitivity,
         confidenceThreshold: confidenceThreshold / 100.0,
       );
 

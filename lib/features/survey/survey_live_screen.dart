@@ -419,6 +419,7 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
         backgroundGps: widget.backgroundGps,
         autoStopBattery: autoStopBattery,
         poolingWindows: ref.read(scorePoolingWindowsProvider),
+        sensitivity: ref.read(sensitivityProvider),
       );
     } else {
       await controller.startSurvey(
@@ -444,6 +445,7 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
         backgroundGps: widget.backgroundGps,
         autoStopBattery: autoStopBattery,
         poolingWindows: ref.read(scorePoolingWindowsProvider),
+        sensitivity: ref.read(sensitivityProvider),
       );
     }
 
@@ -581,6 +583,9 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
     });
     ref.listen<int>(scorePoolingWindowsProvider, (_, next) {
       ref.read(surveyControllerProvider).setPoolingWindows(next);
+    });
+    ref.listen<double>(sensitivityProvider, (_, next) {
+      ref.read(surveyControllerProvider).setSensitivity(next);
     });
 
     return PopScope(

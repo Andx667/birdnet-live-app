@@ -169,6 +169,7 @@ class _LiveScreenState extends ConsumerState<LiveScreen>
       final recordingFormat = ref.read(recordingFormatProvider);
       final geoThreshold = ref.read(geoThresholdProvider);
       final poolingWindows = ref.read(scorePoolingWindowsProvider);
+      final sensitivity = ref.read(sensitivityProvider);
 
       // Fetch geo-model scores (if available) for species filtering.
       // Also fetch the full geo-model species names for model intersection.
@@ -214,6 +215,7 @@ class _LiveScreenState extends ConsumerState<LiveScreen>
         geoThreshold: geoThreshold,
         geoModelSpeciesNames: geoSpeciesNames,
         poolingWindows: poolingWindows,
+        sensitivity: sensitivity,
       );
 
       _isStarting = false;
@@ -409,6 +411,9 @@ class _LiveScreenState extends ConsumerState<LiveScreen>
     });
     ref.listen<int>(scorePoolingWindowsProvider, (_, next) {
       ref.read(liveControllerProvider).setPoolingWindows(next);
+    });
+    ref.listen<double>(sensitivityProvider, (_, next) {
+      ref.read(liveControllerProvider).setSensitivity(next);
     });
 
     return PopScope(

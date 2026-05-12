@@ -109,6 +109,12 @@ class SurveyController {
   /// picked up on the next cycle.
   int _confidenceThreshold = 50;
 
+  /// Live-tunable sensitivity (typically 0.5–1.5). Same semantics as
+  /// in [LiveController]: shifts the sigmoid horizontally in logit
+  /// space without changing slope. Updated mid-survey by
+  /// [setSensitivity].
+  double _sensitivity = 1.0;
+
   /// Species currently shown as active detection cards.
   final Map<String, DetectionRecord> _activeCardSpecies = {};
 
@@ -330,6 +336,7 @@ class SurveyController {
     int autoStopBattery = 0,
     SessionSettings? settingsSnapshot,
     int? poolingWindows,
+    double sensitivity = 1.0,
   }) async {
     if (_state == SurveyState.active) return;
     _state = SurveyState.starting;
@@ -371,6 +378,7 @@ class SurveyController {
       _currentLiveDetections = const [];
       _activeCardSpecies.clear();
       _confidenceThreshold = confidenceThreshold;
+      _sensitivity = sensitivity;
       _isolate.setMaxPoolWindows(poolingWindows);
       _isolate.resetPooling();
       _inferenceCycleCount = 0;
@@ -491,6 +499,7 @@ class SurveyController {
     bool backgroundGps = true,
     int autoStopBattery = 0,
     int? poolingWindows,
+    double sensitivity = 1.0,
   }) async {
     if (_state == SurveyState.active) return;
     _state = SurveyState.starting;
@@ -511,6 +520,7 @@ class SurveyController {
       _currentLiveDetections = const [];
       _activeCardSpecies.clear();
       _confidenceThreshold = confidenceThreshold;
+      _sensitivity = sensitivity;
       _isolate.setMaxPoolWindows(poolingWindows);
       _isolate.resetPooling();
       _inferenceCycleCount = 0;
@@ -811,6 +821,12 @@ class SurveyController {
     _confidenceThreshold = value;
   }
 
+  /// Update the sigmoid-shift sensitivity used by inference. Takes
+  /// effect on the next cycle.
+  void setSensitivity(double value) {
+    _sensitivity = value;
+  }
+
   /// Update the score-pooling window count and forward to the inference
   /// isolate. Pass `null` to use the model-config default.
   void setPoolingWindows(int? value) {
@@ -866,6 +882,7 @@ class SurveyController {
     // Snapshot the live-tunable threshold for this cycle so a mid-cycle
     // setter call can't half-apply.
     final confidenceThreshold = _confidenceThreshold;
+    final sensitivity = _sensitivity;
 
     try {
       final sampleRate = _config?.audio.sampleRate ?? AppConstants.sampleRate;
@@ -879,6 +896,7 @@ class SurveyController {
       final detections = await _isolate.infer(
         audioSamples,
         windowSeconds: windowDuration,
+        sensitivity: sensitivity,
         confidenceThreshold: confidenceThreshold / 100.0,
       );
 

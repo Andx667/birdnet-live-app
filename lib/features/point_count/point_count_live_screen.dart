@@ -174,6 +174,7 @@ class _PointCountLiveScreenState extends ConsumerState<PointCountLiveScreen>
       geoThreshold: geoThreshold,
       geoModelSpeciesNames: geoSpeciesNames,
       poolingWindows: ref.read(scorePoolingWindowsProvider),
+      sensitivity: ref.read(sensitivityProvider),
     );
 
     _started = true;
@@ -348,6 +349,9 @@ class _PointCountLiveScreenState extends ConsumerState<PointCountLiveScreen>
     });
     ref.listen<int>(scorePoolingWindowsProvider, (_, next) {
       ref.read(liveControllerProvider).setPoolingWindows(next);
+    });
+    ref.listen<double>(sensitivityProvider, (_, next) {
+      ref.read(liveControllerProvider).setSensitivity(next);
     });
 
     return PopScope(
