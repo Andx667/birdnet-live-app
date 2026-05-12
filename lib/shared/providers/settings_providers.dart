@@ -391,13 +391,6 @@ final surveyTopNPerSpeciesProvider =
       return IntSettingNotifier(prefs, PrefKeys.surveyTopNPerSpecies, 10);
     });
 
-/// Preferred microphone device ID (empty = system default).
-final surveyMicDeviceIdProvider =
-    StateNotifierProvider<StringSettingNotifier, String>((ref) {
-      final prefs = ref.watch(sharedPreferencesProvider);
-      return StringSettingNotifier(prefs, PrefKeys.surveyMicDeviceId, '');
-    });
-
 /// Last used observer name (persisted for convenience).
 final surveyLastObserverProvider =
     StateNotifierProvider<StringSettingNotifier, String>((ref) {

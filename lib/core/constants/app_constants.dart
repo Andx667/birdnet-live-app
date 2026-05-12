@@ -125,7 +125,7 @@ abstract final class PrefKeys {
   static const String surveyClipContext = 'survey_clip_context';
   static const String surveyDetectionSampling = 'survey_detection_sampling';
   static const String surveyTopNPerSpecies = 'survey_top_n_per_species';
-  static const String surveyMicDeviceId = 'survey_mic_device_id';
+  static const String micDeviceId = 'mic_device_id';
   static const String surveyLastObserver = 'survey_last_observer';
   static const String surveyLastTransectId = 'survey_last_transect_id';
 

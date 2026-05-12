@@ -1,7 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../core/constants/app_constants.dart';
+import '../../shared/providers/app_providers.dart';
 import 'audio_capture_service.dart';
 import 'ring_buffer.dart';
 
@@ -134,7 +137,33 @@ final inputDevicesProvider = FutureProvider<List<InputDeviceInfo>>((ref) async {
 });
 
 /// Currently selected input device ID (null = system default).
-final selectedDeviceProvider = StateProvider<String?>((ref) => null);
+///
+/// Persisted across launches via [SharedPreferences] so the user's
+/// preferred microphone is remembered. Empty string in storage maps
+/// to `null` (system default) at runtime.
+final selectedDeviceProvider =
+    StateNotifierProvider<_SelectedDeviceNotifier, String?>((ref) {
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return _SelectedDeviceNotifier(prefs);
+    });
+
+class _SelectedDeviceNotifier extends StateNotifier<String?> {
+  _SelectedDeviceNotifier(this._prefs)
+    : super(_read(_prefs));
+
+  final SharedPreferences _prefs;
+
+  static String? _read(SharedPreferences prefs) {
+    final raw = prefs.getString(PrefKeys.micDeviceId) ?? '';
+    return raw.isEmpty ? null : raw;
+  }
+
+  @override
+  set state(String? value) {
+    super.state = value;
+    _prefs.setString(PrefKeys.micDeviceId, value ?? '');
+  }
+}
 
 /// Simple data class for input device info (avoids leaking `record`
 /// types into the UI layer).
