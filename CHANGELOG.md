@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.3] - 2026-05-12
+
+### Added
+
+- **Microphone gain and high-pass filter actually shape the audio now.** The "Mic gain" and "High-pass filter" sliders under Settings → Audio used to be cosmetic — they updated stored values but nothing in the capture pipeline read them. Both now apply to the live signal feeding inference, the spectrogram, and any session recording, with mid-session hot-apply: drag the slider while a Live, Point Count, or Survey session is running and the next captured chunk reflects the change. Gain is a linear multiplier with peak saturation; the high-pass is a 2nd-order Butterworth biquad whose cutoff (in Hz) is exactly what the slider shows.
+- **Sensitivity setting is wired into inference.** The Sensitivity slider under Settings → Detection (BirdNET's logit-shift parameter) is now passed to the audio classifier on every inference call across Live, Point Count, and Survey, with the same mid-session hot-apply pattern as the other tunables. Previously the slider only persisted a value that no detection path ever read.
+- **Microphone selection persists across launches.** The chosen input device under Settings → Audio (and the same picker on the Survey setup screen) is now stored in `SharedPreferences` instead of resetting to "System default" on every cold start. Picking a USB or Bluetooth mic once is enough — the app remembers it next time you open Live, Point Count, or Survey.
+
+### Removed
+
+- **Score-pooling mode dropdown.** The "Score pooling" mode dropdown (off / average / max / LME) under Settings → Detection has been removed because the inference pipeline never actually consumed it — only the *number* of pooling windows was wired up. Keeping the dropdown implied a control that didn't do anything. The pooling-windows slider remains and works as before.
+
 ## [0.11.2] - 2026-05-12
 
 ### Added
