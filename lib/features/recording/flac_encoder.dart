@@ -57,10 +57,23 @@
 // - FLAC reference encoder source (libFLAC): https://github.com/xiph/flac
 // =============================================================================
 
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:crypto/crypto.dart';
+
 import 'audio_file_writer.dart';
+
+/// Tiny single-value [Sink] used to capture the final [Digest] from
+/// [md5.startChunkedConversion] without pulling in `package:convert`.
+class _DigestSink implements Sink<Digest> {
+  Digest? value;
+  @override
+  void add(Digest data) => value = data;
+  @override
+  void close() {}
+}
 
 /// Default FLAC block size in samples.
 ///
@@ -487,6 +500,7 @@ Uint8List _buildStreamInfo({
   required int channels,
   required int bitsPerSample,
   required int totalSamples,
+  List<int>? md5Signature,
   bool isLast = true,
 }) {
   final d = ByteData(38);
@@ -519,8 +533,15 @@ Uint8List _buildStreamInfo({
       17, (((bitsPerSample - 1) & 0xF) << 4) | ((totalSamples >> 32) & 0xF));
   d.setUint32(18, totalSamples & 0xFFFFFFFF);
 
-  // Bytes 22–37: MD5 signature — left as zeros (allowed by spec).
-  return d.buffer.asUint8List();
+  // Bytes 22–37: MD5 signature of the unencoded audio. Strict decoders
+  // (libsndfile / libFLAC in verify mode, Raven Pro) reject files whose MD5
+  // is non-zero but does not match the decoded stream. Writing a real MD5
+  // also lets users detect corruption with `flac -t`.
+  final bytes = d.buffer.asUint8List();
+  if (md5Signature != null && md5Signature.length == 16) {
+    bytes.setRange(22, 38, md5Signature);
+  }
+  return bytes;
 }
 
 // =============================================================================
@@ -575,6 +596,10 @@ class FlacEncoder implements AudioFileWriter {
   int _minFrameSize = 0x7FFFFFFF;
   int _maxFrameSize = 0;
 
+  // Rolling MD5 of the unencoded little-endian PCM, finalized in [close].
+  _DigestSink? _md5Sink;
+  ByteConversionSink? _md5Input;
+
   @override
   bool get isOpen => _file != null && !_closed;
 
@@ -601,6 +626,8 @@ class FlacEncoder implements AudioFileWriter {
     _maxBlockSize = blockSize;
     _minFrameSize = 0x7FFFFFFF;
     _maxFrameSize = 0;
+    _md5Sink = _DigestSink();
+    _md5Input = md5.startChunkedConversion(_md5Sink!);
 
     // "fLaC" magic number.
     await _file!.writeFrom([0x66, 0x4C, 0x61, 0x43]);
@@ -668,9 +695,19 @@ class FlacEncoder implements AudioFileWriter {
     }
 
     // Rewrite STREAMINFO with final values.
+    _md5Input?.close();
+    final digest = _md5Sink?.value?.bytes ?? List<int>.filled(16, 0);
+    _md5Input = null;
+    _md5Sink = null;
+
+    // FLAC spec: min_block_size must be >= 16. A trailing partial frame
+    // smaller than that would otherwise produce an invalid STREAMINFO that
+    // strict decoders (libsndfile, Raven Pro) reject.
+    final reportedMin = _minBlockSize < 16 ? 16 : _minBlockSize;
+
     await _file!.setPosition(4); // after "fLaC"
     await _file!.writeFrom(_buildStreamInfo(
-      minBlockSize: _minBlockSize,
+      minBlockSize: reportedMin,
       maxBlockSize: _maxBlockSize,
       minFrameSize: _minFrameSize == 0x7FFFFFFF ? 0 : _minFrameSize,
       maxFrameSize: _maxFrameSize,
@@ -678,6 +715,7 @@ class FlacEncoder implements AudioFileWriter {
       channels: channels,
       bitsPerSample: bitsPerSample,
       totalSamples: _totalSamples,
+      md5Signature: digest,
     ));
 
     await _file!.close();
@@ -704,6 +742,13 @@ class FlacEncoder implements AudioFileWriter {
     final bytes =
         _encodeFrame(samples, _frameNumber, sampleRate, bitsPerSample);
     await _file!.writeFrom(bytes);
+
+    // Feed the unencoded PCM into the rolling MD5 in little-endian order.
+    // The byte view of [samples] is host-endian; on every supported target
+    // (Android arm64 / x86_64, iOS arm64, Windows x64) that is little-endian,
+    // matching the FLAC spec.
+    _md5Input?.add(samples.buffer
+        .asUint8List(samples.offsetInBytes, samples.lengthInBytes));
 
     _totalSamples += samples.length;
     _frameNumber++;

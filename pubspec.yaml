@@ -36,6 +36,7 @@ dependencies:
 
   # Export
   archive: ^4.0.2
+  crypto: ^3.0.3
 
   # Localization
   intl: any

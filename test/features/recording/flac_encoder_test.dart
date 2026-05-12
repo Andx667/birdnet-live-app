@@ -16,6 +16,7 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:birdnet_live/features/recording/flac_encoder.dart';
+import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -314,6 +315,50 @@ void main() {
       final flacSize = File(path).lengthSync();
       expect(flacSize, lessThan(100),
           reason: 'CONSTANT block should be < 100 bytes (was $flacSize)');
+    });
+  });
+
+  // ── STREAMINFO spec compliance ────────────────────────────────────────
+
+  group('STREAMINFO spec compliance', () {
+    test('MD5 signature is non-zero and matches the unencoded PCM', () async {
+      // FLAC spec allows MD5 to be zero, but strict decoders (libsndfile,
+      // Raven Pro) prefer a real MD5 so they can verify the file is intact.
+      final path = '${tempDir.path}/md5.flac';
+      final samples = sineWave(8000);
+      await FlacEncoder.writeFile(
+          filePath: path, samples: samples, sampleRate: 32000);
+
+      final bytes = File(path).readAsBytesSync();
+      // STREAMINFO body starts at byte 8; MD5 is the last 16 bytes.
+      final md5InFile = bytes.sublist(8 + 18, 8 + 18 + 16);
+      expect(md5InFile.any((b) => b != 0), isTrue,
+          reason: 'STREAMINFO MD5 should not be all zeros');
+
+      // Verify it matches md5(<little-endian int16 PCM>).
+      final pcm = Int16List(samples.length);
+      for (int i = 0; i < samples.length; i++) {
+        pcm[i] = (samples[i] * 32767.0).round().clamp(-32768, 32767);
+      }
+      final pcmBytes =
+          pcm.buffer.asUint8List(pcm.offsetInBytes, pcm.lengthInBytes);
+      final expected = md5.convert(pcmBytes).bytes;
+      expect(md5InFile, equals(expected));
+    });
+
+    test('min_block_size is at least 16 even with tiny tail frame', () async {
+      // FLAC spec: min_block_size must be >= 16. A trailing partial frame
+      // smaller than that would otherwise leave STREAMINFO invalid.
+      final path = '${tempDir.path}/tiny_tail.flac';
+      // blockSize default 4096 + 5 leftover samples → tail frame of 5.
+      final samples = sineWave(4101);
+      await FlacEncoder.writeFile(
+          filePath: path, samples: samples, sampleRate: 32000);
+
+      final bytes = File(path).readAsBytesSync();
+      // STREAMINFO body starts at byte 8; min_block_size is bytes 8..9.
+      final minBlock = (bytes[8] << 8) | bytes[9];
+      expect(minBlock, greaterThanOrEqualTo(16));
     });
   });
 }
