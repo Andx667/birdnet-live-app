@@ -399,6 +399,18 @@ class _LiveScreenState extends ConsumerState<LiveScreen>
     final isPaused = liveState == LiveState.paused;
     final detections = ref.watch(sessionDetectionsProvider);
 
+    // Hot-apply tunable settings to the running session: when the user
+    // tweaks the confidence threshold or pooling window count from the
+    // Settings screen mid-session, push the new value straight to the
+    // controller so the next inference cycle picks it up — no need to
+    // restart the session.
+    ref.listen<int>(confidenceThresholdProvider, (_, next) {
+      ref.read(liveControllerProvider).setConfidenceThreshold(next);
+    });
+    ref.listen<int>(scorePoolingWindowsProvider, (_, next) {
+      ref.read(liveControllerProvider).setPoolingWindows(next);
+    });
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) async {

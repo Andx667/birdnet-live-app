@@ -84,10 +84,7 @@ enum LiveState {
 /// Designed to be held by a Riverpod [StateNotifier] that exposes
 /// [LiveControllerState] to the widget tree.
 class LiveController {
-  LiveController({
-    required this.ringBuffer,
-    required this.recordingService,
-  });
+  LiveController({required this.ringBuffer, required this.recordingService});
 
   /// Shared ring buffer for audio samples.
   final RingBuffer ringBuffer;
@@ -141,6 +138,12 @@ class LiveController {
 
   /// Whether per-detection audio clips should be saved.
   bool _saveDetectionClips = false;
+
+  /// Live-tunable confidence threshold (0–100 scale). Captured at
+  /// session start; updated by [setConfidenceThreshold] without
+  /// restarting the inference timer so a mid-session settings change is
+  /// picked up on the next cycle.
+  int _confidenceThreshold = 50;
 
   /// Species currently shown on the live screen (have visible cards).
   ///
@@ -299,6 +302,7 @@ class LiveController {
     _latestDetections = const [];
     _currentLiveDetections = const [];
     _activeCardSpecies.clear();
+    _confidenceThreshold = confidenceThreshold;
     _isolate.setMaxPoolWindows(poolingWindows);
     _isolate.resetPooling();
     _inferenceCycleCount = 0;
@@ -335,19 +339,18 @@ class LiveController {
     _state = LiveState.active;
     _notifyListeners();
 
-    debugPrint('[LiveController] session started '
-        '(window=${windowDuration}s, rate=${inferenceRate}Hz, '
-        'threshold=$confidenceThreshold)');
+    debugPrint(
+      '[LiveController] session started '
+      '(window=${windowDuration}s, rate=${inferenceRate}Hz, '
+      'threshold=$confidenceThreshold)',
+    );
 
     // Start the inference timer.
     final intervalMs = (1000.0 / inferenceRate).round();
     debugPrint('[LiveController] inference timer interval: ${intervalMs}ms');
     _inferenceTimer = Timer.periodic(
       Duration(milliseconds: intervalMs),
-      (_) => _runInference(
-        windowDuration: windowDuration,
-        confidenceThreshold: confidenceThreshold,
-      ),
+      (_) => _runInference(windowDuration: windowDuration),
     );
   }
 
@@ -387,10 +390,7 @@ class LiveController {
     final intervalMs = (1000.0 / settings.inferenceRate).round();
     _inferenceTimer = Timer.periodic(
       Duration(milliseconds: intervalMs),
-      (_) => _runInference(
-        windowDuration: settings.windowDuration,
-        confidenceThreshold: settings.confidenceThreshold,
-      ),
+      (_) => _runInference(windowDuration: settings.windowDuration),
     );
   }
 
@@ -477,6 +477,27 @@ class LiveController {
     await _player.stop();
   }
 
+  // ── Live setting hot-apply ────────────────────────────────────────────
+
+  /// Update the confidence threshold (0–100 scale) used by the inference
+  /// loop. Takes effect on the next cycle so a mid-session settings
+  /// change is picked up without restarting the timer.
+  ///
+  /// The original `SessionSettings.confidenceThreshold` recorded at
+  /// session start is intentionally left untouched — it remains a
+  /// snapshot of what the user chose when they hit start, so that
+  /// detections later in the session can still be compared against the
+  /// initial threshold for context.
+  void setConfidenceThreshold(int value) {
+    _confidenceThreshold = value;
+  }
+
+  /// Update the score-pooling window count and forward to the inference
+  /// isolate. Pass `null` to use the model-config default.
+  void setPoolingWindows(int? value) {
+    _isolate.setMaxPoolWindows(value);
+  }
+
   // ── Cleanup ───────────────────────────────────────────────────────────
 
   /// Dispose of all resources.
@@ -490,18 +511,21 @@ class LiveController {
   // ── Private ───────────────────────────────────────────────────────────
 
   /// Run a single inference cycle.
-  Future<void> _runInference({
-    required int windowDuration,
-    required int confidenceThreshold,
-  }) async {
+  Future<void> _runInference({required int windowDuration}) async {
     if (_inferring || !_isolate.isRunning) {
-      debugPrint('[LiveController] _runInference skipped '
-          '(inferring=$_inferring, running=${_isolate.isRunning})');
+      debugPrint(
+        '[LiveController] _runInference skipped '
+        '(inferring=$_inferring, running=${_isolate.isRunning})',
+      );
       return;
     }
 
     _inferring = true;
     _inferenceCycleCount++;
+
+    // Snapshot the live-tunable threshold for this cycle so a mid-cycle
+    // setter call can't half-apply.
+    final confidenceThreshold = _confidenceThreshold;
 
     try {
       final sampleRate = _config?.audio.sampleRate ?? AppConstants.sampleRate;
@@ -520,9 +544,11 @@ class LiveController {
         confidenceThreshold: confidenceThreshold / 100.0,
       );
 
-      debugPrint('[LiveController] inference done — '
-          '${detections.length} detections '
-          '(threshold=${confidenceThreshold / 100.0})');
+      debugPrint(
+        '[LiveController] inference done — '
+        '${detections.length} detections '
+        '(threshold=${confidenceThreshold / 100.0})',
+      );
 
       _latestDetections = detections;
 
@@ -538,11 +564,12 @@ class LiveController {
       // Restrict to the intersection of both models: only keep detections
       // for species the geo-model also knows, regardless of filter mode.
       final geoNames = _geoModelSpeciesNames;
-      final filteredDetections = geoNames == null
-          ? speciesFiltered
-          : speciesFiltered
-              .where((d) => geoNames.contains(d.species.scientificName))
-              .toList();
+      final filteredDetections =
+          geoNames == null
+              ? speciesFiltered
+              : speciesFiltered
+                  .where((d) => geoNames.contains(d.species.scientificName))
+                  .toList();
 
       // Update the live detection list (replaced each cycle, like the PWA).
       // Each species appears at most once with its current score.
@@ -563,15 +590,17 @@ class LiveController {
         };
 
         // Species that just appeared (not currently tracked) → new detection.
-        final appeared =
-            currentNames.difference(_activeCardSpecies.keys.toSet());
+        final appeared = currentNames.difference(
+          _activeCardSpecies.keys.toSet(),
+        );
 
         // Species that disappeared → close the detection window and
         // stop tracking. Stamping `endTimestamp` lets the review screen
         // visualize the full duration during which the species was on
         // screen, instead of just the first inference window.
-        final disappeared =
-            _activeCardSpecies.keys.toSet().difference(currentNames);
+        final disappeared = _activeCardSpecies.keys.toSet().difference(
+          currentNames,
+        );
         final now = DateTime.now();
         for (final name in disappeared) {
           final existing = _activeCardSpecies.remove(name);

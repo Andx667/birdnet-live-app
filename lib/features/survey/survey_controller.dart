@@ -103,6 +103,12 @@ class SurveyController {
   double _geoThreshold = 0.03;
   bool _saveDetectionClips = false;
 
+  /// Live-tunable confidence threshold (0–100 scale). Captured at
+  /// survey start; updated by [setConfidenceThreshold] without
+  /// restarting the inference timer so a mid-survey settings change is
+  /// picked up on the next cycle.
+  int _confidenceThreshold = 50;
+
   /// Species currently shown as active detection cards.
   final Map<String, DetectionRecord> _activeCardSpecies = {};
 
@@ -364,6 +370,7 @@ class SurveyController {
       _sessionDetections.clear();
       _currentLiveDetections = const [];
       _activeCardSpecies.clear();
+      _confidenceThreshold = confidenceThreshold;
       _isolate.setMaxPoolWindows(poolingWindows);
       _isolate.resetPooling();
       _inferenceCycleCount = 0;
@@ -420,10 +427,7 @@ class SurveyController {
       final intervalMs = (1000.0 / inferenceRate).round();
       _inferenceTimer = Timer.periodic(
         Duration(milliseconds: intervalMs),
-        (_) => _runInference(
-          windowDuration: windowDuration,
-          confidenceThreshold: confidenceThreshold,
-        ),
+        (_) => _runInference(windowDuration: windowDuration),
       );
 
       // Start incremental persistence timer.
@@ -506,6 +510,7 @@ class SurveyController {
       _sessionDetections.addAll(existingSession.detections.reversed);
       _currentLiveDetections = const [];
       _activeCardSpecies.clear();
+      _confidenceThreshold = confidenceThreshold;
       _isolate.setMaxPoolWindows(poolingWindows);
       _isolate.resetPooling();
       _inferenceCycleCount = 0;
@@ -559,10 +564,7 @@ class SurveyController {
       final intervalMs = (1000.0 / inferenceRate).round();
       _inferenceTimer = Timer.periodic(
         Duration(milliseconds: intervalMs),
-        (_) => _runInference(
-          windowDuration: windowDuration,
-          confidenceThreshold: confidenceThreshold,
-        ),
+        (_) => _runInference(windowDuration: windowDuration),
       );
 
       _persistTimer = Timer.periodic(
@@ -796,6 +798,25 @@ class SurveyController {
     return record;
   }
 
+  // ── Live setting hot-apply ────────────────────────────────────────────
+
+  /// Update the confidence threshold (0–100 scale) used by the inference
+  /// loop. Takes effect on the next cycle so a mid-survey settings
+  /// change is picked up without restarting the timer.
+  ///
+  /// The original `SessionSettings.confidenceThreshold` recorded at
+  /// session start is intentionally left untouched — it remains a
+  /// snapshot of what the user chose when they hit start.
+  void setConfidenceThreshold(int value) {
+    _confidenceThreshold = value;
+  }
+
+  /// Update the score-pooling window count and forward to the inference
+  /// isolate. Pass `null` to use the model-config default.
+  void setPoolingWindows(int? value) {
+    _isolate.setMaxPoolWindows(value);
+  }
+
   /// Dispose of all resources.
   Future<void> dispose() async {
     _inferenceTimer?.cancel();
@@ -824,10 +845,7 @@ class SurveyController {
 
   // ── Inference ───────────────────────────────────────────────────────────
 
-  Future<void> _runInference({
-    required int windowDuration,
-    required int confidenceThreshold,
-  }) async {
+  Future<void> _runInference({required int windowDuration}) async {
     // Check auto-stop conditions.
     if (_maxEndTime != null && DateTime.now().isAfter(_maxEndTime!)) {
       _triggerAutoStop(
@@ -844,6 +862,10 @@ class SurveyController {
     if (_inferring || !_isolate.isRunning) return;
     _inferring = true;
     _inferenceCycleCount++;
+
+    // Snapshot the live-tunable threshold for this cycle so a mid-cycle
+    // setter call can't half-apply.
+    final confidenceThreshold = _confidenceThreshold;
 
     try {
       final sampleRate = _config?.audio.sampleRate ?? AppConstants.sampleRate;

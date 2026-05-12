@@ -151,7 +151,8 @@ class _PointCountLiveScreenState extends ConsumerState<PointCountLiveScreen>
         widget.windowDurationOverride ?? ref.read(windowDurationProvider);
     final double inferenceRate =
         widget.inferenceRateOverride ?? ref.read(inferenceRateProvider);
-    final int confidenceThreshold = widget.confidenceThresholdOverride ??
+    final int confidenceThreshold =
+        widget.confidenceThresholdOverride ??
         ref.read(confidenceThresholdProvider);
     final String filterMode =
         widget.speciesFilterModeOverride ?? ref.read(speciesFilterModeProvider);
@@ -339,6 +340,16 @@ class _PointCountLiveScreenState extends ConsumerState<PointCountLiveScreen>
     final isActive = liveState == LiveState.active;
     final detections = ref.watch(sessionDetectionsProvider);
 
+    // Hot-apply tunable settings to the running point count: changes
+    // made on the Settings screen mid-count are pushed straight to the
+    // controller so the next inference cycle picks them up.
+    ref.listen<int>(confidenceThresholdProvider, (_, next) {
+      ref.read(liveControllerProvider).setConfidenceThreshold(next);
+    });
+    ref.listen<int>(scorePoolingWindowsProvider, (_, next) {
+      ref.read(liveControllerProvider).setPoolingWindows(next);
+    });
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) async {
@@ -353,7 +364,13 @@ class _PointCountLiveScreenState extends ConsumerState<PointCountLiveScreen>
         body: SafeArea(
           bottom: false,
           child: _buildBody(
-              context, theme, liveState, isActive, isCapturing, detections),
+            context,
+            theme,
+            liveState,
+            isActive,
+            isCapturing,
+            detections,
+          ),
         ),
       ),
     );
@@ -421,10 +438,7 @@ class _PointCountLiveScreenState extends ConsumerState<PointCountLiveScreen>
                 Expanded(
                   flex: 1,
                   child: Column(
-                    children: [
-                      Expanded(child: spectrogram),
-                      sessionInfo,
-                    ],
+                    children: [Expanded(child: spectrogram), sessionInfo],
                   ),
                 ),
                 Expanded(flex: 1, child: detectionList),
@@ -495,50 +509,53 @@ class _CountdownStatusBar extends StatelessWidget {
           // Countdown timer (center).
           Expanded(
             child: Center(
-              child: isLoading
-                  ? Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: theme.colorScheme.onSurface.withAlpha(153),
+              child:
+                  isLoading
+                      ? Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: theme.colorScheme.onSurface.withAlpha(153),
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          l10n.statusLoadingModel,
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            color: theme.colorScheme.onSurface.withAlpha(153),
+                          const SizedBox(width: 8),
+                          Text(
+                            l10n.statusLoadingModel,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              color: theme.colorScheme.onSurface.withAlpha(153),
+                            ),
                           ),
-                        ),
-                      ],
-                    )
-                  : Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.timer_rounded,
-                          size: 18,
-                          color: remaining.inSeconds <= 30
-                              ? theme.colorScheme.error
-                              : theme.colorScheme.primary,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          l10n.pointCountTimeRemaining(minutes, seconds),
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            fontFamily: 'monospace',
-                            color: remaining.inSeconds <= 30
-                                ? theme.colorScheme.error
-                                : theme.colorScheme.primary,
+                        ],
+                      )
+                      : Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.timer_rounded,
+                            size: 18,
+                            color:
+                                remaining.inSeconds <= 30
+                                    ? theme.colorScheme.error
+                                    : theme.colorScheme.primary,
                           ),
-                        ),
-                      ],
-                    ),
+                          const SizedBox(width: 6),
+                          Text(
+                            l10n.pointCountTimeRemaining(minutes, seconds),
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              fontFamily: 'monospace',
+                              color:
+                                  remaining.inSeconds <= 30
+                                      ? theme.colorScheme.error
+                                      : theme.colorScheme.primary,
+                            ),
+                          ),
+                        ],
+                      ),
             ),
           ),
 
@@ -566,9 +583,10 @@ class _CountdownStatusBar extends StatelessWidget {
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute<void>(
-                  builder: (_) => const SettingsScreen(
-                    settingsContext: SettingsContext.pointCount,
-                  ),
+                  builder:
+                      (_) => const SettingsScreen(
+                        settingsContext: SettingsContext.pointCount,
+                      ),
                 ),
               );
             },
@@ -586,23 +604,24 @@ void _showPointCountLiveHelp(BuildContext context) {
   showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    builder: (_) => AppHelpBottomSheet(
-      title: l10n.pointCountLiveHelpTitle,
-      sections: [
-        AppHelpSection(
-          icon: Icons.timer_rounded,
-          body: l10n.pointCountLiveHelpTimer,
+    builder:
+        (_) => AppHelpBottomSheet(
+          title: l10n.pointCountLiveHelpTitle,
+          sections: [
+            AppHelpSection(
+              icon: Icons.timer_rounded,
+              body: l10n.pointCountLiveHelpTimer,
+            ),
+            AppHelpSection(
+              icon: Icons.info_outline,
+              body: l10n.pointCountLiveHelpDetections,
+            ),
+            AppHelpSection(
+              icon: Icons.stop_rounded,
+              body: l10n.pointCountLiveHelpFinish,
+            ),
+          ],
         ),
-        AppHelpSection(
-          icon: Icons.info_outline,
-          body: l10n.pointCountLiveHelpDetections,
-        ),
-        AppHelpSection(
-          icon: Icons.stop_rounded,
-          body: l10n.pointCountLiveHelpFinish,
-        ),
-      ],
-    ),
   );
 }
 
@@ -623,9 +642,10 @@ class _CountdownProgressBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final elapsed = totalDuration - remaining;
-    final progress = totalDuration.inSeconds > 0
-        ? (elapsed.inSeconds / totalDuration.inSeconds).clamp(0.0, 1.0)
-        : 0.0;
+    final progress =
+        totalDuration.inSeconds > 0
+            ? (elapsed.inSeconds / totalDuration.inSeconds).clamp(0.0, 1.0)
+            : 0.0;
 
     return LinearProgressIndicator(
       value: progress,
@@ -667,10 +687,11 @@ class _PointCountInfoBar extends StatelessWidget {
     }
 
     final totalDetections = controller.sessionDetections.length;
-    final totalUnique = controller.sessionDetections
-        .map((d) => d.scientificName)
-        .toSet()
-        .length;
+    final totalUnique =
+        controller.sessionDetections
+            .map((d) => d.scientificName)
+            .toSet()
+            .length;
 
     final parts = <String>[];
     if (detections.isNotEmpty) parts.add('${detections.length} now');
@@ -682,11 +703,7 @@ class _PointCountInfoBar extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.info_outline,
-            size: 14,
-            color: theme.colorScheme.primary,
-          ),
+          Icon(Icons.info_outline, size: 14, color: theme.colorScheme.primary),
           const SizedBox(width: 4),
           Text(
             parts.join(' · '),
