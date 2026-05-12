@@ -62,8 +62,12 @@ void main() {
     );
     final tempDir = Directory.systemTemp;
     final tempModel = File('${tempDir.path}/model_output_test.onnx');
-    await tempModel.writeAsBytes(modelData.buffer
-        .asUint8List(modelData.offsetInBytes, modelData.lengthInBytes));
+    await tempModel.writeAsBytes(
+      modelData.buffer.asUint8List(
+        modelData.offsetInBytes,
+        modelData.lengthInBytes,
+      ),
+    );
     await model.loadModelFromFile(
       tempModel.path,
       inputName: config.onnx.inputName,
@@ -75,9 +79,12 @@ void main() {
     // Push before running: adb push assets/test_fixtures /data/local/tmp/test_fixtures
     const fixtureDir = '/data/local/tmp/test_fixtures';
     final metaFile = File('$fixtureDir/test_windows_meta.json');
-    expect(metaFile.existsSync(), isTrue,
-        reason:
-            'Run: adb push assets/test_fixtures /data/local/tmp/test_fixtures');
+    expect(
+      metaFile.existsSync(),
+      isTrue,
+      reason:
+          'Run: adb push assets/test_fixtures /data/local/tmp/test_fixtures',
+    );
     final metaJson = await metaFile.readAsString();
     final meta = jsonDecode(metaJson) as Map<String, dynamic>;
     fixtureWindows = (meta['windows'] as List).cast<Map<String, dynamic>>();
@@ -98,111 +105,102 @@ void main() {
   // Per-window tests
   // -------------------------------------------------------------------------
 
-  testWidgets('Model produces correct detections for all test windows',
-      (tester) async {
-    // Tolerance for confidence comparison.
-    // FP16 model running on different ONNX runtime backends (x86 CPU vs
-    // ARM CPU) may produce slightly different results due to FP16→FP32
-    // promotion, math library differences, and parallel execution order.
-    const confidenceTolerance = 0.05;
+  testWidgets(
+    'Model produces correct detections for all test windows',
+    (tester) async {
+      // Tolerance for confidence comparison.
+      // FP16 model running on different ONNX runtime backends (x86 CPU vs
+      // ARM CPU) may produce slightly different results due to FP16→FP32
+      // promotion, math library differences, and parallel execution order.
+      const confidenceTolerance = 0.05;
 
-    final failures = <String>[];
+      final failures = <String>[];
 
-    for (final window in fixtureWindows) {
-      final fixtureIndex = window['fixtureIndex'] as int;
-      final windowIndex = window['originalWindowIndex'] as int;
-      final startSec = window['startSec'];
-      final endSec = window['endSec'];
-      final expectedDetections =
-          (window['detections'] as List).cast<Map<String, dynamic>>();
+      for (final window in fixtureWindows) {
+        final fixtureIndex = window['fixtureIndex'] as int;
+        final windowIndex = window['originalWindowIndex'] as int;
+        final startSec = window['startSec'];
+        final endSec = window['endSec'];
+        final expectedDetections =
+            (window['detections'] as List).cast<Map<String, dynamic>>();
 
-      // Extract audio chunk for this window.
-      final audioStart = fixtureIndex * windowSamples;
-      final audioEnd = audioStart + windowSamples;
-      final chunk = Float32List.sublistView(
-        allAudioSamples,
-        audioStart,
-        audioEnd,
-      );
-
-      // Run inference.
-      final output = await model.predict(
-        chunk,
-        windowSamples: windowSamples,
-      );
-
-      // Post-process: top-K with threshold, no sensitivity scaling.
-      final detections = PostProcessor.topK(
-        scores: output.predictions,
-        labels: labels,
-        k: topK,
-        threshold: confidenceThreshold,
-      );
-
-      // --- Validate detection count ---
-      if (detections.length != expectedDetections.length) {
-        failures.add(
-          'Window $windowIndex ($startSec–${endSec}s): '
-          'expected ${expectedDetections.length} detections, '
-          'got ${detections.length}\n'
-          '  Expected: ${expectedDetections.map((d) => '${d['commonName']}=${(d['confidence'] as num).toStringAsFixed(3)}').join(', ')}\n'
-          '  Got:      ${detections.map((d) => '${d.species.commonName}=${d.confidence.toStringAsFixed(3)}').join(', ')}',
+        // Extract audio chunk for this window.
+        final audioStart = fixtureIndex * windowSamples;
+        final audioEnd = audioStart + windowSamples;
+        final chunk = Float32List.sublistView(
+          allAudioSamples,
+          audioStart,
+          audioEnd,
         );
-        continue;
-      }
 
-      // --- Validate each detection ---
-      for (var i = 0; i < expectedDetections.length; i++) {
-        final expected = expectedDetections[i];
-        final actual = detections[i];
+        // Run inference.
+        final output = await model.predict(chunk, windowSamples: windowSamples);
 
-        final expectedIndex = expected['speciesIndex'] as int;
-        final expectedName = expected['commonName'] as String;
-        final expectedConf = (expected['confidence'] as num).toDouble();
+        // Post-process: top-K with threshold, no sensitivity scaling.
+        final detections = PostProcessor.topK(
+          scores: output.predictions,
+          labels: labels,
+          k: topK,
+          threshold: confidenceThreshold,
+        );
 
-        // Check species match by index.
-        if (actual.species.index != expectedIndex) {
+        // --- Validate detection count ---
+        if (detections.length != expectedDetections.length) {
           failures.add(
-            'Window $windowIndex, det $i: '
-            'expected species index $expectedIndex ($expectedName), '
-            'got ${actual.species.index} (${actual.species.commonName})',
+            'Window $windowIndex ($startSec–${endSec}s): '
+            'expected ${expectedDetections.length} detections, '
+            'got ${detections.length}\n'
+            '  Expected: ${expectedDetections.map((d) => '${d['commonName']}=${(d['confidence'] as num).toStringAsFixed(3)}').join(', ')}\n'
+            '  Got:      ${detections.map((d) => '${d.species.commonName}=${d.confidence.toStringAsFixed(3)}').join(', ')}',
           );
           continue;
         }
 
-        // Check confidence within tolerance.
-        final confDiff = (actual.confidence - expectedConf).abs();
-        if (confDiff > confidenceTolerance) {
-          failures.add(
-            'Window $windowIndex, det $i ($expectedName): '
-            'confidence ${actual.confidence.toStringAsFixed(4)} '
-            'differs from expected ${expectedConf.toStringAsFixed(4)} '
-            'by ${confDiff.toStringAsFixed(4)} '
-            '(tolerance: $confidenceTolerance)',
-          );
+        // --- Validate each detection ---
+        for (var i = 0; i < expectedDetections.length; i++) {
+          final expected = expectedDetections[i];
+          final actual = detections[i];
+
+          final expectedIndex = expected['speciesIndex'] as int;
+          final expectedName = expected['commonName'] as String;
+          final expectedConf = (expected['confidence'] as num).toDouble();
+
+          // Check species match by index.
+          if (actual.species.index != expectedIndex) {
+            failures.add(
+              'Window $windowIndex, det $i: '
+              'expected species index $expectedIndex ($expectedName), '
+              'got ${actual.species.index} (${actual.species.commonName})',
+            );
+            continue;
+          }
+
+          // Check confidence within tolerance.
+          final confDiff = (actual.confidence - expectedConf).abs();
+          if (confDiff > confidenceTolerance) {
+            failures.add(
+              'Window $windowIndex, det $i ($expectedName): '
+              'confidence ${actual.confidence.toStringAsFixed(4)} '
+              'differs from expected ${expectedConf.toStringAsFixed(4)} '
+              'by ${confDiff.toStringAsFixed(4)} '
+              '(tolerance: $confidenceTolerance)',
+            );
+          }
         }
       }
-    }
 
-    if (failures.isNotEmpty) {
-      fail(
-        'Model output validation failed:\n\n${failures.join('\n\n')}',
-      );
-    }
-  });
+      if (failures.isNotEmpty) {
+        fail('Model output validation failed:\n\n${failures.join('\n\n')}');
+      }
+    },
+    timeout: const Timeout(Duration(minutes: 5)),
+  );
 
   testWidgets('Model output tensor has expected size', (tester) async {
     // Use the first fixture window.
-    final chunk = Float32List.sublistView(
-      allAudioSamples,
-      0,
-      windowSamples,
-    );
+    final chunk = Float32List.sublistView(allAudioSamples, 0, windowSamples);
 
-    final output = await model.predict(
-      chunk,
-      windowSamples: windowSamples,
-    );
+    final output = await model.predict(chunk, windowSamples: windowSamples);
 
     // BirdNET V3 pruned to 5,250-species intersection.
     expect(output.predictions.length, equals(labels.length));
@@ -213,18 +211,12 @@ void main() {
     expect(output.embeddings!.length, equals(1280));
   });
 
-  testWidgets('All model output values are valid probabilities',
-      (tester) async {
-    final chunk = Float32List.sublistView(
-      allAudioSamples,
-      0,
-      windowSamples,
-    );
+  testWidgets('All model output values are valid probabilities', (
+    tester,
+  ) async {
+    final chunk = Float32List.sublistView(allAudioSamples, 0, windowSamples);
 
-    final output = await model.predict(
-      chunk,
-      windowSamples: windowSamples,
-    );
+    final output = await model.predict(chunk, windowSamples: windowSamples);
 
     for (var i = 0; i < output.predictions.length; i++) {
       final p = output.predictions[i];
@@ -236,15 +228,13 @@ void main() {
     }
   });
 
-  testWidgets('Empty/silent audio produces no high-confidence detections',
-      (tester) async {
+  testWidgets('Empty/silent audio produces no high-confidence detections', (
+    tester,
+  ) async {
     // All zeros = silence.
     final silence = Float32List(windowSamples);
 
-    final output = await model.predict(
-      silence,
-      windowSamples: windowSamples,
-    );
+    final output = await model.predict(silence, windowSamples: windowSamples);
 
     final detections = PostProcessor.topK(
       scores: output.predictions,
@@ -256,7 +246,8 @@ void main() {
     expect(
       detections.isEmpty,
       isTrue,
-      reason: 'Silent audio should not produce high-confidence detections, '
+      reason:
+          'Silent audio should not produce high-confidence detections, '
           'but got: ${detections.map((d) => '${d.species.commonName}=${d.confidence.toStringAsFixed(3)}').join(', ')}',
     );
   });

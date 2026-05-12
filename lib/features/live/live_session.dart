@@ -173,6 +173,13 @@ enum DetectionSource {
   /// Manually added as a session-wide (global) annotation — not tied to a
   /// specific time window.
   manualGlobal,
+
+  /// Free-text "Other (specify)" species typed by the user (e.g. "dog",
+  /// "frog", "helicopter") rather than picked from the taxonomy. The
+  /// scientific name is empty by convention; the user-supplied label
+  /// lives in [DetectionRecord.commonName]. Treated like [manual] /
+  /// [manualGlobal] for filtering and exports.
+  userSpecified,
 }
 
 /// A timestamped detection record for session persistence.
@@ -191,6 +198,8 @@ class DetectionRecord {
     this.latitude,
     this.longitude,
     this.confirmedAt,
+    this.note,
+    this.voiceMemoPath,
   });
 
   /// Scientific name of the detected species.
@@ -245,6 +254,31 @@ class DetectionRecord {
   /// Convenience: whether this detection has been marked confirmed.
   bool get isConfirmed => confirmedAt != null;
 
+  /// Free-form text note attached to this detection by the reviewer.
+  ///
+  /// Mutable: edited from the session-review UI. Persisted in JSON sessions
+  /// and surfaced in CSV / Raven exports so external tools can carry the
+  /// reviewer's commentary alongside the detection. `null` (rather than an
+  /// empty string) when no note has ever been set, so legacy sessions
+  /// round-trip cleanly.
+  String? note;
+
+  /// Convenience: whether this detection has a non-empty note.
+  bool get hasNote => note != null && note!.trim().isNotEmpty;
+
+  /// Path to the voice-memo audio file attached to this detection by the
+  /// reviewer (e.g. an AAC/M4A recording of spoken commentary). Lives in
+  /// the session's `recordings/<sessionId>/memos/` directory and is included
+  /// in ZIP bundle exports under `memos/`.
+  ///
+  /// Mutable: set / cleared from the session-review UI. `null` (rather than
+  /// an empty string) when no memo has ever been recorded, so legacy
+  /// sessions round-trip cleanly.
+  String? voiceMemoPath;
+
+  /// Convenience: whether this detection has a voice memo attached.
+  bool get hasVoiceMemo => voiceMemoPath != null && voiceMemoPath!.isNotEmpty;
+
   /// Scientific name placeholder for unknown / unidentifiable species.
   static const String unknownSpeciesName = 'Unknown species';
 
@@ -283,6 +317,7 @@ class DetectionRecord {
       source: switch (json['source'] as String?) {
         'manual' => DetectionSource.manual,
         'manualGlobal' => DetectionSource.manualGlobal,
+        'userSpecified' => DetectionSource.userSpecified,
         _ => DetectionSource.auto,
       },
       latitude: (json['detLat'] as num?)?.toDouble(),
@@ -291,6 +326,8 @@ class DetectionRecord {
           json['confirmedAt'] != null
               ? DateTime.parse(json['confirmedAt'] as String)
               : null,
+      note: json['note'] as String?,
+      voiceMemoPath: json['voiceMemoPath'] as String?,
     );
   }
 
@@ -308,6 +345,8 @@ class DetectionRecord {
     if (longitude != null) 'detLon': longitude,
     if (confirmedAt != null)
       'confirmedAt': confirmedAt!.toUtc().toIso8601String(),
+    if (hasNote) 'note': note,
+    if (hasVoiceMemo) 'voiceMemoPath': voiceMemoPath,
   };
 
   /// Confidence expressed as a percentage string, e.g. "87.3 %".
@@ -329,18 +368,30 @@ class DetectionRecord {
   int get hashCode => Object.hash(scientificName, confidence, timestamp);
 }
 
-/// A user-created text annotation associated with a session.
+/// A user-created annotation associated with a session.
 ///
 /// Annotations can describe environmental conditions, location context,
-/// or any observation the user wants to record alongside the audio.
+/// or any observation the user wants to record alongside the audio. They
+/// may carry free-form text, a recorded voice memo (`.m4a`), or both —
+/// memo-only annotations have an empty [text] and a non-null
+/// [voiceMemoPath].
 class SessionAnnotation {
   const SessionAnnotation({
     required this.text,
     required this.createdAt,
+    this.title = '',
     this.offsetInRecording,
+    this.voiceMemoPath,
   });
 
-  /// Free-form annotation text.
+  /// Optional short label shown on the annotation chip in Session Review
+  /// and in exports. Especially useful for voice-memo-only entries (which
+  /// have an empty [text]) and for global text annotations whose body
+  /// would otherwise overflow the chip. May be empty.
+  final String title;
+
+  /// Free-form annotation text. May be empty when the annotation is a
+  /// memo-only entry (in that case [voiceMemoPath] is non-null).
   final String text;
 
   /// When the annotation was created.
@@ -350,18 +401,30 @@ class SessionAnnotation {
   /// When null, the annotation is considered session-global.
   final double? offsetInRecording;
 
+  /// Absolute path to a recorded voice-memo file (`.m4a`) attached to
+  /// this annotation, or `null` when the annotation is text-only.
+  final String? voiceMemoPath;
+
+  /// Whether this annotation has an attached voice memo.
+  bool get hasVoiceMemo =>
+      voiceMemoPath != null && voiceMemoPath!.trim().isNotEmpty;
+
   factory SessionAnnotation.fromJson(Map<String, dynamic> json) {
     return SessionAnnotation(
       text: json['text'] as String,
+      title: (json['title'] as String?) ?? '',
       createdAt: DateTime.parse(json['createdAt'] as String),
       offsetInRecording: (json['offsetInRecording'] as num?)?.toDouble(),
+      voiceMemoPath: json['voiceMemoPath'] as String?,
     );
   }
 
   Map<String, dynamic> toJson() => {
     'text': text,
+    if (title.isNotEmpty) 'title': title,
     'createdAt': createdAt.toUtc().toIso8601String(),
     if (offsetInRecording != null) 'offsetInRecording': offsetInRecording,
+    if (voiceMemoPath != null) 'voiceMemoPath': voiceMemoPath,
   };
 }
 
@@ -564,6 +627,9 @@ class LiveSession {
       source: r.source,
       latitude: r.latitude,
       longitude: r.longitude,
+      confirmedAt: r.confirmedAt,
+      note: r.note,
+      voiceMemoPath: r.voiceMemoPath,
     );
   }
 

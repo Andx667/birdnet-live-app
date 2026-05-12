@@ -571,6 +571,18 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
 
+    // Hot-apply tunable settings to the running survey: when the user
+    // tweaks the confidence threshold or pooling window count from the
+    // Settings screen mid-survey, push the new value straight to the
+    // controller so the next inference cycle picks it up — no need to
+    // restart the survey.
+    ref.listen<int>(confidenceThresholdProvider, (_, next) {
+      ref.read(surveyControllerProvider).setConfidenceThreshold(next);
+    });
+    ref.listen<int>(scorePoolingWindowsProvider, (_, next) {
+      ref.read(surveyControllerProvider).setPoolingWindows(next);
+    });
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) async {

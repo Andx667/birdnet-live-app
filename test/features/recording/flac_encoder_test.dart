@@ -16,6 +16,7 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:birdnet_live/features/recording/flac_encoder.dart';
+import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -32,8 +33,11 @@ void main() {
   // ── Helper ────────────────────────────────────────────────────────────
 
   /// Generate a sine wave as Float32List.
-  Float32List sineWave(int numSamples,
-      {double freq = 440.0, double sampleRate = 32000.0}) {
+  Float32List sineWave(
+    int numSamples, {
+    double freq = 440.0,
+    double sampleRate = 32000.0,
+  }) {
     final samples = Float32List(numSamples);
     for (int i = 0; i < numSamples; i++) {
       samples[i] = (sin(2 * pi * freq * i / sampleRate) * 0.5).clamp(-1.0, 1.0);
@@ -106,8 +110,11 @@ void main() {
       final bytes = File(path).readAsBytesSync();
       // Total samples is a 36-bit field at bytes 21[3:0] and 22-25.
       final high4 = bytes[21] & 0x0F;
-      final low32 =
-          ByteData.sublistView(Uint8List.fromList(bytes), 22, 26).getUint32(0);
+      final low32 = ByteData.sublistView(
+        Uint8List.fromList(bytes),
+        22,
+        26,
+      ).getUint32(0);
       final total = (high4 << 32) | low32;
       expect(total, numSamples);
     });
@@ -124,8 +131,11 @@ void main() {
       // First frame starts at byte 42 (4 fLaC + 38 STREAMINFO).
       // Frame sync is 0xFFF8 (14 bits of 1s + reserved 0 + strategy 0).
       expect(bytes[42], 0xFF);
-      expect(bytes[43] & 0xFC, 0xF8,
-          reason: 'Frame sync upper bits should be 0xFFF8xx');
+      expect(
+        bytes[43] & 0xFC,
+        0xF8,
+        reason: 'Frame sync upper bits should be 0xFFF8xx',
+      );
     });
   });
 
@@ -137,27 +147,39 @@ void main() {
       const numSamples = 32000; // 1 second at 32 kHz
       final samples = sineWave(numSamples);
       await FlacEncoder.writeFile(
-          filePath: path, samples: samples, sampleRate: 32000);
+        filePath: path,
+        samples: samples,
+        sampleRate: 32000,
+      );
 
       final flacSize = File(path).lengthSync();
       final rawPcmSize = numSamples * 2; // 16-bit = 2 bytes per sample
 
-      expect(flacSize, lessThan(rawPcmSize),
-          reason:
-              'FLAC ($flacSize bytes) should be smaller than raw PCM ($rawPcmSize bytes)');
+      expect(
+        flacSize,
+        lessThan(rawPcmSize),
+        reason:
+            'FLAC ($flacSize bytes) should be smaller than raw PCM ($rawPcmSize bytes)',
+      );
     });
 
     test('FLAC file is much smaller for silence', () async {
       final path = '${tempDir.path}/silent.flac';
       const numSamples = 32000;
       await FlacEncoder.writeFile(
-          filePath: path, samples: silence(numSamples), sampleRate: 32000);
+        filePath: path,
+        samples: silence(numSamples),
+        sampleRate: 32000,
+      );
 
       final flacSize = File(path).lengthSync();
       // Silence should compress very well — CONSTANT subframes.
-      expect(flacSize, lessThan(1000),
-          reason:
-              'Silent FLAC should be tiny (was $flacSize bytes for $numSamples samples)');
+      expect(
+        flacSize,
+        lessThan(1000),
+        reason:
+            'Silent FLAC should be tiny (was $flacSize bytes for $numSamples samples)',
+      );
     });
   });
 
@@ -199,10 +221,7 @@ void main() {
       await encoder.open();
       await encoder.close();
 
-      expect(
-        () => encoder.writeSamples(sineWave(100)),
-        throwsStateError,
-      );
+      expect(() => encoder.writeSamples(sineWave(100)), throwsStateError);
     });
 
     test('duration tracks correctly', () async {
@@ -263,8 +282,11 @@ void main() {
 
       // Verify total samples in STREAMINFO.
       final high4 = bytes[21] & 0x0F;
-      final low32 =
-          ByteData.sublistView(Uint8List.fromList(bytes), 22, 26).getUint32(0);
+      final low32 = ByteData.sublistView(
+        Uint8List.fromList(bytes),
+        22,
+        26,
+      ).getUint32(0);
       expect((high4 << 32) | low32, 1);
     });
 
@@ -279,8 +301,11 @@ void main() {
 
       final bytes = File(path).readAsBytesSync();
       final high4 = bytes[21] & 0x0F;
-      final low32 =
-          ByteData.sublistView(Uint8List.fromList(bytes), 22, 26).getUint32(0);
+      final low32 = ByteData.sublistView(
+        Uint8List.fromList(bytes),
+        22,
+        26,
+      ).getUint32(0);
       expect((high4 << 32) | low32, blockSize * 3);
     });
 
@@ -295,8 +320,11 @@ void main() {
 
       final bytes = File(path).readAsBytesSync();
       final high4 = bytes[21] & 0x0F;
-      final low32 =
-          ByteData.sublistView(Uint8List.fromList(bytes), 22, 26).getUint32(0);
+      final low32 = ByteData.sublistView(
+        Uint8List.fromList(bytes),
+        22,
+        26,
+      ).getUint32(0);
       expect((high4 << 32) | low32, blockSize + 1);
     });
 
@@ -308,12 +336,73 @@ void main() {
         samples[i] = 0.25;
       }
       await FlacEncoder.writeFile(
-          filePath: path, samples: samples, sampleRate: 32000);
+        filePath: path,
+        samples: samples,
+        sampleRate: 32000,
+      );
 
       // CONSTANT subframe for 4096 samples should be extremely small.
       final flacSize = File(path).lengthSync();
-      expect(flacSize, lessThan(100),
-          reason: 'CONSTANT block should be < 100 bytes (was $flacSize)');
+      expect(
+        flacSize,
+        lessThan(100),
+        reason: 'CONSTANT block should be < 100 bytes (was $flacSize)',
+      );
+    });
+  });
+
+  // ── STREAMINFO spec compliance ────────────────────────────────────────
+
+  group('STREAMINFO spec compliance', () {
+    test('MD5 signature is non-zero and matches the unencoded PCM', () async {
+      // FLAC spec allows MD5 to be zero, but strict decoders (libsndfile,
+      // Raven Pro) prefer a real MD5 so they can verify the file is intact.
+      final path = '${tempDir.path}/md5.flac';
+      final samples = sineWave(8000);
+      await FlacEncoder.writeFile(
+        filePath: path,
+        samples: samples,
+        sampleRate: 32000,
+      );
+
+      final bytes = File(path).readAsBytesSync();
+      // STREAMINFO body starts at byte 8; MD5 is the last 16 bytes.
+      final md5InFile = bytes.sublist(8 + 18, 8 + 18 + 16);
+      expect(
+        md5InFile.any((b) => b != 0),
+        isTrue,
+        reason: 'STREAMINFO MD5 should not be all zeros',
+      );
+
+      // Verify it matches md5(<little-endian int16 PCM>).
+      final pcm = Int16List(samples.length);
+      for (int i = 0; i < samples.length; i++) {
+        pcm[i] = (samples[i] * 32767.0).round().clamp(-32768, 32767);
+      }
+      final pcmBytes = pcm.buffer.asUint8List(
+        pcm.offsetInBytes,
+        pcm.lengthInBytes,
+      );
+      final expected = md5.convert(pcmBytes).bytes;
+      expect(md5InFile, equals(expected));
+    });
+
+    test('min_block_size is at least 16 even with tiny tail frame', () async {
+      // FLAC spec: min_block_size must be >= 16. A trailing partial frame
+      // smaller than that would otherwise leave STREAMINFO invalid.
+      final path = '${tempDir.path}/tiny_tail.flac';
+      // blockSize default 4096 + 5 leftover samples → tail frame of 5.
+      final samples = sineWave(4101);
+      await FlacEncoder.writeFile(
+        filePath: path,
+        samples: samples,
+        sampleRate: 32000,
+      );
+
+      final bytes = File(path).readAsBytesSync();
+      // STREAMINFO body starts at byte 8; min_block_size is bytes 8..9.
+      final minBlock = (bytes[8] << 8) | bytes[9];
+      expect(minBlock, greaterThanOrEqualTo(16));
     });
   });
 }

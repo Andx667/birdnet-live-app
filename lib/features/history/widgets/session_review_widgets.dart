@@ -682,6 +682,9 @@ class _SpeciesTile extends ConsumerWidget {
     required this.onReplaceCluster,
     required this.onToggleConfirmCluster,
     required this.onShareCluster,
+    required this.onEditNoteCluster,
+    required this.onEditVoiceMemoCluster,
+    required this.onDeleteVoiceMemoCluster,
     this.activePositionSec,
     this.activeCluster,
     this.onPause,
@@ -732,6 +735,18 @@ class _SpeciesTile extends ConsumerWidget {
   /// Wired up from the cluster row's long-press context menu (and any
   /// future per-detection share entry points).
   final ValueChanged<_DetectionCluster> onShareCluster;
+
+  /// Open the note editor for a cluster (edits the cluster's first
+  /// record, since a cluster represents one continuous detection of
+  /// the same species and the user typically wants one note per row).
+  final ValueChanged<_DetectionCluster> onEditNoteCluster;
+
+  /// Open the voice-memo recorder for a cluster (also edits the
+  /// cluster's first record).
+  final ValueChanged<_DetectionCluster> onEditVoiceMemoCluster;
+
+  /// Delete the voice memo attached to the cluster's first record.
+  final ValueChanged<_DetectionCluster> onDeleteVoiceMemoCluster;
   final ValueChanged<DetectionRecord>? onShowOnMap;
 
   /// Called when the user taps the play affordance on a row that is
@@ -927,7 +942,8 @@ class _SpeciesTile extends ConsumerWidget {
                               if (group.allRecords.any(
                                 (r) =>
                                     r.source == DetectionSource.manual ||
-                                    r.source == DetectionSource.manualGlobal,
+                                    r.source == DetectionSource.manualGlobal ||
+                                    r.source == DetectionSource.userSpecified,
                               ))
                                 Padding(
                                   padding: const EdgeInsets.only(left: 4),
@@ -1040,6 +1056,10 @@ class _SpeciesTile extends ConsumerWidget {
                       onReplace: () => onReplaceCluster(cluster),
                       onToggleConfirm: () => onToggleConfirmCluster(cluster),
                       onShare: () => onShareCluster(cluster),
+                      onEditNote: () => onEditNoteCluster(cluster),
+                      onEditVoiceMemo: () => onEditVoiceMemoCluster(cluster),
+                      onDeleteVoiceMemo:
+                          () => onDeleteVoiceMemoCluster(cluster),
                       isSurvey: isSurvey,
                       audioAvailable: audioAvailable,
                       onShowOnMap:
@@ -1122,6 +1142,9 @@ class _ClusterRow extends ConsumerWidget {
     required this.onReplace,
     required this.onToggleConfirm,
     required this.onShare,
+    required this.onEditNote,
+    required this.onEditVoiceMemo,
+    required this.onDeleteVoiceMemo,
     this.onPause,
     this.clipOffsetSec = 0.0,
     this.windowSec = 3,
@@ -1147,6 +1170,15 @@ class _ClusterRow extends ConsumerWidget {
   /// share sheet. Surfaced through a long-press context menu on the row
   /// so we don't add yet another inline icon to the trailing strip.
   final VoidCallback onShare;
+
+  /// Opens the note editor for this cluster's first record.
+  final VoidCallback onEditNote;
+
+  /// Opens the voice-memo recorder for this cluster's first record.
+  final VoidCallback onEditVoiceMemo;
+
+  /// Removes the voice memo from this cluster's first record.
+  final VoidCallback onDeleteVoiceMemo;
 
   /// Pause callback used when this row is currently being played. When
   /// `null`, an active row continues to behave like a re-seek.
@@ -1201,7 +1233,8 @@ class _ClusterRow extends ConsumerWidget {
     final isManual = cluster.records.every(
       (r) =>
           r.source == DetectionSource.manual ||
-          r.source == DetectionSource.manualGlobal,
+          r.source == DetectionSource.manualGlobal ||
+          r.source == DetectionSource.userSpecified,
     );
 
     final row = AnimatedContainer(
@@ -1315,12 +1348,50 @@ class _ClusterRow extends ConsumerWidget {
                 ),
               ),
             ),
+            if (cluster.records.first.hasNote)
+              Tooltip(
+                message:
+                    cluster.records.first.note ?? l10n.detectionNoteTooltip,
+                child: InkWell(
+                  onTap: onEditNote,
+                  borderRadius: BorderRadius.circular(24),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Icon(
+                      Icons.sticky_note_2_outlined,
+                      size: 22,
+                      color: theme.colorScheme.primary.withAlpha(180),
+                    ),
+                  ),
+                ),
+              ),
+            if (cluster.records.first.hasVoiceMemo)
+              Tooltip(
+                message: l10n.detectionVoiceMemoTooltip,
+                child: InkWell(
+                  onTap: onEditVoiceMemo,
+                  borderRadius: BorderRadius.circular(24),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Icon(
+                      Icons.mic,
+                      size: 22,
+                      color: theme.colorScheme.primary.withAlpha(180),
+                    ),
+                  ),
+                ),
+              ),
             DetectionActionsOverflow(
               actions: DetectionActions(
                 onShare: onShare,
                 onDelete: onDelete,
                 onDeleteSpecies: onDeleteSpecies,
                 onReplace: onReplace,
+                onEditNote: onEditNote,
+                hasNote: cluster.records.first.hasNote,
+                onEditVoiceMemo: onEditVoiceMemo,
+                onDeleteVoiceMemo: onDeleteVoiceMemo,
+                hasVoiceMemo: cluster.records.first.hasVoiceMemo,
               ),
               iconColor: theme.colorScheme.onSurface.withAlpha(100),
             ),
@@ -1448,12 +1519,19 @@ class AddSpeciesResult {
     required this.commonName,
     required this.mode,
     this.replaceRecord,
+    this.userSpecified = false,
   });
 
   final String scientificName;
   final String commonName;
   final AddSpeciesInsertMode mode;
   final DetectionRecord? replaceRecord;
+
+  /// True when the user typed a free-text label via the "Other
+  /// (specify)" entry instead of picking a species from the taxonomy.
+  /// Callers should map this to [DetectionSource.userSpecified] so the
+  /// record is recognizable as a user-supplied label.
+  final bool userSpecified;
 }
 
 class _AddSpeciesOverlayState extends ConsumerState<AddSpeciesOverlay> {
@@ -1529,6 +1607,53 @@ class _AddSpeciesOverlayState extends ConsumerState<AddSpeciesOverlay> {
         mode: _mode,
         replaceRecord:
             _mode == AddSpeciesInsertMode.replace ? _replaceTarget : null,
+      ),
+    );
+  }
+
+  /// Open a small text-entry dialog for the "Other (specify)" entry
+  /// in the empty-state, then pop with [AddSpeciesResult.userSpecified]
+  /// set so the host marks the new record's source accordingly.
+  Future<void> _pickOther() async {
+    final l10n = AppLocalizations.of(context)!;
+    final controller = TextEditingController();
+    final typed = await showDialog<String>(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            title: Text(l10n.sessionOtherSpeciesDialogTitle),
+            content: TextField(
+              controller: controller,
+              autofocus: true,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: InputDecoration(
+                hintText: l10n.sessionOtherSpeciesHint,
+              ),
+              onSubmitted: (v) => Navigator.of(ctx).pop(v),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text(l10n.cancel),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(controller.text),
+                child: Text(l10n.sessionSave),
+              ),
+            ],
+          ),
+    );
+    if (typed == null || !mounted) return;
+    final trimmed = typed.trim();
+    if (trimmed.isEmpty) return;
+    Navigator.of(context).pop(
+      AddSpeciesResult(
+        scientificName: '',
+        commonName: trimmed,
+        mode: _mode,
+        replaceRecord:
+            _mode == AddSpeciesInsertMode.replace ? _replaceTarget : null,
+        userSpecified: true,
       ),
     );
   }
@@ -1628,6 +1753,7 @@ class _AddSpeciesOverlayState extends ConsumerState<AddSpeciesOverlay> {
                             DetectionRecord.unknownSpeciesName,
                             DetectionRecord.unknownCommonName,
                           ),
+                      onPickOther: _pickOther,
                     )
                     : _results.isEmpty
                     ? _NoResultsState(query: _searchController.text.trim())
@@ -1794,11 +1920,19 @@ class _SpeciesResultTile extends ConsumerWidget {
 }
 
 /// Empty state shown before the user has typed anything: gives a hint and
-/// surfaces the "Unknown / Other" quick action.
+/// surfaces the "Unknown / Other" + "Other (specify)" quick actions. The
+/// two are intentionally split: "Unknown" is a sentinel for "I heard
+/// something but can't identify it," while "Other (specify)" lets the
+/// user attach a free-text label (e.g. "dog", "frog", "helicopter") that
+/// isn't a taxonomy species at all.
 class _SearchEmptyState extends StatelessWidget {
-  const _SearchEmptyState({required this.onPickUnknown});
+  const _SearchEmptyState({
+    required this.onPickUnknown,
+    required this.onPickOther,
+  });
 
   final VoidCallback onPickUnknown;
+  final VoidCallback onPickOther;
 
   @override
   Widget build(BuildContext context) {
@@ -1829,6 +1963,17 @@ class _SearchEmptyState extends StatelessWidget {
             ),
           ),
           onTap: onPickUnknown,
+        ),
+        ListTile(
+          leading: Icon(Icons.edit_note, color: theme.colorScheme.tertiary),
+          title: Text(l10n.sessionOtherSpecies),
+          subtitle: Text(
+            l10n.sessionOtherSpeciesHint,
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+          onTap: onPickOther,
         ),
       ],
     );
@@ -2017,16 +2162,64 @@ class _AnnotationsSectionState extends State<_AnnotationsSection> {
   }
 }
 
-class _AnnotationRow extends StatelessWidget {
+class _AnnotationRow extends StatefulWidget {
   const _AnnotationRow({required this.annotation, required this.onDelete});
 
   final SessionAnnotation annotation;
   final VoidCallback onDelete;
 
   @override
+  State<_AnnotationRow> createState() => _AnnotationRowState();
+}
+
+class _AnnotationRowState extends State<_AnnotationRow> {
+  AudioPlayer? _player;
+  StreamSubscription<PlayerState>? _stateSub;
+  bool _isPlaying = false;
+
+  @override
+  void dispose() {
+    _stateSub?.cancel();
+    _player?.dispose();
+    super.dispose();
+  }
+
+  Future<void> _toggleMemo() async {
+    final path = widget.annotation.voiceMemoPath;
+    if (path == null) return;
+    var player = _player;
+    if (player == null) {
+      player = AudioPlayer();
+      _player = player;
+      try {
+        await player.setFilePath(path);
+      } catch (_) {
+        return;
+      }
+      _stateSub = player.playerStateStream.listen((s) {
+        if (!mounted) return;
+        final playing =
+            s.playing && s.processingState != ProcessingState.completed;
+        if (playing != _isPlaying) setState(() => _isPlaying = playing);
+        if (s.processingState == ProcessingState.completed) {
+          player!.seek(Duration.zero);
+          player.pause();
+        }
+      });
+    }
+    if (player.playing) {
+      await player.pause();
+    } else {
+      await player.seek(Duration.zero);
+      await player.play();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
+    final annotation = widget.annotation;
 
     String offsetLabel;
     if (annotation.offsetInRecording != null) {
@@ -2037,6 +2230,17 @@ class _AnnotationRow extends StatelessWidget {
     } else {
       offsetLabel = l10n.sessionAnnotationGlobal;
     }
+
+    final hasText = annotation.text.trim().isNotEmpty;
+    final displayText =
+        hasText ? annotation.text : l10n.sessionAnnotationVoiceMemoLabel;
+    final textStyle =
+        hasText
+            ? theme.textTheme.bodySmall
+            : theme.textTheme.bodySmall?.copyWith(
+              fontStyle: FontStyle.italic,
+              color: theme.colorScheme.onSurface.withAlpha(160),
+            );
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
@@ -2058,11 +2262,22 @@ class _AnnotationRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Expanded(
-            child: Text(annotation.text, style: theme.textTheme.bodySmall),
-          ),
+          if (annotation.hasVoiceMemo)
+            InkWell(
+              onTap: _toggleMemo,
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: Icon(
+                  _isPlaying ? Icons.stop_circle : Icons.play_circle_outline,
+                  size: 18,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+            ),
+          Expanded(child: Text(displayText, style: textStyle)),
           InkWell(
-            onTap: onDelete,
+            onTap: widget.onDelete,
             borderRadius: BorderRadius.circular(12),
             child: Padding(
               padding: const EdgeInsets.all(4),

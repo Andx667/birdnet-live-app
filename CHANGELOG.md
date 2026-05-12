@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.2] - 2026-05-12
+
+### Added
+
+- **Per-detection text notes.** Every detection in Session Review now has an "Add note" / "Edit note" entry in the overflow menu (also surfaced in the clip-player sheet). Notes accept short free-form text — e.g. "juvenile, distant, behind tree" — and a small note glyph appears inline on the detection row when one is set, with the note text as a long-press tooltip. Notes round-trip through JSON sessions so they survive export/re-import.
+- **Voice memos on detections.** A new "Record voice memo" / "Replace voice memo" entry in the detection overflow menu lets reviewers attach a short spoken note to any detection. Memos are recorded in AAC/M4A (mono 16 kHz, ~8 KB/s) and stored alongside the session's clips. Rows with a memo show an inline mic glyph that opens the memo for playback or replacement on tap. Memos are bundled into ZIP exports under `memos/` and referenced from a new CSV "Voice Memo" column.
+- **"Other (specify)" species in Session Review.** The Add Species / Replace Detection overlay now distinguishes a generic *Unknown / Other* placeholder from *Other (specify)* — picking the latter opens a small text dialog for free-text labels (e.g. "dog", "frog", "helicopter") that aren't taxonomy species. Custom labels are stored as the common name with an empty scientific name and tagged `DetectionSource.userSpecified`, so they round-trip through JSON sessions and exports and stay easy to filter alongside other manual entries.
+
+### Changed
+
+- **Live tunables apply mid-session.** Changing the confidence threshold or score-pooling-window count from Settings while a Live, Point Count, or Survey session is running now pushes the new value straight into the running pipeline — the next inference cycle picks it up without restarting the session. Previously these settings were captured once at session start and silently ignored until restart.
+
+### Fixed
+
+- **Map tiles now cache to disk.** OpenStreetMap tiles used by the survey map, session map, and location pickers are persisted in a dedicated on-disk cache (90-day retention, 4000-tile cap) instead of being re-downloaded from scratch on every cold start. Repeated panning, zooming, and revisits to previously viewed areas are now instant, and maps remain usable when signal drops mid-survey.
+- **FLAC files now open in strict decoders.** Recorded `.flac` files now carry a real MD5 signature of the unencoded PCM in their STREAMINFO header, and the reported `min_block_size` is clamped to the spec-required minimum of 16 samples even when a session ends on a tiny tail frame. Both changes let strict, libsndfile-based tools — most notably Raven Pro — open and verify our recordings; previously they rejected the files at the metadata-validation step.
+
 ## [0.11.1] - 2026-05-12
 
 ### Added

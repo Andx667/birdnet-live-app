@@ -181,7 +181,9 @@ class DetectionTile extends ConsumerWidget {
                       // scientific name is less important than making it
                       // obvious this didn't come from inference.
                       if (detection.source == DetectionSource.manual ||
-                          detection.source == DetectionSource.manualGlobal) ...[
+                          detection.source == DetectionSource.manualGlobal ||
+                          detection.source ==
+                              DetectionSource.userSpecified) ...[
                         Icon(
                           Icons.edit_note,
                           size: 14,

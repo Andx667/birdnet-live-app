@@ -731,6 +731,86 @@
   "@detectionDeleteSpecies": {
     "description": "Label of the overflow-menu entry that removes every detection of this species from the session"
   },
+  "detectionAddNote": "Add note",
+  "@detectionAddNote": {
+    "description": "Overflow-menu entry that opens the note editor when no note exists yet"
+  },
+  "detectionEditNote": "Edit note",
+  "@detectionEditNote": {
+    "description": "Overflow-menu entry that opens the note editor when a note already exists"
+  },
+  "detectionNoteDialogTitle": "Detection note",
+  "@detectionNoteDialogTitle": {
+    "description": "Title of the dialog used to edit a per-detection text note"
+  },
+  "detectionNoteHint": "e.g. juvenile, distant, behind tree …",
+  "@detectionNoteHint": {
+    "description": "Placeholder text in the note text field"
+  },
+  "detectionNoteSaved": "Note saved",
+  "@detectionNoteSaved": {
+    "description": "Snackbar shown after a detection note is added or updated"
+  },
+  "detectionNoteCleared": "Note removed",
+  "@detectionNoteCleared": {
+    "description": "Snackbar shown after a detection note is cleared"
+  },
+  "detectionDeleteNote": "Delete",
+  "@detectionDeleteNote": {
+    "description": "Button label in the note editor dialog that removes the existing note"
+  },
+  "detectionNoteTooltip": "Has note",
+  "@detectionNoteTooltip": {
+    "description": "Tooltip on the note glyph shown next to a detection that has a note"
+  },
+  "detectionRecordVoiceMemo": "Record voice memo",
+  "@detectionRecordVoiceMemo": {
+    "description": "Overflow-menu entry that opens the voice-memo recorder when no memo exists yet"
+  },
+  "detectionReplaceVoiceMemo": "Replace voice memo",
+  "@detectionReplaceVoiceMemo": {
+    "description": "Overflow-menu entry that opens the voice-memo recorder when a memo already exists; recording will overwrite it on save"
+  },
+  "detectionDeleteVoiceMemo": "Delete voice memo",
+  "@detectionDeleteVoiceMemo": {
+    "description": "Overflow-menu entry that removes the voice memo attached to a detection"
+  },
+  "detectionVoiceMemoDialogTitle": "Voice memo",
+  "@detectionVoiceMemoDialogTitle": {
+    "description": "Title of the dialog used to record / play back a per-detection voice memo"
+  },
+  "detectionVoiceMemoHint": "Tap the mic to record a short voice note",
+  "@detectionVoiceMemoHint": {
+    "description": "Hint shown in the voice-memo dialog before any recording exists"
+  },
+  "detectionVoiceMemoSaved": "Voice memo saved",
+  "@detectionVoiceMemoSaved": {
+    "description": "Snackbar shown after a voice memo is recorded and saved"
+  },
+  "detectionVoiceMemoDeleted": "Voice memo deleted",
+  "@detectionVoiceMemoDeleted": {
+    "description": "Snackbar shown after a voice memo is removed from a detection"
+  },
+  "detectionVoiceMemoTooltip": "Play voice memo",
+  "@detectionVoiceMemoTooltip": {
+    "description": "Tooltip on the inline voice-memo glyph shown next to a detection that has a memo"
+  },
+  "detectionVoiceMemoMicPermissionDenied": "Microphone permission denied. Enable it in system settings to record voice memos.",
+  "@detectionVoiceMemoMicPermissionDenied": {
+    "description": "Error shown when the user denies microphone permission while trying to record a voice memo"
+  },
+  "detectionVoiceMemoRecording": "Recording…",
+  "@detectionVoiceMemoRecording": {
+    "description": "Status label shown while a voice memo is actively being recorded"
+  },
+  "detectionVoiceMemoTapToStop": "Tap to stop",
+  "@detectionVoiceMemoTapToStop": {
+    "description": "Help text shown under the recording indicator while a voice memo is being captured"
+  },
+  "detectionVoiceMemoTapToRecord": "Tap to record",
+  "@detectionVoiceMemoTapToRecord": {
+    "description": "Help text shown under the mic button when no recording is in progress yet"
+  },
   "sessionDetectionRemoved": "Detection removed",
   "@sessionDetectionRemoved": {
     "description": "Snackbar text after a detection cluster is dismissed via swipe or the overflow menu's delete entry"
@@ -795,6 +875,18 @@
   "sessionUnknownSpecies": "Unknown / Other",
   "@sessionUnknownSpecies": {
     "description": "Label for the unknown or unidentified species category"
+  },
+  "sessionOtherSpecies": "Other (specify)",
+  "@sessionOtherSpecies": {
+    "description": "Label for the free-text 'Other species' entry in the add-species picker; opens a small dialog where the user types any label (dog, frog, helicopter, etc.) that isn't a taxonomy species"
+  },
+  "sessionOtherSpeciesDialogTitle": "Other species",
+  "@sessionOtherSpeciesDialogTitle": {
+    "description": "Title of the dialog opened by the 'Other (specify)' entry where the user types a free-text species / sound label"
+  },
+  "sessionOtherSpeciesHint": "Type a name (e.g. dog, frog, helicopter)",
+  "@sessionOtherSpeciesHint": {
+    "description": "Hint text shown in the 'Other species' dialog's input field, plus as the subtitle on the 'Other (specify)' tile"
   },
   "sessionReplacingLabel": "Replacing",
   "@sessionReplacingLabel": {
@@ -876,6 +968,26 @@
   "sessionAddAnnotationOption": "Add Annotation",
   "@sessionAddAnnotationOption": {
     "description": "Option to add an annotation from the + menu"
+  },
+  "sessionAddVoiceMemoOption": "Add Voice Memo",
+  "@sessionAddVoiceMemoOption": {
+    "description": "Option to add a session-level voice memo from the + menu"
+  },
+  "sessionAnnotationVoiceMemoLabel": "Voice memo",
+  "@sessionAnnotationVoiceMemoLabel": {
+    "description": "Placeholder text shown for memo-only annotations that have no text"
+  },
+  "sessionAnnotationName": "Name (optional)",
+  "@sessionAnnotationName": {
+    "description": "Hint for the optional name/title field shown when adding or editing a session annotation"
+  },
+  "sessionEditAnnotation": "Edit annotation",
+  "@sessionEditAnnotation": {
+    "description": "Tooltip and dialog title for editing an existing session annotation"
+  },
+  "sessionEditVoiceMemo": "Edit voice memo",
+  "@sessionEditVoiceMemo": {
+    "description": "Tooltip and dialog title for editing an existing voice-memo annotation"
   },
   "sessionTypeLive": "Live Session",
   "@sessionTypeLive": {

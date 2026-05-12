@@ -66,6 +66,19 @@ String _sanitizeFilename(String input) {
       .replaceAll(RegExp(r'^_|_$'), '');
 }
 
+/// CSV-quotes [value] when it contains a comma, double quote, or newline.
+/// Internal double quotes are doubled per RFC 4180.
+String _csvField(String value) {
+  if (value.isEmpty) return '';
+  final needsQuoting =
+      value.contains(',') ||
+      value.contains('"') ||
+      value.contains('\n') ||
+      value.contains('\r');
+  if (!needsQuoting) return value;
+  return '"${value.replaceAll('"', '""')}"';
+}
+
 /// Resolves the locale-appropriate common name for a detection.
 ///
 /// Falls back to the detection's stored common name (English label from the
@@ -122,6 +135,7 @@ String buildRavenSelectionTable(
   final hasCoords = session.detections.any(
     (d) => d.latitude != null && d.longitude != null,
   );
+  final hasNotes = session.detections.any((d) => d.hasNote);
   // Prefer the per-session value, but allow callers to override (e.g. legacy
   // sessions persisted before [SessionSettings.clipContextSeconds] existed,
   // where the field defaults to 0 and would falsely place every detection at
@@ -148,7 +162,8 @@ String buildRavenSelectionTable(
     'Common Name\tScientific Name\tConfidence'
     '\t$surveyTimeHeader'
     '\tConfirmed\tConfirmed At (UTC)'
-    '${hasCoords ? '\tLatitude\tLongitude' : ''}',
+    '${hasCoords ? '\tLatitude\tLongitude' : ''}'
+    '${hasNotes ? '\tNote' : ''}',
   );
 
   final windowSeconds = session.settings.windowDuration;
@@ -208,6 +223,14 @@ String buildRavenSelectionTable(
             ? '\t${d.latitude?.toStringAsFixed(6) ?? ''}'
                 '\t${d.longitude?.toStringAsFixed(6) ?? ''}'
             : '';
+    // Raven selection tables are tab-separated, so collapse any embedded
+    // tabs/newlines from a free-form note to spaces to keep one row per
+    // detection. Notes longer than ~200 chars are not truncated; Raven
+    // tolerates wide cells.
+    final noteSuffix =
+        hasNotes
+            ? '\t${(d.note ?? '').replaceAll(RegExp(r"[\t\r\n]+"), ' ').trim()}'
+            : '';
 
     buf.writeln(
       '${i + 1}\t'
@@ -223,7 +246,8 @@ String buildRavenSelectionTable(
       '${d.confidence.toStringAsFixed(4)}'
       '$surveyTimeSuffix'
       '$confirmedSuffix'
-      '$coordSuffix',
+      '$coordSuffix'
+      '$noteSuffix',
     );
   }
 
@@ -257,6 +281,8 @@ String buildCsvExport(
   final hasCoords = session.detections.any(
     (d) => d.latitude != null && d.longitude != null,
   );
+  final hasNotes = session.detections.any((d) => d.hasNote);
+  final hasMemos = session.detections.any((d) => d.hasVoiceMemo);
   final clipContext =
       (clipContextSecondsOverride ?? session.settings.clipContextSeconds)
           .toDouble();
@@ -275,7 +301,9 @@ String buildCsvExport(
     '${hasFileRefs ? ',File' : ''}'
     ',$surveyTimeHeader'
     ',Confirmed,Confirmed At (UTC)'
-    '${hasCoords ? ',Latitude,Longitude' : ''}',
+    '${hasCoords ? ',Latitude,Longitude' : ''}'
+    '${hasNotes ? ',Note' : ''}'
+    '${hasMemos ? ',Voice Memo' : ''}',
   );
 
   final windowSeconds = session.settings.windowDuration;
@@ -337,6 +365,11 @@ String buildCsvExport(
             ? ',${d.latitude?.toStringAsFixed(6) ?? ''}'
                 ',${d.longitude?.toStringAsFixed(6) ?? ''}'
             : '';
+    final noteRef = hasNotes ? ',${_csvField(d.note ?? '')}' : '';
+    final memoRef =
+        hasMemos
+            ? ',${d.hasVoiceMemo ? 'memos/${p.basename(d.voiceMemoPath!)}' : ''}'
+            : '';
 
     buf.writeln(
       '${d.timestamp.toUtc().toIso8601String()},'
@@ -348,7 +381,9 @@ String buildCsvExport(
       '$fileRef'
       '$surveyTimeRef'
       '$confirmedRef'
-      '$coordRef',
+      '$coordRef'
+      '$noteRef'
+      '$memoRef',
     );
   }
 
@@ -592,6 +627,40 @@ Future<String?> buildSessionExport(
 
     archive.addFile(ArchiveFile('$prefix$extension', bytes.length, bytes));
 
+    // Bundle voice memos under a memos/ folder so the CSV's "Voice
+    // Memo" column (relative path: memos/<basename>) resolves inside
+    // the archive. Best-effort: skip any memo whose file is missing.
+    for (final d in session.detections) {
+      final memoPath = d.voiceMemoPath;
+      if (memoPath == null) continue;
+      final memoFile = File(memoPath);
+      if (!await memoFile.exists()) continue;
+      final memoBytes = await memoFile.readAsBytes();
+      archive.addFile(
+        ArchiveFile(
+          'memos/${p.basename(memoPath)}',
+          memoBytes.length,
+          memoBytes,
+        ),
+      );
+    }
+
+    // Same treatment for session-level annotation memos.
+    for (final a in session.annotations) {
+      final memoPath = a.voiceMemoPath;
+      if (memoPath == null) continue;
+      final memoFile = File(memoPath);
+      if (!await memoFile.exists()) continue;
+      final memoBytes = await memoFile.readAsBytes();
+      archive.addFile(
+        ArchiveFile(
+          'memos/${p.basename(memoPath)}',
+          memoBytes.length,
+          memoBytes,
+        ),
+      );
+    }
+
     // Always drop a metadata side-file when the caller provided one, so
     // the provenance information travels with the bundle regardless of
     // which document format the user picked (Raven / CSV / GPX).
@@ -662,7 +731,22 @@ String _buildAnnotationsText(LiveSession session) {
     } else {
       buf.write('[Global] ');
     }
-    buf.writeln(a.text);
+    // Optional title is prefixed in bold-ish "Title: " form so the
+    // exported text mirrors what the user sees on the chip.
+    if (a.title.trim().isNotEmpty) {
+      buf.write('${a.title.trim()}: ');
+    }
+    if (a.text.trim().isNotEmpty) {
+      buf.write(a.text);
+      if (a.hasVoiceMemo) {
+        buf.write(' (voice memo: memos/${p.basename(a.voiceMemoPath!)})');
+      }
+      buf.writeln();
+    } else if (a.hasVoiceMemo) {
+      buf.writeln('(voice memo: memos/${p.basename(a.voiceMemoPath!)})');
+    } else {
+      buf.writeln();
+    }
   }
 
   return buf.toString();
