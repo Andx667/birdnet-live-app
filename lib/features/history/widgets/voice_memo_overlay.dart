@@ -26,13 +26,17 @@
 //   The dialog has a single transport area that switches between three
 //   mutually exclusive states — idle / recording / has-memo — so there is
 //   never more than one play-or-record affordance competing for the same
-//   tap. During recording we sample the recorder's amplitude stream at
-//   ~10 Hz and render a live bar waveform that grows from the right; the
-//   captured samples are then re-used as the static waveform during
-//   playback, with a left-to-right progress fill driven by the
-//   AudioPlayer's position stream. A subtle "Re-record" outlined button
-//   below the player lets the user replace the take without involving the
-//   big mic button again.
+//   tap. During recording we poll `getAmplitude()` ourselves at ~16 Hz
+//   (the platform's `onAmplitudeChanged` stream throttles to ~1 Hz on
+//   Android, which produced visible stutter) and render a live bar
+//   waveform that grows from the right. A `SingleTickerProvider`-driven
+//   `AnimationController` runs every frame and tweens the just-pushed
+//   bar from 0 → its captured amplitude, so even between polls the
+//   right edge keeps moving smoothly instead of snapping. The captured
+//   samples are reused as the static waveform during playback, with a
+//   left-to-right progress fill driven by the AudioPlayer's position
+//   stream. A subtle "Re-record" outlined button below the player lets
+//   the user replace the take without involving the big mic button again.
 //
 // Permission handling:
 //   Live and Survey modes already prompt for mic permission at startup.
@@ -102,11 +106,13 @@ class _VoiceMemoDialog extends StatefulWidget {
   State<_VoiceMemoDialog> createState() => _VoiceMemoDialogState();
 }
 
-class _VoiceMemoDialogState extends State<_VoiceMemoDialog> {
+class _VoiceMemoDialogState extends State<_VoiceMemoDialog>
+    with SingleTickerProviderStateMixin {
   late final AudioRecorder _recorder = AudioRecorder();
   late final AudioPlayer _player = AudioPlayer();
   Timer? _elapsedTimer;
-  StreamSubscription<Amplitude>? _ampSub;
+  Timer? _ampTimer;
+  late final AnimationController _waveAnim;
   StreamSubscription<Duration>? _posSub;
   StreamSubscription<Duration?>? _durSub;
   StreamSubscription<PlayerState>? _playerStateSub;
@@ -126,10 +132,21 @@ class _VoiceMemoDialogState extends State<_VoiceMemoDialog> {
   final List<double> _waveform = <double>[];
   static const int _kMaxWaveBars = 64;
 
+  /// The amplitude target the right-most bar is tweening toward, plus
+  /// the value it tweens *from*. The painter mixes them with
+  /// `_waveAnim.value` so the live edge eases into each new sample
+  /// instead of popping. Updated every poll in [_startRecording].
+  double _ampFrom = 0.0;
+  double _ampTo = 0.0;
+
   @override
   void initState() {
     super.initState();
     _committedExistingPath = widget.existingMemoPath;
+    _waveAnim = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 80),
+    );
     _playerStateSub = _player.playerStateStream.listen((s) {
       if (!mounted) return;
       final playing =
@@ -155,7 +172,8 @@ class _VoiceMemoDialogState extends State<_VoiceMemoDialog> {
   @override
   void dispose() {
     _elapsedTimer?.cancel();
-    _ampSub?.cancel();
+    _ampTimer?.cancel();
+    _waveAnim.dispose();
     _posSub?.cancel();
     _durSub?.cancel();
     _playerStateSub?.cancel();
@@ -217,6 +235,8 @@ class _VoiceMemoDialogState extends State<_VoiceMemoDialog> {
 
       _elapsed = Duration.zero;
       _waveform.clear();
+      _ampFrom = 0.0;
+      _ampTo = 0.0;
       _playPosition = Duration.zero;
       _playDuration = Duration.zero;
       _elapsedTimer?.cancel();
@@ -224,25 +244,41 @@ class _VoiceMemoDialogState extends State<_VoiceMemoDialog> {
         const Duration(milliseconds: 250),
         (_) => setState(() => _elapsed += const Duration(milliseconds: 250)),
       );
-      // Sample amplitude ~10 Hz so the live waveform animates smoothly
-      // without flooding setState.
-      _ampSub?.cancel();
-      _ampSub = _recorder
-          .onAmplitudeChanged(const Duration(milliseconds: 100))
-          .listen((amp) {
-            if (!mounted) return;
-            // `current` is dBFS (≤ 0). -50 dB is roughly speech-quiet,
-            // 0 dB is full scale. Map [-50, 0] dB → [0, 1] linearly so
-            // the bars feel responsive without pinning at the top.
-            final db = amp.current.isFinite ? amp.current : -60.0;
-            final normalized = ((db + 50.0) / 50.0).clamp(0.0, 1.0);
-            setState(() {
-              _waveform.add(normalized);
-              if (_waveform.length > _kMaxWaveBars) {
-                _waveform.removeAt(0);
-              }
-            });
+      // Poll amplitude ourselves at ~16 Hz. The platform's
+      // `onAmplitudeChanged` stream throttles aggressively (Android can
+      // be as slow as 1 Hz), which makes the live waveform look like
+      // it's stuttering. Manual polling gives consistent ~62 ms ticks.
+      _ampTimer?.cancel();
+      _ampTimer = Timer.periodic(const Duration(milliseconds: 62), (_) async {
+        if (!mounted || !_isRecording) return;
+        try {
+          final amp = await _recorder.getAmplitude();
+          if (!mounted) return;
+          // `current` is dBFS (≤ 0). -50 dB ≈ quiet speech, 0 dB = full
+          // scale. Map [-50, 0] dB → [0, 1] so bars feel responsive
+          // without pinning at the top, and apply a light low-pass to
+          // dampen single-sample spikes.
+          final db = amp.current.isFinite ? amp.current : -60.0;
+          final normalized = ((db + 50.0) / 50.0).clamp(0.0, 1.0);
+          final smoothed =
+              _waveform.isEmpty
+                  ? normalized
+                  : _waveform.last * 0.35 + normalized * 0.65;
+          setState(() {
+            _waveform.add(smoothed);
+            if (_waveform.length > _kMaxWaveBars) {
+              _waveform.removeAt(0);
+            }
+            _ampFrom = _ampTo;
+            _ampTo = smoothed;
           });
+          // Restart the per-sample tween so the painter eases the
+          // freshest bar into its new height over the poll interval.
+          _waveAnim.forward(from: 0);
+        } catch (_) {
+          // Best-effort: skip this tick if the recorder is mid-state.
+        }
+      });
 
       setState(() {
         _isRecording = true;
@@ -255,8 +291,9 @@ class _VoiceMemoDialogState extends State<_VoiceMemoDialog> {
 
   Future<void> _stopRecording() async {
     _elapsedTimer?.cancel();
-    _ampSub?.cancel();
-    _ampSub = null;
+    _ampTimer?.cancel();
+    _ampTimer = null;
+    _waveAnim.stop();
     try {
       await _recorder.stop();
     } catch (_) {
@@ -430,12 +467,24 @@ class _VoiceMemoDialogState extends State<_VoiceMemoDialog> {
         const SizedBox(height: 4),
         SizedBox(
           height: 56,
-          child: _Waveform(
-            samples: _waveform,
-            progress: 1.0, // every captured bar is "live"
-            color: theme.colorScheme.error,
-            inactiveColor: theme.colorScheme.error.withAlpha(60),
-            growFromEnd: true,
+          child: AnimatedBuilder(
+            animation: _waveAnim,
+            builder: (_, _) {
+              // Tween the freshest bar from its previous height to the
+              // newly-captured one over the poll interval, so the right
+              // edge keeps moving every frame instead of holding for
+              // ~62 ms and then snapping.
+              final t = _waveAnim.value;
+              final liveTail = _ampFrom + (_ampTo - _ampFrom) * t;
+              return _Waveform(
+                samples: _waveform,
+                liveTail: liveTail,
+                progress: 1.0, // every captured bar is "live"
+                color: theme.colorScheme.error,
+                inactiveColor: theme.colorScheme.error.withAlpha(60),
+                growFromEnd: true,
+              );
+            },
           ),
         ),
         const SizedBox(height: 8),
@@ -603,6 +652,7 @@ class _Waveform extends StatelessWidget {
     required this.color,
     required this.inactiveColor,
     this.growFromEnd = false,
+    this.liveTail,
   });
 
   final List<double> samples;
@@ -610,6 +660,11 @@ class _Waveform extends StatelessWidget {
   final Color color;
   final Color inactiveColor;
   final bool growFromEnd;
+
+  /// When non-null, the painter draws an extra trailing bar at the right
+  /// edge with this height. Used during recording to provide a smoothly
+  /// animated "live" indicator between amplitude polls.
+  final double? liveTail;
 
   @override
   Widget build(BuildContext context) {
@@ -620,6 +675,7 @@ class _Waveform extends StatelessWidget {
         color: color,
         inactiveColor: inactiveColor,
         growFromEnd: growFromEnd,
+        liveTail: liveTail,
       ),
       size: Size.infinite,
     );
@@ -633,6 +689,7 @@ class _WaveformPainter extends CustomPainter {
     required this.color,
     required this.inactiveColor,
     required this.growFromEnd,
+    this.liveTail,
   });
 
   final List<double> samples;
@@ -640,6 +697,7 @@ class _WaveformPainter extends CustomPainter {
   final Color color;
   final Color inactiveColor;
   final bool growFromEnd;
+  final double? liveTail;
 
   static const int _kBarCount = 48;
   static const double _kBarGap = 2.0;
@@ -669,6 +727,11 @@ class _WaveformPainter extends CustomPainter {
       for (int i = 0; i < n; i++) {
         final srcIdx = samples.length - n + i;
         heights[barCount - n + i] = samples[srcIdx];
+      }
+      // Override the right-most bar with the live tween value so the
+      // edge keeps moving between amplitude polls.
+      if (liveTail != null) {
+        heights[barCount - 1] = liveTail!.clamp(0.0, 1.0);
       }
     } else {
       // Playback: stretch the captured samples across all bars.
@@ -705,6 +768,7 @@ class _WaveformPainter extends CustomPainter {
         old.color != color ||
         old.inactiveColor != inactiveColor ||
         old.growFromEnd != growFromEnd ||
+        old.liveTail != liveTail ||
         !identical(old.samples, samples) ||
         old.samples.length != samples.length;
   }
