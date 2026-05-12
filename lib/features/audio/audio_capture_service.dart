@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:record/record.dart';
@@ -109,6 +110,72 @@ class AudioCaptureService {
   DateTime _lastDataTime = DateTime.now();
 
   bool _isRestarting = false;
+
+  // ── Live-tunable DSP ────────────────────────────────────────
+  //
+  // Both apply to the float32 stream just before it lands in the
+  // ring buffer, so inference, recording, and the live spectrogram
+  // all see the same processed signal.
+
+  /// User-set gain multiplier applied to incoming samples. `1.0` is a
+  /// pass-through; values >1 boost quiet recordings at the cost of
+  /// clipping loud peaks (we saturate to [-1, 1] in float).
+  double _gain = 1.0;
+
+  /// High-pass cutoff in Hz. `0` (or any value <=0) disables the
+  /// filter. Typical values: 100–300 Hz to remove wind / handling
+  /// rumble while preserving most bird vocalizations.
+  double _hpfCutoffHz = 0.0;
+
+  // Biquad coefficients (Robert Bristow-Johnson cookbook, HPF).
+  double _b0 = 1.0, _b1 = 0.0, _b2 = 0.0, _a1 = 0.0, _a2 = 0.0;
+
+  // Direct-Form II Transposed state, persists across audio chunks so
+  // the filter doesn't "click" at chunk boundaries.
+  double _z1 = 0.0, _z2 = 0.0;
+
+  bool get _hpfEnabled => _hpfCutoffHz > 0.0;
+
+  /// Update the linear gain (`1.0` = unity). Takes effect on the next
+  /// captured chunk.
+  void setGain(double value) {
+    _gain = value;
+  }
+
+  /// Update the high-pass cutoff in Hz. Pass `0` to bypass. Takes
+  /// effect on the next captured chunk; filter state is reset so the
+  /// new response settles cleanly.
+  void setHighPassCutoff(double cutoffHz) {
+    final next = cutoffHz <= 0 ? 0.0 : cutoffHz;
+    if (next == _hpfCutoffHz) return;
+    _hpfCutoffHz = next;
+    if (next > 0) {
+      _designHighPass(next, AppConstants.sampleRate);
+    }
+    _z1 = 0.0;
+    _z2 = 0.0;
+  }
+
+  /// RBJ audio-EQ-cookbook 2nd-order Butterworth HPF (Q = 1/sqrt(2)).
+  void _designHighPass(double cutoffHz, int sampleRate) {
+    const q = 0.70710678118; // 1 / sqrt(2)
+    final w0 = 2 * math.pi * cutoffHz / sampleRate;
+    final cosW0 = math.cos(w0);
+    final alpha = math.sin(w0) / (2 * q);
+
+    final b0 = (1 + cosW0) / 2;
+    final b1 = -(1 + cosW0);
+    final b2 = (1 + cosW0) / 2;
+    final a0 = 1 + alpha;
+    final a1 = -2 * cosW0;
+    final a2 = 1 - alpha;
+
+    _b0 = b0 / a0;
+    _b1 = b1 / a0;
+    _b2 = b2 / a0;
+    _a1 = a1 / a0;
+    _a2 = a2 / a0;
+  }
 
   // ── Microphone-contention detection ────────────────────────────────────
   //
@@ -320,6 +387,7 @@ class AudioCaptureService {
 
     // Convert signed 16-bit PCM (little-endian) → float32 [-1.0, 1.0].
     final samples = _pcm16ToFloat32(bytes);
+    _applyDsp(samples);
     _ringBuffer.write(samples);
     _dataController.add(samples.length);
 
@@ -364,5 +432,46 @@ class AudioCaptureService {
     }
 
     return result;
+  }
+
+  /// Apply the user-tunable DSP chain (gain → high-pass) in place.
+  ///
+  /// Both stages bypass cheaply when the user hasn't moved the slider
+  /// off the default. Gain is clipped to [-1, 1] so downstream
+  /// quantization to PCM16 doesn't wrap. The biquad uses Direct-Form
+  /// II Transposed with state persisted on the service instance so
+  /// chunk boundaries don't introduce clicks.
+  void _applyDsp(Float32List samples) {
+    final gain = _gain;
+    final useGain = gain != 1.0;
+    final useHpf = _hpfEnabled;
+    if (!useGain && !useHpf) return;
+
+    final b0 = _b0, b1 = _b1, b2 = _b2, a1 = _a1, a2 = _a2;
+    var z1 = _z1, z2 = _z2;
+
+    for (var i = 0; i < samples.length; i++) {
+      var x = samples[i].toDouble();
+      if (useGain) {
+        x *= gain;
+        if (x > 1.0) {
+          x = 1.0;
+        } else if (x < -1.0) {
+          x = -1.0;
+        }
+      }
+      if (useHpf) {
+        final y = b0 * x + z1;
+        z1 = b1 * x - a1 * y + z2;
+        z2 = b2 * x - a2 * y;
+        x = y;
+      }
+      samples[i] = x;
+    }
+
+    if (useHpf) {
+      _z1 = z1;
+      _z2 = z2;
+    }
   }
 }

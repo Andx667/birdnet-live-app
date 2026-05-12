@@ -156,6 +156,12 @@ class _LiveScreenState extends ConsumerState<LiveScreen>
       // Keep screen on during live recording.
       await WakelockService.enable();
 
+      // Apply user-tunable DSP (gain + high-pass) before starting
+      // capture so the very first chunk is already processed.
+      final captureService = ref.read(audioCaptureServiceProvider);
+      captureService.setGain(ref.read(audioGainProvider));
+      captureService.setHighPassCutoff(ref.read(highPassFilterProvider));
+
       // Start audio capture.
       await captureNotifier.start(deviceId: deviceId);
 
@@ -414,6 +420,12 @@ class _LiveScreenState extends ConsumerState<LiveScreen>
     });
     ref.listen<double>(sensitivityProvider, (_, next) {
       ref.read(liveControllerProvider).setSensitivity(next);
+    });
+    ref.listen<double>(audioGainProvider, (_, next) {
+      ref.read(audioCaptureServiceProvider).setGain(next);
+    });
+    ref.listen<double>(highPassFilterProvider, (_, next) {
+      ref.read(audioCaptureServiceProvider).setHighPassCutoff(next);
     });
 
     return PopScope(

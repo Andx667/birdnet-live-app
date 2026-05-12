@@ -357,6 +357,11 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
     // crossing BuildContext async gaps.
     final l10n = AppLocalizations.of(context)!;
 
+    // Apply user-tunable DSP (gain + high-pass) before capture starts.
+    final captureService = ref.read(audioCaptureServiceProvider);
+    captureService.setGain(ref.read(audioGainProvider));
+    captureService.setHighPassCutoff(ref.read(highPassFilterProvider));
+
     // Start audio capture.
     await captureNotifier.start(deviceId: deviceId);
 
@@ -586,6 +591,12 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
     });
     ref.listen<double>(sensitivityProvider, (_, next) {
       ref.read(surveyControllerProvider).setSensitivity(next);
+    });
+    ref.listen<double>(audioGainProvider, (_, next) {
+      ref.read(audioCaptureServiceProvider).setGain(next);
+    });
+    ref.listen<double>(highPassFilterProvider, (_, next) {
+      ref.read(audioCaptureServiceProvider).setHighPassCutoff(next);
     });
 
     return PopScope(

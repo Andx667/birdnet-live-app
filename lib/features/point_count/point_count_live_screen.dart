@@ -144,6 +144,12 @@ class _PointCountLiveScreenState extends ConsumerState<PointCountLiveScreen>
     if (controller.state == LiveState.error) return;
 
     await WakelockService.enable();
+
+    // Apply user-tunable DSP (gain + high-pass) before capture starts.
+    final captureService = ref.read(audioCaptureServiceProvider);
+    captureService.setGain(ref.read(audioGainProvider));
+    captureService.setHighPassCutoff(ref.read(highPassFilterProvider));
+
     await captureNotifier.start(deviceId: deviceId);
 
     // Read inference settings (use wizard overrides when provided).
@@ -352,6 +358,12 @@ class _PointCountLiveScreenState extends ConsumerState<PointCountLiveScreen>
     });
     ref.listen<double>(sensitivityProvider, (_, next) {
       ref.read(liveControllerProvider).setSensitivity(next);
+    });
+    ref.listen<double>(audioGainProvider, (_, next) {
+      ref.read(audioCaptureServiceProvider).setGain(next);
+    });
+    ref.listen<double>(highPassFilterProvider, (_, next) {
+      ref.read(audioCaptureServiceProvider).setHighPassCutoff(next);
     });
 
     return PopScope(
