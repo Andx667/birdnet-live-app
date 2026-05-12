@@ -231,23 +231,24 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
     final l10n = AppLocalizations.of(context)!;
     final value = await showModalBottomSheet<String>(
       context: context,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.add_circle_outline),
-              title: Text(l10n.sessionAddSpecies),
-              onTap: () => Navigator.of(ctx).pop('species'),
+      builder:
+          (ctx) => SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.add_circle_outline),
+                  title: Text(l10n.sessionAddSpecies),
+                  onTap: () => Navigator.of(ctx).pop('species'),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.note_add_outlined),
+                  title: Text(l10n.sessionAddAnnotationOption),
+                  onTap: () => Navigator.of(ctx).pop('annotation'),
+                ),
+              ],
             ),
-            ListTile(
-              leading: const Icon(Icons.note_add_outlined),
-              title: Text(l10n.sessionAddAnnotationOption),
-              onTap: () => Navigator.of(ctx).pop('annotation'),
-            ),
-          ],
-        ),
-      ),
+          ),
     );
     if (!mounted || value == null) return;
     if (value == 'species') {
@@ -273,57 +274,61 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
     final bodyController = TextEditingController();
     final saved = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-        title: Text(l10n.sessionAddAnnotationOption),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TextField(
-                controller: titleController,
-                decoration: InputDecoration(
-                  hintText: l10n.sessionAnnotationName,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+      builder:
+          (ctx) => AlertDialog(
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 24,
+            ),
+            title: Text(l10n.sessionAddAnnotationOption),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextField(
+                    controller: titleController,
+                    decoration: InputDecoration(
+                      hintText: l10n.sessionAnnotationName,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    textCapitalization: TextCapitalization.sentences,
                   ),
-                ),
-                textCapitalization: TextCapitalization.sentences,
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: bodyController,
+                    decoration: InputDecoration(
+                      hintText: l10n.sessionAddAnnotation,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    maxLines: 5,
+                    minLines: 2,
+                    autofocus: true,
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: bodyController,
-                decoration: InputDecoration(
-                  hintText: l10n.sessionAddAnnotation,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                maxLines: 5,
-                minLines: 2,
-                autofocus: true,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: Text(l10n.cancel),
+              ),
+              FilledButton(
+                onPressed: () {
+                  final text = bodyController.text.trim();
+                  final title = titleController.text.trim();
+                  if (text.isEmpty && title.isEmpty) return;
+                  Navigator.of(ctx).pop(true);
+                },
+                child: Text(l10n.sessionSave),
               ),
             ],
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () {
-              final text = bodyController.text.trim();
-              final title = titleController.text.trim();
-              if (text.isEmpty && title.isEmpty) return;
-              Navigator.of(ctx).pop(true);
-            },
-            child: Text(l10n.sessionSave),
-          ),
-        ],
-      ),
     );
     final noteTitle = titleController.text.trim();
     final noteBody = bodyController.text.trim();
