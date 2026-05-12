@@ -104,8 +104,10 @@ abstract final class PostProcessor {
     double threshold = 0.0,
     DateTime? timestamp,
   }) {
-    assert(scores.length == labels.length,
-        'scores (${scores.length}) must match labels (${labels.length})');
+    assert(
+      scores.length == labels.length,
+      'scores (${scores.length}) must match labels (${labels.length})',
+    );
 
     // Build index-score pairs, filter by threshold, sort descending.
     final indexed = <_IndexedScore>[];

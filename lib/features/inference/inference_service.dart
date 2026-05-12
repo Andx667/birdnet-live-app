@@ -250,10 +250,7 @@ class InferenceService {
     }
 
     // Sensitivity + top-K + threshold.
-    final adjusted = PostProcessor.applySensitivityAll(
-      finalScores,
-      sens,
-    );
+    final adjusted = PostProcessor.applySensitivityAll(finalScores, sens);
 
     final detections = PostProcessor.topK(
       scores: adjusted,

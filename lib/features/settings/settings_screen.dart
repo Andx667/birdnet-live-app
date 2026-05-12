@@ -214,8 +214,8 @@ class SettingsScreen extends ConsumerWidget {
                 helpBody: l10n.settingsHelpHighPassFilter,
                 value: ref.watch(highPassFilterProvider),
                 min: 0,
-                max: 500,
-                divisions: 50,
+                max: 1000,
+                divisions: 100,
                 format: (v) => '${v.toInt()} Hz',
                 onChanged:
                     (v) => ref.read(highPassFilterProvider.notifier).set(v),
