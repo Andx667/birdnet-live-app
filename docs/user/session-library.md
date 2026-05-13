@@ -41,6 +41,12 @@ Groups sessions by species and expands to the sessions that contain that species
 
 Sort sessions by **date** (newest or oldest first), **name** (A–Z or Z–A), or **duration** (longest or shortest first). Duration sort is useful when you want to find your longest survey of the week, or the shortest 30-second test you accidentally saved.
 
+When sessions are grouped by day, each day-header row shows the kebab (:material-dots-vertical:) for whole-day actions first, with the expand/collapse chevron at the trailing edge of the row. The chevron is the *last* affordance — same convention as every other expandable list in the app — so a tap near the right edge always toggles the group.
+
+## Local Time
+
+Every timestamp shown in Session Library — list rows, day-group headers, "started" / "ended" badges — is rendered in your phone's *current* local time zone. The session's underlying timestamps are stored in UTC, so a session you ran in Berlin and then opened in New York simply renders five (or six) hours earlier — the data on disk is unchanged. Travel during a long survey and the displayed clock follows the device.
+
 ## Row Actions
 
 Each session row has two ways to act on it:

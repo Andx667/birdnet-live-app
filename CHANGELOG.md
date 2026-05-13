@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.4] - 2026-05-13
+
+### Added
+
+- **Prev / Next on the fullscreen Survey clip player.** The audio overlay that opens when you tap a marker on the fullscreen Survey map now has skip-previous and skip-next buttons flanking the play control, so you can step through detections without dismissing the sheet and hunting for the next pin. Both buttons walk only the *currently filtered-in* detections (whatever species, confidence floor, or mode chip you have active), so flipping through a single species' calls is a one-tap operation. The buttons grey out at the ends so you always know when you've reached the first or last detection in the current view.
+- **Sessions render in your phone's local time.** Every timestamp in Session Library and Session Review — list rows, header dates, detection times, exported filenames — is now rendered in the device's current local time zone, derived on the fly from the UTC timestamps stored in the session. Travel across time zones with an in-progress session and the clock simply follows the phone; nothing on disk changes. Existing sessions are unaffected: the underlying UTC values are unchanged, only the rendered time follows the device clock.
+
+### Changed
+
+- **Export bundles now carry the settings the session actually ran with.** The `settings` block inside a session JSON export used to include only the four user-visible defaults (window duration, confidence threshold, inference rate, species filter mode). It now serializes the full per-session settings snapshot, including sensitivity, score-pooling mode/windows, applied microphone gain, and the high-pass cutoff that was active when the session ran. Reproducing a result from an export — or comparing two surveys — no longer requires you to remember which sliders were where.
+- **Race-safe "last 3 species" in the Survey foreground notification.** The persistent notification's rolling list of the three most recent species could occasionally render a stale or out-of-order view because it iterated the live detections list while inference might be inserting a new record. The notification now reads from an immutable snapshot that is rebuilt whenever the list mutates, so the lock-screen view is always a coherent picture of the latest detections.
+- **Session Library: collapse arrow now follows the kebab.** The grouped-by-day section headers in Session Library used to put the expand/collapse chevron *before* the kebab overflow, which read as "this is the menu's icon". The chevron is now the trailing affordance, after the kebab, matching every other expandable list in the app.
+
+### Fixed
+
+- **Survey resume now respects current notification settings.** Resuming an in-progress survey from Session Library re-reads every species-alert preference (mode, watchlist, confidence floor, throttling, sound, vibrate) from Settings before re-arming the alert pipeline, so toggling alerts off between stop and resume actually silences notifications instead of inheriting the start-time configuration. Verified the alert coordinator is fully replaced (and the prior one shut down) on every resume, so no stale snapshot survives the round-trip.
+
 ## [0.11.3] - 2026-05-12
 
 ### Added
