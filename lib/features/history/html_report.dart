@@ -95,7 +95,7 @@ String buildHtmlReport(
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>$title — BirdNET Live Report</title>
-${hasMap ? '<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">' : ''}
+${hasMap ? '<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">\n<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">\n<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">' : ''}
 <style>
 :root {
   --bg: #f7f7f9;
@@ -210,7 +210,7 @@ section.card h2 {
 }
 .detection {
   display: grid;
-  grid-template-columns: 96px 1fr;
+  grid-template-columns: 144px 1fr;
   gap: 14px;
   padding: 12px;
   background: var(--surface);
@@ -219,7 +219,7 @@ section.card h2 {
   box-shadow: var(--shadow);
 }
 .detection .thumb {
-  width: 96px;
+  width: 144px;
   height: 96px;
   border-radius: 8px;
   overflow: hidden;
@@ -306,6 +306,22 @@ section.card h2 {
   font-size: 12px;
 }
 .detection a.taxonomy-link:hover { text-decoration: underline; }
+.detection .links {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.detection .links a {
+  color: var(--primary);
+  text-decoration: none;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--primary-dim);
+  font-weight: 500;
+}
+.detection .links a:hover { text-decoration: underline; }
 .empty {
   color: var(--text-muted);
   font-style: italic;
@@ -326,9 +342,38 @@ footer a { color: var(--primary); text-decoration: none; }
   audio { display: none; }
 }
 @media (max-width: 480px) {
-  .detection { grid-template-columns: 72px 1fr; }
-  .detection .thumb { width: 72px; height: 72px; }
+  .detection { grid-template-columns: 108px 1fr; }
+  .detection .thumb { width: 108px; height: 72px; }
 }
+.species-pin {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+  background-size: cover;
+  background-position: center;
+  background-color: var(--surface-2);
+}
+.species-pin.fallback {
+  background: #ff8a3d;
+}
+.popup-card {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 180px;
+}
+.popup-card img {
+  width: 60px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+  background: #ddd;
+}
+.popup-card .pop-body { flex: 1; min-width: 0; }
+.popup-card .pop-body b { display: block; }
+.popup-card .pop-body i { color: #666; font-size: 12px; }
 </style>
 </head>
 <body>
@@ -377,6 +422,7 @@ ${settingsRows.isEmpty ? '' : '''<section class="card">
 window.SESSION_DATA = $dataJson;
 </script>
 ${hasMap ? '''<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" defer></script>
 <script defer>
 window.addEventListener('load', function () {
   if (typeof L === 'undefined') {
@@ -398,15 +444,50 @@ window.addEventListener('load', function () {
     bounds.extend(poly.getBounds());
   }
   if (data.detections) {
+    // Cluster markers by species so a busy hotspot collapses cleanly.
+    // MarkerCluster falls back to plain markers if the plugin failed
+    // to load (e.g. offline second visit) so the map stays usable.
+    var hasCluster = (typeof L.markerClusterGroup === 'function');
+    var clusterGroup = hasCluster ? L.markerClusterGroup({
+      showCoverageOnHover: false,
+      spiderfyOnMaxZoom: true,
+      maxClusterRadius: 50
+    }) : null;
     data.detections.forEach(function (d) {
       if (d.lat == null || d.lon == null) return;
-      var m = L.circleMarker([d.lat, d.lon], {
-        radius: 6, color: '#ff8a3d', fillColor: '#ff8a3d', fillOpacity: 0.9, weight: 1
-      }).addTo(map);
-      m.bindPopup('<b>' + escapeHtml(d.common) + '</b><br><i>' + escapeHtml(d.sci) + '</i><br>'
-        + Math.round(d.conf * 100) + '%');
+      var icon;
+      if (d.img) {
+        icon = L.divIcon({
+          className: '',
+          html: '<div class="species-pin" style="background-image:url(\\'' + d.img + '\\')"></div>',
+          iconSize: [36, 36],
+          iconAnchor: [18, 18],
+          popupAnchor: [0, -18]
+        });
+      } else {
+        icon = L.divIcon({
+          className: '',
+          html: '<div class="species-pin fallback"></div>',
+          iconSize: [36, 36],
+          iconAnchor: [18, 18],
+          popupAnchor: [0, -18]
+        });
+      }
+      var m = L.marker([d.lat, d.lon], { icon: icon });
+      var popup = '<div class="popup-card">'
+        + (d.img ? '<img src="' + d.img + '" alt="">' : '')
+        + '<div class="pop-body"><b>' + escapeHtml(d.common) + '</b>'
+        + '<i>' + escapeHtml(d.sci) + '</i>'
+        + Math.round(d.conf * 100) + '%</div></div>';
+      m.bindPopup(popup);
+      if (clusterGroup) {
+        clusterGroup.addLayer(m);
+      } else {
+        m.addTo(map);
+      }
       bounds.extend(m.getLatLng());
     });
+    if (clusterGroup) clusterGroup.addTo(map);
   }
   if (bounds.isValid()) {
     map.fitBounds(bounds, { padding: [24, 24] });
@@ -436,6 +517,7 @@ String _buildDataPayload(
   final detections = <Map<String, dynamic>>[];
   for (var i = 0; i < session.detections.length; i++) {
     final d = session.detections[i];
+    final encodedSci = Uri.encodeComponent(d.scientificName);
     detections.add({
       'common': _localizedCommon(d, taxonomy, speciesLocale),
       'sci': d.scientificName,
@@ -443,6 +525,8 @@ String _buildDataPayload(
       'lat': d.latitude,
       'lon': d.longitude,
       'clip': clipFileMap?[i],
+      'img':
+          'https://birdnet.cornell.edu/taxonomy/api/image/$encodedSci?size=thumb',
     });
   }
   final track = session.gpsTrack.map((p) => [p.latitude, p.longitude]).toList();
@@ -484,8 +568,19 @@ String _buildDetectionsHtml(
     final encodedSci = Uri.encodeComponent(sci);
     final imgUrl =
         'https://birdnet.cornell.edu/taxonomy/api/image/$encodedSci?size=thumb';
-    final speciesPageUrl =
-        'https://birdnet.cornell.edu/taxonomy/species/$encodedSci';
+
+    // Resolve external reference links from the bundled taxonomy:
+    // eBird / iNaturalist need IDs we already store; Wikipedia URLs
+    // are localized, with English fallback. We only emit a link when
+    // the underlying ID/URL exists.
+    final taxon = taxonomy?.lookup(sci);
+    final ebirdUrl = taxon?.ebirdUrl;
+    final inatUrl = taxon?.inatUrl;
+    String? wikiUrl;
+    final wikiMap = taxon?.wikipediaUrls;
+    if (wikiMap != null && wikiMap.isNotEmpty) {
+      wikiUrl = wikiMap[speciesLocale] ?? wikiMap['en'] ?? wikiMap.values.first;
+    }
 
     buf.writeln('<div class="detection">');
     buf.writeln('  <div class="thumb">');
@@ -505,11 +600,26 @@ String _buildDetectionsHtml(
     if (d.isConfirmed) {
       buf.writeln('      <span class="confirmed-pill">Confirmed</span>');
     }
-    buf.writeln(
-      '      <a class="taxonomy-link" href="${_esc(speciesPageUrl)}" '
-      'target="_blank" rel="noopener">More info ↗</a>',
-    );
     buf.writeln('    </div>');
+    if (ebirdUrl != null || inatUrl != null || wikiUrl != null) {
+      buf.writeln('    <div class="links">');
+      if (ebirdUrl != null) {
+        buf.writeln(
+          '      <a href="${_esc(ebirdUrl)}" target="_blank" rel="noopener">eBird ↗</a>',
+        );
+      }
+      if (inatUrl != null) {
+        buf.writeln(
+          '      <a href="${_esc(inatUrl)}" target="_blank" rel="noopener">iNaturalist ↗</a>',
+        );
+      }
+      if (wikiUrl != null) {
+        buf.writeln(
+          '      <a href="${_esc(wikiUrl)}" target="_blank" rel="noopener">Wikipedia ↗</a>',
+        );
+      }
+      buf.writeln('    </div>');
+    }
     if (hasNote) {
       buf.writeln('    <div class="note">${_esc(note.trim())}</div>');
     }

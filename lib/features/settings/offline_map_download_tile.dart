@@ -92,10 +92,11 @@ class OfflineMapDownloadTile extends ConsumerWidget {
     if (!context.mounted) return;
     final config = await showDialog<_DownloadConfig>(
       context: context,
-      builder: (_) => _RadiusPickerDialog(
-        latitude: pos!.latitude,
-        longitude: pos.longitude,
-      ),
+      builder:
+          (_) => _RadiusPickerDialog(
+            latitude: pos!.latitude,
+            longitude: pos.longitude,
+          ),
     );
     if (config == null || !context.mounted) return;
 
@@ -123,11 +124,11 @@ class OfflineMapDownloadTile extends ConsumerWidget {
   final n = 1 << z;
   final x = ((lon + 180.0) / 360.0 * n).floor();
   final latRad = lat * math.pi / 180.0;
-  final y = ((1.0 -
-              math.log(math.tan(latRad) + 1.0 / math.cos(latRad)) / math.pi) /
-          2.0 *
-          n)
-      .floor();
+  final y =
+      ((1.0 - math.log(math.tan(latRad) + 1.0 / math.cos(latRad)) / math.pi) /
+              2.0 *
+              n)
+          .floor();
   return (x: x.clamp(0, n - 1), y: y.clamp(0, n - 1));
 }
 
@@ -186,10 +187,7 @@ class _DownloadConfig {
 // ---------------------------------------------------------------------------
 
 class _RadiusPickerDialog extends StatefulWidget {
-  const _RadiusPickerDialog({
-    required this.latitude,
-    required this.longitude,
-  });
+  const _RadiusPickerDialog({required this.latitude, required this.longitude});
 
   final double latitude;
   final double longitude;
@@ -250,9 +248,7 @@ class _RadiusPickerDialogState extends State<_RadiusPickerDialog> {
             const SizedBox(height: 8),
             Text(
               l10n.settingsOfflineMapTooLarge,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.error,
-              ),
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
           ],
         ],
@@ -263,9 +259,8 @@ class _RadiusPickerDialogState extends State<_RadiusPickerDialog> {
           child: Text(MaterialLocalizations.of(context).cancelButtonLabel),
         ),
         FilledButton(
-          onPressed: tooLarge
-              ? null
-              : () => Navigator.of(context).pop(_buildConfig()),
+          onPressed:
+              tooLarge ? null : () => Navigator.of(context).pop(_buildConfig()),
           child: Text(MaterialLocalizations.of(context).okButtonLabel),
         ),
       ],
@@ -306,8 +301,7 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
       final batchEnd = math.min(i + _concurrency, tiles.length);
       final batchStart = DateTime.now();
       final results = await Future.wait([
-        for (var k = i; k < batchEnd; k++)
-          _fetch(tiles[k]),
+        for (var k = i; k < batchEnd; k++) _fetch(tiles[k]),
       ]);
       if (_cancelled) break;
       for (final r in results) {
@@ -332,9 +326,7 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
     final mb = (_bytes / (1024 * 1024)).toStringAsFixed(1);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          '${l10n.settingsOfflineMapDone}: $_done tiles · ${mb}MB',
-        ),
+        content: Text('${l10n.settingsOfflineMapDone}: $_done tiles · ${mb}MB'),
       ),
     );
   }
@@ -363,9 +355,8 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: _cancelled
-              ? null
-              : () => setState(() => _cancelled = true),
+          onPressed:
+              _cancelled ? null : () => setState(() => _cancelled = true),
           child: Text(MaterialLocalizations.of(context).cancelButtonLabel),
         ),
       ],

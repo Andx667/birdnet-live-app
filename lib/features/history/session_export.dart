@@ -414,6 +414,45 @@ Map<String, dynamic> buildExportMetadata({
   String? speciesLocale,
   LiveSession? session,
 }) {
+  // Slim the model blocks to *what produced these detections* — model
+  // identity, not the bundled defaults. The defaults under
+  // audioModel.inference and geoModel.defaultThreshold are confusing
+  // here because they're overridden at runtime by the user; the actual
+  // applied values live in `appliedSettings` below.
+  Map<String, dynamic>? slimAudioModel;
+  if (audioModel != null) {
+    slimAudioModel = Map<String, dynamic>.from(audioModel)
+      ..remove('inference')
+      ..remove('onnx')
+      ..remove('labels');
+  }
+  Map<String, dynamic>? slimGeoModel;
+  if (geoModel != null) {
+    slimGeoModel = Map<String, dynamic>.from(geoModel)
+      ..remove('defaultThreshold');
+  }
+
+  // Snapshot of the actually-applied audio + geomodel settings for this
+  // session. Pulled from `session.settings`, which the controller fills
+  // with the runtime values (not the model_config defaults).
+  Map<String, dynamic>? appliedSettings;
+  if (session != null) {
+    final s = session.settings;
+    appliedSettings = <String, dynamic>{
+      'windowDurationSeconds': s.windowDuration,
+      'confidenceThresholdPercent': s.confidenceThreshold,
+      'inferenceRateHz': s.inferenceRate,
+      'speciesFilterMode': s.speciesFilterMode,
+      if (s.sensitivity != null) 'sensitivity': s.sensitivity,
+      if (s.poolingMode != null) 'poolingMode': s.poolingMode,
+      if (s.poolingWindows != null) 'poolingWindows': s.poolingWindows,
+      if (s.gainLinear != null) 'gainLinear': s.gainLinear,
+      if (s.highPassHz != null) 'highPassHz': s.highPassHz,
+      if (s.clipContextSeconds > 0)
+        'clipContextSeconds': s.clipContextSeconds,
+    };
+  }
+
   return {
     'exportedAt': DateTime.now().toUtc().toIso8601String(),
     'app': {
@@ -439,8 +478,9 @@ Map<String, dynamic> buildExportMetadata({
           'transectId': session.transectId,
         'detectionCount': session.detections.length,
       },
-    if (audioModel != null) 'audioModel': audioModel,
-    if (geoModel != null) 'geoModel': geoModel,
+    if (slimAudioModel != null) 'audioModel': slimAudioModel,
+    if (slimGeoModel != null) 'geoModel': slimGeoModel,
+    if (appliedSettings != null) 'appliedSettings': appliedSettings,
     if (speciesLocale != null) 'speciesLocale': speciesLocale,
     if (prefs != null && prefs.isNotEmpty) 'settings': prefs,
   };
