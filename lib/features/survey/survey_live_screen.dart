@@ -366,6 +366,14 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
 
   /// Construct and attach the [SurveyAlertCoordinator] honoring all
   /// `surveyAlert*` user prefs. Skips entirely when alerts are off.
+  ///
+  /// Called from [_startSurvey] for both fresh starts AND resumes (before
+  /// `controller.resumeSurvey(...)`), so the resumed session always picks
+  /// up the *current* notification settings — not whatever was configured
+  /// when the survey was first started. Each call replaces (and shuts
+  /// down) any previously-attached coordinator via `setAlertCoordinator`,
+  /// ensuring the foreground notification pipeline never holds a stale
+  /// snapshot of the user's preferences.
   Future<void> _maybeBuildAlertCoordinator({
     required SurveyController controller,
   }) async {
@@ -586,6 +594,8 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
         poolingWindows: ref.read(scorePoolingWindowsProvider),
         poolingMode: ref.read(scorePoolingProvider),
         sensitivity: ref.read(sensitivityProvider),
+        gainLinear: ref.read(audioGainProvider),
+        highPassHz: ref.read(highPassFilterProvider).toDouble(),
       );
     }
 

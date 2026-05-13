@@ -138,6 +138,14 @@ class SurveyController {
   /// service's contention stream by the survey screen.
   bool _micContested = false;
 
+  /// Immutable snapshot of the up-to-3 most-recent unique-species
+  /// detections used by the foreground notification body. Rebuilt via
+  /// [_refreshRecentForNotification] every time `_sessionDetections`
+  /// changes so the notification text never iterates a list that may be
+  /// mutated mid-render. Always replaced by an immutable list (swap),
+  /// never mutated in place.
+  List<DetectionRecord> _recentForNotification = const <DetectionRecord>[];
+
   /// Update the microphone-contested flag and refresh the notification
   /// so the user immediately sees the status change.
   void setMicContested(bool contested) {
@@ -338,6 +346,8 @@ class SurveyController {
     int? poolingWindows,
     String poolingMode = 'lme',
     double sensitivity = 1.0,
+    double? gainLinear,
+    double? highPassHz,
   }) async {
     if (_state == SurveyState.active) return;
     _state = SurveyState.starting;
@@ -364,6 +374,11 @@ class SurveyController {
               inferenceRate: inferenceRate,
               speciesFilterMode: speciesFilterMode,
               clipContextSeconds: clipContextSeconds,
+              sensitivity: sensitivity,
+              poolingMode: poolingMode,
+              poolingWindows: poolingWindows,
+              gainLinear: gainLinear,
+              highPassHz: highPassHz,
             ),
         transectId: transectId,
         observerName: observerName,
@@ -376,6 +391,7 @@ class SurveyController {
       }
 
       _sessionDetections.clear();
+      _refreshRecentForNotification();
       _currentLiveDetections = const [];
       _activeCardSpecies.clear();
       _confidenceThreshold = confidenceThreshold;
@@ -520,6 +536,7 @@ class SurveyController {
       // Restore in-memory detection list (newest first).
       _sessionDetections.clear();
       _sessionDetections.addAll(existingSession.detections.reversed);
+      _refreshRecentForNotification();
       _currentLiveDetections = const [];
       _activeCardSpecies.clear();
       _confidenceThreshold = confidenceThreshold;
@@ -641,6 +658,7 @@ class SurveyController {
     _inferring = false;
     _session = null;
     _sessionDetections.clear();
+    _refreshRecentForNotification();
     _currentLiveDetections = const [];
     _activeCardSpecies.clear();
   }
@@ -723,6 +741,7 @@ class SurveyController {
         if (sIdx != -1) _sessionDetections[sIdx] = closed;
         final lsIdx = _session!.detections.indexOf(existing);
         if (lsIdx != -1) _session!.detections[lsIdx] = closed;
+        _refreshRecentForNotification();
         await _sampler?.onRecordClosed(closed);
       }
     }
@@ -751,6 +770,7 @@ class SurveyController {
       // cannot get stuck in the stopping state.
       _session = null;
       _sessionDetections.clear();
+      _refreshRecentForNotification();
       _currentLiveDetections = const [];
       _activeCardSpecies.clear();
       _gpsTracker = null;
@@ -805,6 +825,7 @@ class SurveyController {
     );
     _session!.addDetection(record);
     _sessionDetections.insert(0, record);
+    _refreshRecentForNotification();
     // Persist immediately so the record survives a crash before the next
     // periodic flush.
     await _persistSession();
@@ -987,6 +1008,7 @@ class SurveyController {
           if (sIdx != -1) _sessionDetections[sIdx] = closed;
           final lsIdx = _session!.detections.indexOf(existing);
           if (lsIdx != -1) _session!.detections[lsIdx] = closed;
+          _refreshRecentForNotification();
 
           // Hand the closed record to the sampler. The sampler may delete
           // the clip file and clear `audioClipPath` on this record (or on
@@ -1024,6 +1046,7 @@ class SurveyController {
             // branch above and finalize), via [DetectionSampler].
             _session!.addDetection(record);
             _sessionDetections.insert(0, record);
+            _refreshRecentForNotification();
             _activeCardSpecies[name] = record;
             // Feed the alert pipeline AFTER the record is durably tracked
             // so a notification firing implies the detection was kept.
@@ -1047,6 +1070,7 @@ class SurveyController {
               _sessionDetections.add(updated);
               final lsIdx = _session!.detections.indexOf(existing);
               if (lsIdx != -1) _session!.detections[lsIdx] = updated;
+              _refreshRecentForNotification();
               _activeCardSpecies[name] = updated;
             }
           }
@@ -1057,6 +1081,7 @@ class SurveyController {
             _maxInMemoryDetections,
             _sessionDetections.length,
           );
+          _refreshRecentForNotification();
         }
       }
 
@@ -1141,6 +1166,28 @@ class SurveyController {
 
   // ── Notification + battery ─────────────────────────────────────────────
 
+  /// Rebuild [_recentForNotification] from the current `_sessionDetections`.
+  /// Always emits a fresh immutable list (swap) so the foreground
+  /// notification body — which may render at any moment on a cadence
+  /// independent from inference — sees a stable view of the last three
+  /// unique-species detections. Newest-first ordering matches the rest
+  /// of the notification UI.
+  void _refreshRecentForNotification() {
+    if (_sessionDetections.isEmpty) {
+      _recentForNotification = const <DetectionRecord>[];
+      return;
+    }
+    final seen = <String>{};
+    final next = <DetectionRecord>[];
+    for (final r in _sessionDetections) {
+      if (seen.add(r.scientificName)) {
+        next.add(r);
+        if (next.length == 3) break;
+      }
+    }
+    _recentForNotification = List<DetectionRecord>.unmodifiable(next);
+  }
+
   /// Build the notification body text with the three most recent
   /// detections on top, an empty separator line, then a compact stats
   /// footer (elapsed time, detections, species, distance). Android
@@ -1170,21 +1217,16 @@ class SurveyController {
                 '\u26A0 Microphone in use by another app — audio paused')
             : null;
 
-    // _sessionDetections is newest-first. Take up to 3 most recent
-    // *unique* species (so a chatty bird doesn't fill the whole list)
-    // and render them with confidence percentage and a relative time.
-    if (_sessionDetections.isEmpty) {
+    // Render up to 3 most-recent *unique* species (so a chatty bird
+    // doesn't fill the whole list). The buffer is maintained on the
+    // detection-insert path via [_refreshRecentForNotification], so we
+    // never iterate `_sessionDetections` here — that list may be mutated
+    // by inference callbacks in between two notification ticks.
+    final recent = _recentForNotification;
+    if (recent.isEmpty) {
       return micWarning == null ? stats : '$micWarning\n$stats';
     }
     final now = DateTime.now();
-    final seen = <String>{};
-    final recent = <DetectionRecord>[];
-    for (final r in _sessionDetections) {
-      if (seen.add(r.scientificName)) {
-        recent.add(r);
-        if (recent.length == 3) break;
-      }
-    }
     final lines = <String>[];
     if (micWarning != null) {
       lines.add(micWarning);
