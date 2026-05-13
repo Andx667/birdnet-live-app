@@ -95,7 +95,7 @@ String buildHtmlReport(
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>$title — BirdNET Live Report</title>
-${hasMap ? '<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin>' : ''}
+${hasMap ? '<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">' : ''}
 <style>
 :root {
   --bg: #f7f7f9;
@@ -376,7 +376,7 @@ ${settingsRows.isEmpty ? '' : '''<section class="card">
 <script>
 window.SESSION_DATA = $dataJson;
 </script>
-${hasMap ? '''<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin defer></script>
+${hasMap ? '''<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
 <script defer>
 window.addEventListener('load', function () {
   if (typeof L === 'undefined') {
@@ -445,8 +445,7 @@ String _buildDataPayload(
       'clip': clipFileMap?[i],
     });
   }
-  final track =
-      session.gpsTrack.map((p) => [p.latitude, p.longitude]).toList();
+  final track = session.gpsTrack.map((p) => [p.latitude, p.longitude]).toList();
   final center = _sessionCenter(session);
   return jsonEncode({
     'detections': detections,
@@ -501,12 +500,8 @@ String _buildDetectionsHtml(
     buf.writeln('      <span class="sci">${_esc(sci)}</span>');
     buf.writeln('    </div>');
     buf.writeln('    <div class="meta-row">');
-    buf.writeln(
-      '      <span class="score $scoreClass">$confPct%</span>',
-    );
-    buf.writeln(
-      '      <span>${_esc(wallText)} · ${_esc(relText)}</span>',
-    );
+    buf.writeln('      <span class="score $scoreClass">$confPct%</span>');
+    buf.writeln('      <span>${_esc(wallText)} · ${_esc(relText)}</span>');
     if (d.isConfirmed) {
       buf.writeln('      <span class="confirmed-pill">Confirmed</span>');
     }
@@ -563,7 +558,8 @@ String _buildMetadataRows(LiveSession session) {
   ));
   return rows
       .map(
-        (r) => '<div class="meta-item">'
+        (r) =>
+            '<div class="meta-item">'
             '<span class="label">${_esc(r.$1)}</span>'
             '<span class="value">${_esc(r.$2)}</span>'
             '</div>',
@@ -580,10 +576,7 @@ String _buildSettingsRows(LiveSession session) {
     rows.add(('Sensitivity', s.sensitivity!.toStringAsFixed(2)));
   }
   if (s.poolingMode != null && s.poolingWindows != null) {
-    rows.add((
-      'Pooling',
-      '${s.poolingMode} (${s.poolingWindows} windows)',
-    ));
+    rows.add(('Pooling', '${s.poolingMode} (${s.poolingWindows} windows)'));
   }
   if (s.gainLinear != null) {
     rows.add(('Gain', '${s.gainLinear!.toStringAsFixed(2)}×'));
@@ -593,7 +586,8 @@ String _buildSettingsRows(LiveSession session) {
   }
   return rows
       .map(
-        (r) => '<div class="meta-item">'
+        (r) =>
+            '<div class="meta-item">'
             '<span class="label">${_esc(r.$1)}</span>'
             '<span class="value">${_esc(r.$2)}</span>'
             '</div>',
@@ -657,9 +651,10 @@ String _fmtRelative(int seconds) {
   final h = abs ~/ 3600;
   final m = (abs % 3600) ~/ 60;
   final s = abs % 60;
-  final body = h > 0
-      ? '${h}h${m.toString().padLeft(2, '0')}m${s.toString().padLeft(2, '0')}s'
-      : '$m:${s.toString().padLeft(2, '0')}';
+  final body =
+      h > 0
+          ? '${h}h${m.toString().padLeft(2, '0')}m${s.toString().padLeft(2, '0')}s'
+          : '$m:${s.toString().padLeft(2, '0')}';
   return neg ? '−$body' : '+$body';
 }
 
