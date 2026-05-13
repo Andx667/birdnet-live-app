@@ -641,8 +641,16 @@ class _ClipPlayerSheetState extends ConsumerState<_ClipPlayerSheet> {
                           ? null
                           : () {
                             final cb = widget.onPrevious!;
-                            Navigator.of(context).maybePop();
-                            cb();
+                            // Pop first, then defer the host callback to a
+                            // post-frame microtask so the sheet route is
+                            // fully gone before the host pushes the new
+                            // one. Otherwise the new sheet stacks on top
+                            // of the closing one and the user has to
+                            // dismiss several layers manually.
+                            Navigator.of(context).pop();
+                            WidgetsBinding.instance.addPostFrameCallback(
+                              (_) => cb(),
+                            );
                           },
                   icon: const Icon(Icons.skip_previous_rounded),
                 ),
@@ -662,8 +670,10 @@ class _ClipPlayerSheetState extends ConsumerState<_ClipPlayerSheet> {
                           ? null
                           : () {
                             final cb = widget.onNext!;
-                            Navigator.of(context).maybePop();
-                            cb();
+                            Navigator.of(context).pop();
+                            WidgetsBinding.instance.addPostFrameCallback(
+                              (_) => cb(),
+                            );
                           },
                   icon: const Icon(Icons.skip_next_rounded),
                 ),
