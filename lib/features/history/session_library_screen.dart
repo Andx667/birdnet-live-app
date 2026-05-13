@@ -181,7 +181,10 @@ class _SessionLibraryScreenState extends ConsumerState<SessionLibraryScreen> {
 
     // Date / time.
     final dateStr =
-        DateFormat.yMMMd().add_Hm().format(session.startTime).toLowerCase();
+        DateFormat.yMMMd()
+            .add_Hm()
+            .format(session.startTime.toLocal())
+            .toLowerCase();
     if (dateStr.contains(q)) return true;
 
     // Session type label.
@@ -718,7 +721,7 @@ class _SessionTile extends ConsumerWidget {
     required this.onTap,
     required this.onShare,
     required this.onDelete,
-    this.leadingExpandToggle,
+    this.trailingExpandToggle,
   });
 
   final LiveSession session;
@@ -726,16 +729,18 @@ class _SessionTile extends ConsumerWidget {
   final VoidCallback onShare;
   final VoidCallback onDelete;
 
-  /// Optional collapse affordance shown before the type icon. Used when
-  /// this tile is rendered inside a compact-view row that the user has
-  /// expanded — letting them collapse it again without scrolling.
-  final Widget? leadingExpandToggle;
+  /// Optional collapse affordance rendered on the far right, after the
+  /// overflow popup menu. Used when this tile is shown inside a
+  /// compact-view row that the user has expanded — keeping the collapse
+  /// arrow anchored to the same trailing slot the expand arrow lives in
+  /// when the row is collapsed, so the visual target doesn't move.
+  final Widget? trailingExpandToggle;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final dateStr = DateFormat.yMMMd().format(session.startTime);
-    final timeStr = DateFormat.jm().format(session.startTime);
+    final dateStr = DateFormat.yMMMd().format(session.startTime.toLocal());
+    final timeStr = DateFormat.jm().format(session.startTime.toLocal());
 
     final duration = session.duration;
     final speciesCount = session.uniqueSpeciesCount;
@@ -756,10 +761,6 @@ class _SessionTile extends ConsumerWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (leadingExpandToggle != null) ...[
-                    leadingExpandToggle!,
-                    const SizedBox(width: 8),
-                  ],
                   Container(
                     width: 48,
                     height: 48,
@@ -843,6 +844,7 @@ class _SessionTile extends ConsumerWidget {
                     onShare: onShare,
                     onDelete: onDelete,
                   ),
+                  if (trailingExpandToggle != null) trailingExpandToggle!,
                 ],
               ),
               if (_topSpeciesSci(session).isNotEmpty) ...[
@@ -939,7 +941,7 @@ class _CompactSessionTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
-    final dateStr = DateFormat.yMMMd().format(session.startTime);
+    final dateStr = DateFormat.yMMMd().format(session.startTime.toLocal());
 
     final duration = session.duration;
     final speciesCount = session.uniqueSpeciesCount;
@@ -954,7 +956,7 @@ class _CompactSessionTile extends ConsumerWidget {
         onTap: onTap,
         onShare: onShare,
         onDelete: onDelete,
-        leadingExpandToggle: IconButton(
+        trailingExpandToggle: IconButton(
           icon: const Icon(Icons.expand_less),
           tooltip: l10n.sessionLibraryCollapse,
           onPressed: onToggleExpanded,
@@ -1177,7 +1179,7 @@ class _SpeciesGroupedView extends ConsumerWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 subtitle: Text(
-                  DateFormat.yMMMd().format(session.startTime),
+                  DateFormat.yMMMd().format(session.startTime.toLocal()),
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
