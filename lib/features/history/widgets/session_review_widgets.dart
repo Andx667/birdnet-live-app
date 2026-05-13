@@ -89,7 +89,9 @@ class _SummaryHeader extends StatelessWidget {
     final duration = session.duration;
     final species =
         session.detections.map((d) => d.scientificName).toSet().length;
-    final dateStr = DateFormat.yMMMd().add_Hm().format(session.startTime);
+    final dateStr = DateFormat.yMMMd().add_Hm().format(
+      session.startTime.toLocal(),
+    );
 
     return Container(
       width: double.infinity,
