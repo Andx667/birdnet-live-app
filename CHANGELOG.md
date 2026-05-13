@@ -5,13 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0] - 2026-05-21
+
+### Added
+
+- **Three-toggle privacy gate for third-party services.** A new **Settings → Privacy** section replaces the single "show map tiles" consent with three independent switches that match the three external services the app can talk to: **Allow map tiles** (OpenStreetMap raster servers — used by every map widget), **Allow place name lookup** (OpenStreetMap Nominatim — turns recorded coordinates into a short human-readable place name shown next to the session), and **Allow weather lookup** (Open-Meteo — see below). All three default to **off** so a fresh install never reaches out without you saying so; existing installs that had agreed to the previous map-tile consent are auto-migrated into both the map-tile and place-name gates so nothing silently goes dark. Each toggle ships an in-context help sheet explaining what data is sent, to whom, and what happens when it is off.
+- **Per-session weather snapshot via Open-Meteo.** When **Allow weather lookup** is on, every saved session captures a one-shot weather observation (temperature, precipitation, wind speed and direction, cloud cover, WMO weather code) at the recording coordinates and end time. The snapshot lands in **Session Review** as a tappable row under the location chip — tap to expand into a small sheet with all fields and the Open-Meteo attribution. The same snapshot is mirrored into the JSON export, the per-session metadata block, and a dedicated weather card in the HTML report. Open-Meteo is a free service and requires neither an account nor an API key. When the gate is off, sessions store no weather data and no network call is made.
+- **Multi-format export selection.** The export-format setting that used to let you pick a single output format (Raven Selection Table, CSV, JSON, or GPX) is now a checklist — tick any combination and every save / share action bundles all selected formats together. When you pick a single format with no audio clips and no HTML report, the share still hands you a single raw file (e.g. `session.csv`) for backwards compatibility; any other combination produces a ZIP with all selected docs at the root next to the audio, memos, metadata, annotations, and HTML report. The previous single-format setting is auto-migrated on first launch so your existing preference is preserved.
+
+### Changed
+
+- **All user-facing strings translated into all 7 supported locales.** New strings introduced by the privacy gate, weather snapshot, and multi-format export are shipped with full translations in English, German, Czech, Spanish, French, Italian, and Portuguese — no en-US fallbacks visible in the new surfaces.
+- **User guide refreshed.** `docs/user/settings.md` gains intuition notes for the three new privacy toggles and the multi-format export checklist; `docs/user/session-review.md` documents the new weather row; `docs/user/exports.md` covers the multi-format ZIP layout; and the privacy notice in all 7 locales now lists OpenStreetMap, Nominatim, and Open-Meteo with retention and revocation guidance.
+
 ## [0.11.5] - 2026-05-13
 
 ### Added
 
 - **HTML report inside every export ZIP.** Sharing or saving a session now drops a self-contained `report.html` next to the CSV, JSON, audio clips, and GPX. Open it in any browser and you get a print-ready summary: header card with date, location, observer, transect length and totals; an interactive Leaflet map of the GPS track and detection markers (online); a card per detection with the Cornell taxonomy thumbnail, common and scientific names, the score as a coloured pill, both wallclock and relative time, your confirmation, any note you typed, and the original audio clip inline as a `<audio>` player; and a settings card showing the analysis parameters used. Species thumbnails and map tiles need a connection the first time the file is opened, but everything else — layout, audio, text, links to species pages — works fully offline. Toggle in **Settings → Export → Include HTML report** (on by default).
 - **Offline map tile download.** A new **Settings → Location → Download offline maps** action pre-caches OpenStreetMap tiles around your current GPS fix at 1 / 5 / 10 / 25 km radius for zoom levels 12–16. Useful before heading into surveys without signal: the Survey live map and the exported HTML report both read from the same on-disk cache, so what you download here is what you see in the field. Pre-download size estimate is shown before you commit, with a 50 MB ceiling to keep us a polite OSM citizen, and the downloader paces requests under the 2 req/s tile-usage policy with a Cancel button always available.
-- **Release tooling.** New `release/RELEASE.md` checklist documents the full Play Store release workflow (build, mapping/symbols capture, locale-specific release notes order, upload steps, post-release tagging) and `dev/build_release.dart` automates the AAB build with obfuscation + split debug info, copying artefacts into `release/V<version>/` and stubbing a `release_notes.txt` template from the latest CHANGELOG entry.
 
 
 
