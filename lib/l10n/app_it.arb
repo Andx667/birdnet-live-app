@@ -638,6 +638,8 @@
   "statusInitializing": "Inizializzazione…",
   "tooltipBack": "Indietro",
   "tooltipClose": "Chiudi",
+  "playerPreviousDetection": "Rilevamento precedente",
+  "playerNextDetection": "Rilevamento successivo",
   "tooltipSearch": "Cerca",
   "tooltipClearSearch": "Cancella ricerca",
   "tooltipDeleteSession": "Elimina sessione",

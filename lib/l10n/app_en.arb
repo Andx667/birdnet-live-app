@@ -2458,6 +2458,14 @@
   "@tooltipClose": {
     "description": "Generic tooltip for close buttons"
   },
+  "playerPreviousDetection": "Previous detection",
+  "@playerPreviousDetection": {
+    "description": "Tooltip + semantics label for the skip-previous button on the clip player; jumps to the previous detection in the active filtered list"
+  },
+  "playerNextDetection": "Next detection",
+  "@playerNextDetection": {
+    "description": "Tooltip + semantics label for the skip-next button on the clip player; jumps to the next detection in the active filtered list"
+  },
   "tooltipSearch": "Search",
   "@tooltipSearch": {
     "description": "Tooltip for the search icon button"

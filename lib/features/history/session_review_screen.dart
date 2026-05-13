@@ -2807,10 +2807,39 @@ class _FullscreenSurveyMapScreenState
     if (path == null || !File(path).existsSync()) return;
 
     setState(() => _highlight = detection);
+
+    // Build the prev/next neighbors from the *currently filtered* list,
+    // restricted to detections that still have a playable clip on disk
+    // \u2014 otherwise the skip button would open onto an empty sheet.
+    // Ordered by timestamp so "next" / "prev" matches the user's mental
+    // model of stepping forward / backward in time.
+    final playable =
+        _filtered.where((d) {
+            final p = d.audioClipPath;
+            return p != null && File(p).existsSync();
+          }).toList()
+          ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+    final idx = playable.indexOf(detection);
+    final prev = idx > 0 ? playable[idx - 1] : null;
+    final next =
+        idx >= 0 && idx < playable.length - 1 ? playable[idx + 1] : null;
+
     await showClipPlayerSheet(
       context,
       detection: detection,
       session: widget.session,
+      onPrevious:
+          prev == null
+              ? null
+              : () {
+                if (mounted) _onMarkerTap(prev);
+              },
+      onNext:
+          next == null
+              ? null
+              : () {
+                if (mounted) _onMarkerTap(next);
+              },
       onConfirmChanged: () {
         // Rebuild this screen so the marker's confirmed badge updates
         // immediately, then forward to the host so the session is marked

@@ -54,6 +54,13 @@ import 'detection_actions.dart';
 /// detection from the host model and showing any undo affordance; this
 /// sheet just dismisses itself before invoking the callback so the user
 /// isn't left staring at a clip that no longer belongs to anything.
+///
+/// When [onPrevious] / [onNext] are provided, transport-style skip buttons
+/// are rendered flanking the play/pause control. The host is responsible
+/// for re-opening the sheet on the new detection — these callbacks just
+/// pop the current sheet and let the host pick the target. Pass `null` to
+/// disable the corresponding direction (e.g. at the first / last filtered
+/// detection) so the icon greys out instead of disappearing.
 Future<void> showClipPlayerSheet(
   BuildContext context, {
   required DetectionRecord detection,
@@ -61,6 +68,8 @@ Future<void> showClipPlayerSheet(
   VoidCallback? onDelete,
   VoidCallback? onNoteChanged,
   VoidCallback? onVoiceMemoChanged,
+  VoidCallback? onPrevious,
+  VoidCallback? onNext,
   LiveSession? session,
 }) {
   final path = detection.audioClipPath;
@@ -80,6 +89,8 @@ Future<void> showClipPlayerSheet(
           onDelete: onDelete,
           onNoteChanged: onNoteChanged,
           onVoiceMemoChanged: onVoiceMemoChanged,
+          onPrevious: onPrevious,
+          onNext: onNext,
           session: session,
         ),
   );
@@ -93,6 +104,8 @@ class _ClipPlayerSheet extends ConsumerStatefulWidget {
     this.onDelete,
     this.onNoteChanged,
     this.onVoiceMemoChanged,
+    this.onPrevious,
+    this.onNext,
     this.session,
   });
 
@@ -102,6 +115,8 @@ class _ClipPlayerSheet extends ConsumerStatefulWidget {
   final VoidCallback? onDelete;
   final VoidCallback? onNoteChanged;
   final VoidCallback? onVoiceMemoChanged;
+  final VoidCallback? onPrevious;
+  final VoidCallback? onNext;
   final LiveSession? session;
 
   @override
@@ -391,6 +406,7 @@ class _ClipPlayerSheetState extends ConsumerState<_ClipPlayerSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final det = widget.detection;
     final taxonomyAsync = ref.watch(taxonomyServiceProvider);
     final speciesLocale = ref.watch(effectiveSpeciesLocaleProvider);
@@ -406,7 +422,9 @@ class _ClipPlayerSheetState extends ConsumerState<_ClipPlayerSheet> {
             ?.lookup(det.scientificName)
             ?.commonNameForLocale(speciesLocale) ??
         det.commonName;
-    final timeStr = DateFormat('yyyy-MM-dd HH:mm:ss').format(det.timestamp);
+    final timeStr = DateFormat(
+      'yyyy-MM-dd HH:mm:ss',
+    ).format(det.timestamp.toLocal());
     // Use the unified [ScoreColors] CVD-safe ramp so the avatar border on
     // this sheet matches the same detection's marker on the survey map and
     // its pill color in the Explore list.
@@ -607,11 +625,27 @@ class _ClipPlayerSheetState extends ConsumerState<_ClipPlayerSheet> {
             ),
             const SizedBox(height: 8),
 
-            // Transport row: play/pause inline with the scrubber so the
-            // bottom of the sheet stays uncluttered (only the close button
-            // remains there). Times flank the slider as compact labels.
+            // Transport row: prev / play-pause / next inline with the
+            // scrubber so reviewers can step through the active filtered
+            // detection list without leaving the sheet. The skip buttons
+            // grey out at the first / last entry so the boundary is
+            // obvious; tapping pops this sheet and lets the host re-open
+            // it for the neighboring detection.
             Row(
               children: [
+                IconButton(
+                  iconSize: 28,
+                  tooltip: l10n.playerPreviousDetection,
+                  onPressed:
+                      widget.onPrevious == null
+                          ? null
+                          : () {
+                            final cb = widget.onPrevious!;
+                            Navigator.of(context).maybePop();
+                            cb();
+                          },
+                  icon: const Icon(Icons.skip_previous_rounded),
+                ),
                 IconButton.filled(
                   iconSize: 28,
                   onPressed:
@@ -619,6 +653,19 @@ class _ClipPlayerSheetState extends ConsumerState<_ClipPlayerSheet> {
                   icon: Icon(
                     _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
                   ),
+                ),
+                IconButton(
+                  iconSize: 28,
+                  tooltip: l10n.playerNextDetection,
+                  onPressed:
+                      widget.onNext == null
+                          ? null
+                          : () {
+                            final cb = widget.onNext!;
+                            Navigator.of(context).maybePop();
+                            cb();
+                          },
+                  icon: const Icon(Icons.skip_next_rounded),
                 ),
                 const SizedBox(width: 8),
                 Text(_fmt(_position), style: theme.textTheme.labelSmall),

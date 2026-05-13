@@ -638,6 +638,8 @@
   "statusInitializing": "Inicializace…",
   "tooltipBack": "Zpět",
   "tooltipClose": "Zavřít",
+  "playerPreviousDetection": "Předchozí detekce",
+  "playerNextDetection": "Další detekce",
   "tooltipSearch": "Hledat",
   "tooltipClearSearch": "Vymazat hledání",
   "tooltipDeleteSession": "Smazat relaci",
