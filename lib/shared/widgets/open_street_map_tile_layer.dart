@@ -57,9 +57,34 @@ class _OsmTileCacheManager extends CacheManager {
         Config(
           _key,
           stalePeriod: const Duration(days: 90),
-          maxNrOfCacheObjects: 4000,
+          maxNrOfCacheObjects: 6000,
         ),
       );
+}
+
+// ---------------------------------------------------------------------------
+// Public prefetch helpers
+// ---------------------------------------------------------------------------
+//
+// `prefetchOsmTile(url)` lets feature code (e.g. the Settings → Location
+// "Download offline maps" tile) seed the same on-disk tile cache that
+// flutter_map reads from. The shared singleton means a tile downloaded
+// here is immediately usable by every map widget without any wiring.
+//
+// Returns the size of the cached file in bytes (best-effort; 0 on
+// failure). Network errors are swallowed because the caller is
+// typically iterating thousands of tiles and a few bad ones shouldn't
+// abort the whole batch.
+// ---------------------------------------------------------------------------
+
+Future<int> prefetchOsmTile(String url) async {
+  try {
+    final file = await _OsmTileCacheManager().getSingleFile(url);
+    if (await file.exists()) return await file.length();
+  } catch (_) {
+    // Ignore — caller updates progress regardless.
+  }
+  return 0;
 }
 
 // ---------------------------------------------------------------------------

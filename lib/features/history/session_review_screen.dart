@@ -782,6 +782,7 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
 
     final exportFormat = ref.read(exportFormatProvider);
     final includeAudio = ref.read(includeAudioProvider);
+    final includeHtmlReport = ref.read(exportHtmlReportProvider);
     final taxonomy = ref.read(taxonomyServiceProvider).valueOrNull;
     final speciesLocale = ref.read(effectiveSpeciesLocaleProvider);
     // Legacy sessions persisted before SessionSettings.clipContextSeconds
@@ -808,6 +809,7 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
       metadata: await _buildExportMetadata(speciesLocale: speciesLocale),
       useAbsoluteSurveyTime:
           ref.read(timestampDisplayModeProvider) == 'absolute',
+      includeHtmlReport: includeHtmlReport,
     );
 
     if (exportPath == null) return;

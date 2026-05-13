@@ -5,7 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.11.4] - 2026-05-13
+## [0.11.5] - 2026-05-13
+
+### Added
+
+- **HTML report inside every export ZIP.** Sharing or saving a session now drops a self-contained `report.html` next to the CSV, JSON, audio clips, and GPX. Open it in any browser and you get a print-ready summary: header card with date, location, observer, transect length and totals; an interactive Leaflet map of the GPS track and detection markers (online); a card per detection with the Cornell taxonomy thumbnail, common and scientific names, the score as a coloured pill, both wallclock and relative time, your confirmation, any note you typed, and the original audio clip inline as a `<audio>` player; and a settings card showing the analysis parameters used. Species thumbnails and map tiles need a connection the first time the file is opened, but everything else — layout, audio, text, links to species pages — works fully offline. Toggle in **Settings → Export → Include HTML report** (on by default).
+- **Offline map tile download.** A new **Settings → Location → Download offline maps** action pre-caches OpenStreetMap tiles around your current GPS fix at 1 / 5 / 10 / 25 km radius for zoom levels 12–16. Useful before heading into surveys without signal: the Survey live map and the exported HTML report both read from the same on-disk cache, so what you download here is what you see in the field. Pre-download size estimate is shown before you commit, with a 50 MB ceiling to keep us a polite OSM citizen, and the downloader paces requests under the 2 req/s tile-usage policy with a Cancel button always available.
+- **Release tooling.** New `release/RELEASE.md` checklist documents the full Play Store release workflow (build, mapping/symbols capture, locale-specific release notes order, upload steps, post-release tagging) and `dev/build_release.dart` automates the AAB build with obfuscation + split debug info, copying artefacts into `release/V<version>/` and stubbing a `release_notes.txt` template from the latest CHANGELOG entry.
+
+
 
 ### Added
 

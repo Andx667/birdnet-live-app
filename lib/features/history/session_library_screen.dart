@@ -683,6 +683,7 @@ class _SessionLibraryScreenState extends ConsumerState<SessionLibraryScreen> {
   Future<void> _shareSession(LiveSession session) async {
     final exportFormat = ref.read(exportFormatProvider);
     final includeAudio = ref.read(includeAudioProvider);
+    final includeHtmlReport = ref.read(exportHtmlReportProvider);
     final taxonomy = ref.read(taxonomyServiceProvider).valueOrNull;
     final speciesLocale = ref.read(effectiveSpeciesLocaleProvider);
     final useAbsoluteSurveyTime =
@@ -694,6 +695,7 @@ class _SessionLibraryScreenState extends ConsumerState<SessionLibraryScreen> {
       taxonomy: taxonomy,
       speciesLocale: speciesLocale,
       useAbsoluteSurveyTime: useAbsoluteSurveyTime,
+      includeHtmlReport: includeHtmlReport,
     );
     if (exportPath == null) return;
     await Share.shareXFiles([XFile(exportPath)]);

@@ -90,6 +90,7 @@ abstract final class PrefKeys {
   // Export settings
   static const String exportFormat = 'export_format';
   static const String includeAudio = 'include_audio';
+  static const String exportHtmlReport = 'export_html_report';
 
   // Location / geo settings
   static const String useGps = 'use_gps';

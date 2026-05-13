@@ -221,6 +221,17 @@ final includeAudioProvider = StateNotifierProvider<BoolSettingNotifier, bool>((
   return BoolSettingNotifier(prefs, PrefKeys.includeAudio, true);
 });
 
+/// Bundle a self-contained `report.html` next to the audio inside the
+/// export ZIP (default true). The HTML opens in any browser, embeds the
+/// session metadata + clip players, and pulls species images / data
+/// from the BirdNET taxonomy API on the fly. Off-by-default for users
+/// who only want the raw table + audio.
+final exportHtmlReportProvider =
+    StateNotifierProvider<BoolSettingNotifier, bool>((ref) {
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return BoolSettingNotifier(prefs, PrefKeys.exportHtmlReport, true);
+    });
+
 // ---------------------------------------------------------------------------
 // Location / Geo Settings
 // ---------------------------------------------------------------------------

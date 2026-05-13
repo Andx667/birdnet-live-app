@@ -142,6 +142,10 @@ Manual coordinates used when GPS is disabled.
 
 Forces a fresh location fix instead of reusing the last value the app cached. The intuition: GPS lookups are cached per-screen so a setup screen does not block waiting for a satellite fix on every open, but that cache can be miles out of date if you have driven to a new spot since the last session. Tap this when you have moved and want the geo-filter to use *here*, not where you started the morning. The current cached coordinates are shown in the subtitle so you can verify what the app thinks your location is. If GPS cannot get a fix within ~10 seconds, the app falls back to the OS-provided last-known location and warns you with a snackbar so you know the value is stale.
 
+### Download offline maps
+
+Pre-caches OpenStreetMap tiles around your current GPS fix so the Survey live map and the exported HTML report still render a basemap when you're out of signal. The intuition: map tiles are streamed on demand by default, which is fine in town but useless in a forest valley with no cell service. Pick a radius (1, 5, 10, or 25 km) and the app downloads every tile in that square at zoom levels 12 through 16 — coarse enough to navigate, fine enough to read trails. The dialog shows an estimate (typically about 30 KB per tile) before you commit, and the request is rejected if it would exceed 50 MB to keep us a polite OpenStreetMap citizen. Downloads are paced under the 2 req/s tile-usage policy, and you can cancel mid-batch. Tiles land in the same on-disk cache that every map widget reads from, so a download done here is immediately visible everywhere — no extra wiring per feature.
+
 ### Species filter
 
 - **Off** — no geographic filtering
@@ -166,6 +170,10 @@ Choose one export target:
 ### Include audio files
 
 Include saved audio alongside the exported tables or metadata when supported by the export workflow.
+
+### Include HTML report
+
+When on, every export ZIP also contains a `report.html` file alongside the table, audio clips, and GPX. Open it in any web browser and you get a print-ready summary of the session: header card with date, location, observer, and totals; an interactive map of the GPS track and detection markers; a card per detection with the Cornell taxonomy thumbnail, names, score pill, your confirmation, any note you typed, and the original audio clip inline as a player; and the analysis settings used. The intuition: a CSV is great for analysis pipelines but useless for sharing with a non-technical collaborator or printing a quick field summary — the HTML report fills that gap with one tap. Species thumbnails and map tiles need a connection the first time the file is opened (they're fetched live from the BirdNET taxonomy API and OpenStreetMap), but everything else — text, layout, audio playback, links — works fully offline. Turn this off if you only need the raw data and want to keep the ZIP a few KB smaller.
 
 ## About
 

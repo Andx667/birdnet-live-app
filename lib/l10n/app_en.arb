@@ -1494,6 +1494,7 @@
   "settingsHelpGeoThreshold": "Minimum geographic-prior score for a species to pass the location filter. Lower values are more permissive (good for rare or migrating species); higher values stay strictly within typical ranges.",
   "settingsHelpExportFormat": "Format for exported session data. Raven is for use in Cornell Raven Pro; CSV opens in spreadsheets; JSON is easiest for programmatic processing; GPX writes the survey track and waypoints for use in mapping tools.",
   "settingsHelpIncludeAudioFiles": "When enabled, exported sessions include the saved audio files alongside the metadata table. Useful for archiving and re-analysis; results in much larger exports.",
+  "settingsHelpExportHtmlReport": "When enabled, the export ZIP also contains a self-contained `report.html`. Open it in any browser to see a styled session summary with map, per-detection cards, and inline audio players. Species images are loaded from the BirdNET taxonomy service when online.",
   "fileAnalysisNext": "Next",
   "@fileAnalysisNext": {
     "description": "Next button in wizard navigation"
@@ -2545,6 +2546,38 @@
   "settingsIncludeAudioFiles": "Include audio files",
   "@settingsIncludeAudioFiles": {
     "description": "Setting to include audio files in export"
+  },
+  "settingsOfflineMapDownload": "Download offline maps",
+  "@settingsOfflineMapDownload": {
+    "description": "Settings tile that lets the user pre-cache OSM tiles for an area"
+  },
+  "settingsOfflineMapDownloadSubtitle": "Pre-cache map tiles around your current location",
+  "@settingsOfflineMapDownloadSubtitle": {
+    "description": "Subtitle for the offline map download settings tile"
+  },
+  "settingsOfflineMapRadiusLabel": "Radius around current location",
+  "@settingsOfflineMapRadiusLabel": {
+    "description": "Label above the offline map radius slider"
+  },
+  "settingsOfflineMapEstimateLabel": "Estimated download size",
+  "@settingsOfflineMapEstimateLabel": {
+    "description": "Label for the offline map download size estimate"
+  },
+  "settingsOfflineMapInProgress": "Downloading map tiles\u2026",
+  "@settingsOfflineMapInProgress": {
+    "description": "Title of the offline map progress dialog"
+  },
+  "settingsOfflineMapDone": "Map tiles cached",
+  "@settingsOfflineMapDone": {
+    "description": "Snackbar after a successful offline map download"
+  },
+  "settingsOfflineMapTooLarge": "That radius would download too much data. Try a smaller area.",
+  "@settingsOfflineMapTooLarge": {
+    "description": "Warning when the requested area exceeds the polite-OSM cap"
+  },
+  "settingsExportHtmlReport": "Include HTML report",
+  "@settingsExportHtmlReport": {
+    "description": "Toggle: bundle a self-contained HTML report inside the export ZIP"
   },
   "settingsMicrophone": "Microphone",
   "@settingsMicrophone": {

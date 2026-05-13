@@ -10,6 +10,7 @@ import '../about/about_screen.dart';
 import '../audio/audio_providers.dart';
 import '../explore/explore_providers.dart';
 import '../spectrogram/color_maps.dart';
+import 'offline_map_download_tile.dart';
 
 // ---------------------------------------------------------------------------
 // Settings context — determines which settings are visible
@@ -523,6 +524,7 @@ class SettingsScreen extends ConsumerWidget {
                 ),
               ],
               if (ref.watch(useGpsProvider)) const _GpsRefreshTile(),
+              if (ref.watch(useGpsProvider)) const OfflineMapDownloadTile(),
               _ChoiceTile<String>(
                 title: l10n.settingsSpeciesFilter,
                 helpBody: l10n.settingsHelpSpeciesFilter,
@@ -577,6 +579,15 @@ class SettingsScreen extends ConsumerWidget {
                 value: ref.watch(includeAudioProvider),
                 onChanged:
                     (v) => ref.read(includeAudioProvider.notifier).set(v),
+              ),
+              SwitchListTile(
+                title: _TitleWithHelp(
+                  title: l10n.settingsExportHtmlReport,
+                  helpBody: l10n.settingsHelpExportHtmlReport,
+                ),
+                value: ref.watch(exportHtmlReportProvider),
+                onChanged:
+                    (v) => ref.read(exportHtmlReportProvider.notifier).set(v),
               ),
               const Divider(),
             ],
