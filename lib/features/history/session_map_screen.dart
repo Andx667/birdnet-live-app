@@ -63,20 +63,21 @@ class _SessionMapScreenState extends ConsumerState<SessionMapScreen> {
     final l10n = AppLocalizations.of(context)!;
     final agreed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.mapTileConsentTitle),
-        content: Text(l10n.mapTileConsentBody),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(l10n.mapTileConsentCancel),
+      builder:
+          (context) => AlertDialog(
+            title: Text(l10n.mapTileConsentTitle),
+            content: Text(l10n.mapTileConsentBody),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(l10n.mapTileConsentCancel),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text(l10n.mapTileConsentAllow),
+              ),
+            ],
           ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(l10n.mapTileConsentAllow),
-          ),
-        ],
-      ),
     );
     if (agreed == true) {
       final prefs = ref.read(sharedPreferencesProvider);
@@ -95,18 +96,16 @@ class _SessionMapScreenState extends ConsumerState<SessionMapScreen> {
       appBar: AppBar(
         title: Text(widget.locationName ?? l10n.recordingLocation),
       ),
-      body: _hasConsent == true
-          ? _buildMap(center, theme)
-          : _buildConsentPlaceholder(center, theme),
+      body:
+          _hasConsent == true
+              ? _buildMap(center, theme)
+              : _buildConsentPlaceholder(center, theme),
     );
   }
 
   Widget _buildMap(LatLng center, ThemeData theme) {
     return FlutterMap(
-      options: MapOptions(
-        initialCenter: center,
-        initialZoom: 13,
-      ),
+      options: MapOptions(initialCenter: center, initialZoom: 13),
       children: [
         buildOpenStreetMapTileLayer(),
         MarkerLayer(
@@ -125,14 +124,8 @@ class _SessionMapScreenState extends ConsumerState<SessionMapScreen> {
         ),
         RichAttributionWidget(
           attributions: [
-            TextSourceAttribution(
-              'OpenStreetMap (ODbL)',
-              onTap: () {},
-            ),
-            TextSourceAttribution(
-              'OpenStreetMap contributors',
-              onTap: () {},
-            ),
+            TextSourceAttribution('OpenStreetMap (ODbL)', onTap: () {}),
+            TextSourceAttribution('OpenStreetMap contributors', onTap: () {}),
           ],
         ),
       ],
@@ -147,8 +140,11 @@ class _SessionMapScreenState extends ConsumerState<SessionMapScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.map_outlined,
-                size: 64, color: theme.colorScheme.onSurface.withAlpha(100)),
+            Icon(
+              Icons.map_outlined,
+              size: 64,
+              color: theme.colorScheme.onSurface.withAlpha(100),
+            ),
             const SizedBox(height: 16),
             Text(
               '${widget.latitude.toStringAsFixed(4)}, '

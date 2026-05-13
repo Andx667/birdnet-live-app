@@ -749,7 +749,10 @@ String _buildMetadataRows(LiveSession session) {
       ));
     }
     if (w.precipitationMm != null) {
-      rows.add(('Precipitation', '${w.precipitationMm!.toStringAsFixed(1)} mm'));
+      rows.add((
+        'Precipitation',
+        '${w.precipitationMm!.toStringAsFixed(1)} mm',
+      ));
     }
     if (w.cloudCoverPercent != null) {
       rows.add(('Cloud cover', '${w.cloudCoverPercent} %'));

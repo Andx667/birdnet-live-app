@@ -600,14 +600,12 @@ class SettingsScreen extends ConsumerWidget {
                 subtitle: Text(l10n.settingsPrivacyAllowMapSubtitle),
                 value: ref.watch(privacyAllowMapProvider),
                 onChanged:
-                    (v) =>
-                        ref.read(privacyAllowMapProvider.notifier).set(v),
+                    (v) => ref.read(privacyAllowMapProvider.notifier).set(v),
               ),
               SwitchListTile(
                 title: _TitleWithHelp(
                   title: l10n.settingsPrivacyAllowReverseGeocoding,
-                  helpBody:
-                      l10n.settingsHelpPrivacyAllowReverseGeocoding,
+                  helpBody: l10n.settingsHelpPrivacyAllowReverseGeocoding,
                 ),
                 subtitle: Text(
                   l10n.settingsPrivacyAllowReverseGeocodingSubtitle,
@@ -1439,4 +1437,3 @@ class _ExportFormatChecklist extends ConsumerWidget {
     );
   }
 }
-
