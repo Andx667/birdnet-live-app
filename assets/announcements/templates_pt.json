@@ -1,6 +1,6 @@
 {
   "locale": "pt",
-  "version": 2,
+  "version": 3,
   "_comment": [
     "Modelos de frases para a função Announcements. Ver dev/announcements.md §3.",
     "Cada bucket tem uma lista `balanced` (sempre presente) e opcionalmente",
@@ -136,6 +136,22 @@
         "Pode ser {name} a regressar — vale a pena seguir.",
         "Correspondência fraca, mas talvez {name} de novo.",
         "Inclino-me para {name} novamente, sem certezas."
+      ]
+    },
+    "H_two": {
+      "balanced": [
+        "Dois ao mesmo tempo: {name1} e {name2}.",
+        "Ouço {name1} e {name2}.",
+        "{name1} e {name2}, juntos.",
+        "Duas aves: {name1} e {name2}.",
+        "Dueto: {name1} e {name2}."
+      ],
+      "chatty": [
+        "Belo dueto — {name1} e {name2} ao mesmo tempo.",
+        "Duas vozes agora: {name1} e {name2}.",
+        "{name1} e {name2} a cantar juntos.",
+        "Par interessante: {name1} e {name2}.",
+        "Dois de uma vez — {name1} e {name2} a responder-se."
       ]
     },
     "H_three": {

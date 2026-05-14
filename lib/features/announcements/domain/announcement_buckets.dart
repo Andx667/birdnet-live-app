@@ -13,7 +13,7 @@
 //   first / new (recent)    A             D              F
 //   again (not recent)      B             E              G
 //   streak ≥ 2              C             (folds into C — see §3.4)
-//   coalesced multi         H_three / H_many depending on count
+//   coalesced multi         H_two / H_three / H_many depending on count
 //
 // Bucket H is special: it is selected at the multi-species coalesce
 // layer above the per-detection engine, so this selector never returns
@@ -46,6 +46,9 @@ enum AnnouncementBucket {
   /// Low-confidence, recently heard ("Could be the Robin again.").
   g,
 
+  /// Multi-species coalesce, exactly two names ("Two birds at once: …").
+  hTwo,
+
   /// Multi-species coalesce, three names ("A few at once: …").
   hThree,
 
@@ -57,6 +60,8 @@ enum AnnouncementBucket {
   /// table in the loader.
   String get jsonKey {
     switch (this) {
+      case AnnouncementBucket.hTwo:
+        return 'H_two';
       case AnnouncementBucket.hThree:
         return 'H_three';
       case AnnouncementBucket.hMany:
@@ -86,8 +91,12 @@ AnnouncementBucket selectBucket(AnnouncementSignals s) {
 }
 
 /// Pick the multi-species coalesce bucket for a batch of [count] birds.
-/// Anything ≥ 4 collapses to [AnnouncementBucket.hMany] so the utterance
-/// stays short.
+/// Two-bird batches get their own [AnnouncementBucket.hTwo] templates
+/// (which only have `{name1}` and `{name2}` slots) so we never speak a
+/// half-filled "…A, B, and ." phrase. Anything ≥ 4 collapses to
+/// [AnnouncementBucket.hMany] so the utterance stays short.
 AnnouncementBucket selectCoalesceBucket(int count) {
-  return count >= 4 ? AnnouncementBucket.hMany : AnnouncementBucket.hThree;
+  if (count <= 2) return AnnouncementBucket.hTwo;
+  if (count == 3) return AnnouncementBucket.hThree;
+  return AnnouncementBucket.hMany;
 }

@@ -1,6 +1,6 @@
 {
   "locale": "es",
-  "version": 2,
+  "version": 3,
   "_comment": [
     "Plantillas de frases para la función Announcements. Ver dev/announcements.md §3.",
     "Cada bucket tiene una lista `balanced` (siempre presente) y opcionalmente",
@@ -136,6 +136,22 @@
         "Podría ser {name} regresando — atento por si acaso.",
         "Coincidencia débil, pero tal vez {name} otra vez.",
         "Me inclino por {name} de nuevo, sin certeza."
+      ]
+    },
+    "H_two": {
+      "balanced": [
+        "Dos a la vez: {name1} y {name2}.",
+        "Oigo {name1} y {name2}.",
+        "{name1} y {name2}, juntos.",
+        "Dos aves: {name1} y {name2}.",
+        "Dúo: {name1} y {name2}."
+      ],
+      "chatty": [
+        "Bonito dúo — {name1} y {name2} a la vez.",
+        "Dos voces ahora mismo: {name1} y {name2}.",
+        "{name1} y {name2} cantando juntos.",
+        "Par interesante: {name1} y {name2}.",
+        "Dos al mismo tiempo — {name1} y {name2}."
       ]
     },
     "H_three": {

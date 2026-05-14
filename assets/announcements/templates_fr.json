@@ -1,6 +1,6 @@
 {
   "locale": "fr",
-  "version": 2,
+  "version": 3,
   "_comment": [
     "Modèles de phrases pour la fonction Announcements. Voir dev/announcements.md §3.",
     "Chaque bucket a une liste `balanced` (toujours présente) et éventuellement",
@@ -138,6 +138,22 @@
         "Pourrait être {name} qui revient — à surveiller.",
         "Faible correspondance, mais peut-être {name} encore.",
         "Cela penche vers {name}, sans certitude."
+      ]
+    },
+    "H_two": {
+      "balanced": [
+        "Deux à la fois : {name1} et {name2}.",
+        "J'entends {name1} et {name2}.",
+        "{name1} et {name2}, ensemble.",
+        "Deux oiseaux : {name1} et {name2}.",
+        "Duo : {name1} et {name2}."
+      ],
+      "chatty": [
+        "Joli duo — {name1} et {name2} en même temps.",
+        "Deux voix en ce moment : {name1} et {name2}.",
+        "{name1} et {name2} chantent ensemble.",
+        "Paire intéressante : {name1} et {name2}.",
+        "Deux à la fois — {name1} et {name2} se répondent."
       ]
     },
     "H_three": {

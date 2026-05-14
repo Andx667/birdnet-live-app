@@ -74,8 +74,11 @@ void main() {
   });
 
   group('selectCoalesceBucket', () {
+    test('two names → H_two', () {
+      expect(selectCoalesceBucket(2), AnnouncementBucket.hTwo);
+    });
+
     test('three names → H_three', () {
-      expect(selectCoalesceBucket(2), AnnouncementBucket.hThree);
       expect(selectCoalesceBucket(3), AnnouncementBucket.hThree);
     });
 
@@ -91,7 +94,8 @@ void main() {
       expect(AnnouncementBucket.g.jsonKey, 'G');
     });
 
-    test('multi-species buckets use H_three / H_many', () {
+    test('multi-species buckets use H_two / H_three / H_many', () {
+      expect(AnnouncementBucket.hTwo.jsonKey, 'H_two');
       expect(AnnouncementBucket.hThree.jsonKey, 'H_three');
       expect(AnnouncementBucket.hMany.jsonKey, 'H_many');
     });

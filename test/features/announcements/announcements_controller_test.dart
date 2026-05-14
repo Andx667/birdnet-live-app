@@ -73,6 +73,9 @@ PhrasingEngine _engine() {
       'G': {
         'balanced': ['Could be {name}.'],
       },
+      'H_two': {
+        'balanced': ['{name1} and {name2}.'],
+      },
       'H_three': {
         'balanced': ['{name1}, {name2}, {name3}.'],
       },

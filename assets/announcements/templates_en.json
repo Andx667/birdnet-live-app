@@ -1,6 +1,6 @@
 {
   "locale": "en",
-  "version": 2,
+  "version": 3,
   "_comment": [
     "Phrasing templates for the Announcements feature. See dev/announcements.md §3.",
     "Each bucket has a `balanced` list (always present, used by Balanced verbosity)",
@@ -138,6 +138,22 @@
         "Could be {name} returning — worth keeping an ear on.",
         "Faint match, but might be {name} once more.",
         "Leaning toward {name} again, but not a strong call."
+      ]
+    },
+    "H_two": {
+      "balanced": [
+        "Two at once: {name1} and {name2}.",
+        "Hearing both {name1} and {name2}.",
+        "{name1} and {name2}, together.",
+        "Two birds in the mix: {name1} and {name2}.",
+        "Pair of calls: {name1} and {name2}."
+      ],
+      "chatty": [
+        "Two birds at the moment — {name1} and {name2}.",
+        "Hearing two right now: {name1} and {name2}, calling together.",
+        "Nice duet — {name1} and {name2} both in the mix.",
+        "{name1} and {name2}, sharing the stage.",
+        "A pair coming through — {name1} and {name2}."
       ]
     },
     "H_three": {

@@ -20,6 +20,7 @@ TemplateBundle _bundle({Map<String, List<String>>? overrides}) {
     'E': ['E1 {name}.'],
     'F': ['F1 {name}.', 'F2 {name}.'],
     'G': ['G1 {name}.'],
+    'H_two': ['Two: {name1} and {name2}.'],
     'H_three': ['Three: {name1}, {name2}, {name3}.'],
     'H_many': ['Many: {name1}, {name2}, {name3}, etc.'],
   };
@@ -111,15 +112,13 @@ void main() {
       expect(out, 'Three: Robin, Jay, Vireo.');
     });
 
-    test('two names render as a comma list (no empty {name3} slot)', () {
-      // Regression: H_three templates hard-code three {name*} slots, so
-      // routing a two-name batch through them produced "...A, B, and ."
+    test('two names use H_two template', () {
       final engine = PhrasingEngine(bundle: _bundle());
       final out = engine.speakMany(
         names: ['Robin', 'Jay'],
         verbosity: AnnouncementVerbosity.balanced,
       );
-      expect(out, 'Robin, Jay.');
+      expect(out, 'Two: Robin and Jay.');
     });
 
     test('four names route to H_many', () {

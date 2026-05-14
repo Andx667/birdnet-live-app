@@ -147,6 +147,22 @@
         "Eventuell zurück: {name} — würde ich nicht beschwören."
       ]
     },
+    "H_two": {
+      "balanced": [
+        "Zwei auf einmal: {name1} und {name2}.",
+        "Höre beide: {name1} und {name2}.",
+        "{name1} und {name2}, zusammen.",
+        "Zwei gleichzeitig: {name1} und {name2}.",
+        "Doppelt: {name1} und {name2}."
+      ],
+      "chatty": [
+        "Zwei Stimmen gerade — {name1} und {name2}.",
+        "Duett im Wald — {name1} und {name2} singen zusammen.",
+        "Schönes Paar: {name1} und {name2} gleichzeitig.",
+        "{name1} und {name2}, beide gerade aktiv.",
+        "Zwei auf einmal — {name1} und {name2} mischen mit."
+      ]
+    },
     "H_three": {
       "balanced": [
         "Mehrere auf einmal: {name1}, {name2}, {name3}.",

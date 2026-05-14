@@ -90,9 +90,10 @@ class PhrasingEngine {
   }
 
   /// Speak a coalesced multi-species batch. [names] should already be
-  /// trimmed / deduped by the caller; the first three names slot into
-  /// `{name1}` / `{name2}` / `{name3}` and any remainder is implicitly
-  /// summarised by the H_many template ("…and a few more.").
+  /// trimmed / deduped by the caller. The bucket is picked by count:
+  /// two names → `H_two` (slots `{name1}` / `{name2}`), three →
+  /// `H_three` (`{name1}` / `{name2}` / `{name3}`), four-plus →
+  /// `H_many` (three slots plus an implicit "and more").
   ///
   /// Falls back to a plain comma-joined list if no template is
   /// available (defensive — only happens with a corrupted bundle).
@@ -102,36 +103,26 @@ class PhrasingEngine {
   }) {
     if (names.isEmpty) return '';
     if (names.length == 1) {
-      return verbosity == AnnouncementVerbosity.minimal
-          ? '${names.first}.'
-          : '${names.first}.';
-    }
-    // Two-name batches don't fit the H_three / H_many templates (which
-    // hard-code three {name*} slots). Speaking them through those
-    // templates would either drop a name or leave a literal empty slot
-    // ("…A, B, and ."). Render them as a plain comma list instead;
-    // the locale-specific conjunction ("and" / "und" / "et") is left
-    // out on purpose so this fallback works in every locale without
-    // pulling in a translation table.
-    if (names.length == 2) {
-      return '${names[0]}, ${names[1]}.';
+      return '${names.first}.';
     }
     final bucket = selectCoalesceBucket(names.length);
+    final slots = bucket == AnnouncementBucket.hTwo ? 2 : 3;
     if (verbosity == AnnouncementVerbosity.minimal) {
       // Minimal mode never hedges; just list the names.
-      return '${names.take(3).join(', ')}.';
+      return '${names.take(slots).join(', ')}.';
     }
     final template = _pickTemplate(bucket, verbosity);
     if (template == null) {
-      return '${names.take(3).join(', ')}.';
+      return '${names.take(slots).join(', ')}.';
     }
-    // names.length is guaranteed ≥ 3 here, so name1/name2/name3 are
-    // always populated; the padding is defensive only.
-    final picks = names.take(3).toList();
-    return template
+    final picks = names.take(slots).toList();
+    var out = template
         .replaceAll('{name1}', picks[0])
-        .replaceAll('{name2}', picks[1])
-        .replaceAll('{name3}', picks[2]);
+        .replaceAll('{name2}', picks[1]);
+    if (slots >= 3) {
+      out = out.replaceAll('{name3}', picks[2]);
+    }
+    return out;
   }
 
   /// Reset the per-bucket anti-repeat memory. Called at session start

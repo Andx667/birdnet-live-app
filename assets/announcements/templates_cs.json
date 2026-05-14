@@ -1,6 +1,6 @@
 {
   "locale": "cs",
-  "version": 2,
+  "version": 3,
   "_comment": [
     "Vzory frází pro funkci Announcements. Viz dev/announcements.md §3.",
     "Každý bucket má seznam `balanced` (vždy přítomen) a volitelně seznam",
@@ -136,6 +136,22 @@
         "Mohl(a) by to být zase {name} — stojí za sledování.",
         "Slabá shoda, ale snad {name} podruhé.",
         "Spíš znovu {name}, jistota žádná."
+      ]
+    },
+    "H_two": {
+      "balanced": [
+        "Dva najednou: {name1} a {name2}.",
+        "Slyším {name1} a {name2}.",
+        "{name1} a {name2}, společně.",
+        "Dva ptáci: {name1} a {name2}.",
+        "Duet: {name1} a {name2}."
+      ],
+      "chatty": [
+        "Pěkné duo — {name1} a {name2} najednou.",
+        "Dva hlasy teď: {name1} a {name2}.",
+        "{name1} a {name2} zpívají spolu.",
+        "Zajímavá dvojice: {name1} a {name2}.",
+        "Dva současně — {name1} a {name2} si odpovídají."
       ]
     },
     "H_three": {

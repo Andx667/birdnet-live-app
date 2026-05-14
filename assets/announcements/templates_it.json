@@ -1,6 +1,6 @@
 {
   "locale": "it",
-  "version": 2,
+  "version": 3,
   "_comment": [
     "Modelli di frasi per la funzione Announcements. Vedi dev/announcements.md §3.",
     "Ogni bucket ha una lista `balanced` (sempre presente) e opzionalmente",
@@ -136,6 +136,22 @@
         "Potrebbe essere {name} di nuovo — vale la pena seguire.",
         "Corrispondenza debole, ma magari {name} di nuovo.",
         "Pendo ancora per {name}, senza certezza."
+      ]
+    },
+    "H_two": {
+      "balanced": [
+        "Due insieme: {name1} e {name2}.",
+        "Sento {name1} e {name2}.",
+        "{name1} e {name2}, insieme.",
+        "Due uccelli: {name1} e {name2}.",
+        "Duetto: {name1} e {name2}."
+      ],
+      "chatty": [
+        "Bel duetto — {name1} e {name2} insieme.",
+        "Due voci ora: {name1} e {name2}.",
+        "{name1} e {name2} cantano insieme.",
+        "Coppia interessante: {name1} e {name2}.",
+        "Due alla volta — {name1} e {name2} si rispondono."
       ]
     },
     "H_three": {
