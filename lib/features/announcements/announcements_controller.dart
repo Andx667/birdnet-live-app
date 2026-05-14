@@ -159,7 +159,7 @@ class _SpeciesState {
 }
 
 class AnnouncementsController {
-  final PhrasingEngine _engine;
+  PhrasingEngine _engine;
   final TtsEngine _tts;
   final RoutingService _routing;
   final RingBuffer _ringBuffer;
@@ -344,6 +344,14 @@ class AnnouncementsController {
     _utteranceTimestamps.clear();
     _bySpecies.clear();
     _engine.reset();
+  }
+
+  /// Swap in a freshly built phrasing engine — used by the sink when
+  /// the user changes their species/voice language mid-session and we
+  /// need to point at a different template bundle without resetting
+  /// throttling state.
+  void replaceEngine(PhrasingEngine engine) {
+    _engine = engine;
   }
 
   // ---- internals ----

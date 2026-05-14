@@ -42,6 +42,7 @@ import 'dart:ui' as ui;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../audio/audio_providers.dart';
+import '../../shared/providers/settings_providers.dart';
 import 'announcements_controller.dart';
 import 'announcements_providers.dart';
 import 'domain/announcement_presets.dart';
@@ -62,6 +63,7 @@ class AnnouncementsAlertSink {
   TtsEngine? _tts;
   RoutingService? _routing;
   Future<AnnouncementsController>? _initFuture;
+  String? _configuredLanguageTag;
 
   /// Submit a batch of detections for possible announcement. Returns
   /// the controller's outcome for the call (useful for tests and for
@@ -75,6 +77,7 @@ class AnnouncementsAlertSink {
         return AnnounceOutcome.disabled;
       }
       final controller = _controller ?? await _ensureController();
+      await _reconfigureIfLanguageChanged();
       final enriched = _enrichWithCommonness(batch);
       return await controller.announce(enriched, _readConfig());
     } catch (_) {
@@ -139,13 +142,14 @@ class AnnouncementsAlertSink {
     final tts = FlutterTtsEngine();
     final routing = AudioSessionRoutingService();
     await routing.init();
+    final languageTag = _resolveLanguageTag();
     await tts.configure(
-      languageTag: _resolveLanguageTag(),
+      languageTag: languageTag,
       rate: _ref.read(announcementsVoiceRateProvider),
       pitch: _ref.read(announcementsVoicePitchProvider),
     );
     final library = TemplateLibrary();
-    final bundle = await library.load(_resolveLanguageTag());
+    final bundle = await library.load(languageTag);
     final engine = PhrasingEngine(bundle: bundle);
     final controller = AnnouncementsController(
       engine: engine,
@@ -156,12 +160,49 @@ class AnnouncementsAlertSink {
     _tts = tts;
     _routing = routing;
     _controller = controller;
+    _configuredLanguageTag = languageTag;
     return controller;
   }
 
+  /// Reconfigure the TTS voice + template bundle when the user
+  /// changes their voice override or species name language at
+  /// runtime. Per-session throttling state is preserved.
+  Future<void> _reconfigureIfLanguageChanged() async {
+    final controller = _controller;
+    final tts = _tts;
+    if (controller == null || tts == null) return;
+    final tag = _resolveLanguageTag();
+    if (tag == _configuredLanguageTag) return;
+    try {
+      await tts.configure(
+        languageTag: tag,
+        rate: _ref.read(announcementsVoiceRateProvider),
+        pitch: _ref.read(announcementsVoicePitchProvider),
+      );
+      final bundle = await TemplateLibrary().load(tag);
+      controller.replaceEngine(PhrasingEngine(bundle: bundle));
+      _configuredLanguageTag = tag;
+    } catch (_) {
+      // Failure to reconfigure leaves the previous language in
+      // place — the controller stays functional in the old voice.
+    }
+  }
+
+  /// Resolve which locale to speak in. Priority:
+  ///
+  ///   1. Explicit Announcements voice locale override (Advanced
+  ///      setting) when the user has picked one.
+  ///   2. The species-name language — the names we're about to read
+  ///      out come from that locale, so the matching voice gives the
+  ///      correct pronunciation (an English voice reading "Amsel"
+  ///      sounds wrong).
+  ///   3. App UI locale.
+  ///   4. Platform locale.
   String _resolveLanguageTag() {
     final pref = _ref.read(announcementsVoiceLanguageProvider);
     if (pref.isNotEmpty) return pref;
+    final speciesLocale = _ref.read(effectiveSpeciesLocaleProvider);
+    if (speciesLocale.isNotEmpty) return speciesLocale;
     return ui.PlatformDispatcher.instance.locale.toLanguageTag();
   }
 

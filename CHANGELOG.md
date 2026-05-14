@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.11] - Unreleased
+
+### Fixed
+
+- **Announcement voice now follows the species-name language, not just the UI locale.** When the app was set to English UI but German species names, the controller still loaded the English voice and English template bundle and tried to pronounce names like *Amsel* or *Rotkehlchen* through an English synthesizer — the result sounded garbled. The resolution order is now: explicit voice override → species-name language → UI locale → platform locale, so the spoken language matches the names being read out. Changing either the species language or the voice override at runtime reconfigures the TTS engine and reloads the matching template bundle on the next detection batch, without resetting throttling state.
+
 ## [0.13.10] - Unreleased
 
 ### Changed
