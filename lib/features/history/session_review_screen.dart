@@ -40,7 +40,6 @@
 // =============================================================================
 
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
@@ -58,7 +57,6 @@ import 'package:birdnet_live/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -66,9 +64,12 @@ import '../../core/constants/app_constants.dart';
 import '../../core/theme/score_colors.dart';
 import '../../shared/models/gps_point.dart';
 import '../../shared/models/taxonomy_species.dart';
+import '../../shared/models/weather_snapshot.dart';
+import '../../shared/services/weather_service.dart';
 import '../../shared/providers/settings_providers.dart';
 import '../../shared/services/taxonomy_service.dart';
 import '../../shared/utils/timestamp_format.dart';
+import '../../shared/utils/weather_format.dart';
 import '../../shared/widgets/app_help_bottom_sheet.dart';
 import '../../shared/widgets/stat_chip.dart';
 import '../explore/explore_providers.dart';
@@ -78,6 +79,7 @@ import '../live/live_session.dart';
 import '../recording/audio_decoder.dart';
 import '../recording/native_audio_decoder.dart';
 import '../spectrogram/color_maps.dart';
+import 'export_metadata_helper.dart';
 import 'session_export.dart';
 import 'session_map_screen.dart';
 import 'widgets/clip_player_sheet.dart';
@@ -317,6 +319,7 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
     );
     _initAudio();
     _resolveLocation();
+    _resolveWeather();
     _loadSpeciesSort();
   }
 
@@ -438,6 +441,44 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
       widget.session.locationName = name;
       final repo = ref.read(sessionRepositoryProvider);
       await repo.save(widget.session);
+    }
+  }
+
+  /// Attempt to retrieve a weather snapshot for the session location.
+  ///
+  /// Mirrors [_resolveLocation]: if the session already has weather data
+  /// (captured at session-end or by the setup wizard), keep it untouched.
+  /// Otherwise — typically because the original capture failed (no
+  /// consent at the time, no internet, Open-Meteo unreachable) — try
+  /// once more now that the user has explicitly opened the review.
+  /// [WeatherService.fetch] honors the privacy gate and the persistent
+  /// 6 h cache, so this is cheap to call repeatedly. Successful results
+  /// are persisted so the next open is a no-op.
+  Future<void> _resolveWeather() async {
+    if (widget.session.weather != null) return;
+    final lat = widget.session.latitude;
+    final lon = widget.session.longitude;
+    if (lat == null || lon == null) return;
+
+    try {
+      final svc = ref.read(weatherServiceProvider);
+      final snap = await svc.fetch(
+        latitude: lat,
+        longitude: lon,
+        observedAt: widget.session.endTime ?? DateTime.now(),
+      );
+      if (snap != null && mounted) {
+        setState(() {
+          // No dedicated state field — _SummaryHeader reads
+          // widget.session.weather directly, so updating the model
+          // and triggering rebuild is enough.
+        });
+        widget.session.weather = snap;
+        final repo = ref.read(sessionRepositoryProvider);
+        await repo.save(widget.session);
+      }
+    } catch (_) {
+      // Best-effort retry — silently give up; we'll try again next open.
     }
   }
 
@@ -780,7 +821,7 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
     // Save pending changes before sharing so the export is up to date.
     if (_isDirty) await _save();
 
-    final exportFormat = ref.read(exportFormatProvider);
+    final exportFormats = ref.read(exportSelectionProvider);
     final includeAudio = ref.read(includeAudioProvider);
     final includeHtmlReport = ref.read(exportHtmlReportProvider);
     final taxonomy = ref.read(taxonomyServiceProvider).valueOrNull;
@@ -801,12 +842,15 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
 
     final exportPath = await buildSessionExport(
       widget.session,
-      format: exportFormat,
+      formats: exportFormats,
       includeAudio: includeAudio,
       taxonomy: taxonomy,
       speciesLocale: speciesLocale,
       clipContextSecondsOverride: clipContextOverride,
-      metadata: await _buildExportMetadata(speciesLocale: speciesLocale),
+      metadata: await buildSessionExportMetadata(
+        widget.session,
+        speciesLocale: speciesLocale,
+      ),
       useAbsoluteSurveyTime:
           ref.read(timestampDisplayModeProvider) == 'absolute',
       includeHtmlReport: includeHtmlReport,
@@ -814,65 +858,6 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
 
     if (exportPath == null) return;
     await Share.shareXFiles([XFile(exportPath)]);
-  }
-
-  /// Assembles the provenance metadata block embedded in JSON exports and
-  /// dropped as `<prefix>.metadata.json` inside ZIP bundles.
-  ///
-  /// Captures the app version + build, both ONNX model blocks from
-  /// `model_config.json`, and a snapshot of every SharedPreferences key/value
-  /// at export time. Failures (e.g. missing platform plugin in tests, model
-  /// asset moved) are non-fatal — we return a best-effort map and let the
-  /// export continue.
-  Future<Map<String, dynamic>> _buildExportMetadata({
-    required String speciesLocale,
-  }) async {
-    String? appVersion;
-    String? appBuildNumber;
-    String? appPackageName;
-    try {
-      final info = await PackageInfo.fromPlatform();
-      appVersion = info.version;
-      appBuildNumber = info.buildNumber;
-      appPackageName = info.packageName;
-    } catch (_) {
-      /* non-fatal */
-    }
-
-    Map<String, dynamic>? audioModel;
-    Map<String, dynamic>? geoModel;
-    try {
-      final raw = await rootBundle.loadString(
-        AppConstants.modelConfigAssetPath,
-      );
-      final decoded = json.decode(raw) as Map<String, dynamic>;
-      final am = decoded['audioModel'];
-      if (am is Map) audioModel = Map<String, dynamic>.from(am);
-      final gm = decoded['geoModel'];
-      if (gm is Map) geoModel = Map<String, dynamic>.from(gm);
-    } catch (_) {
-      /* non-fatal */
-    }
-
-    Map<String, dynamic>? prefsMap;
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final keys = prefs.getKeys().toList()..sort();
-      prefsMap = {for (final k in keys) k: prefs.get(k)};
-    } catch (_) {
-      /* non-fatal */
-    }
-
-    return buildExportMetadata(
-      appVersion: appVersion,
-      appBuildNumber: appBuildNumber,
-      appPackageName: appPackageName,
-      audioModel: audioModel,
-      geoModel: geoModel,
-      prefs: prefsMap,
-      speciesLocale: speciesLocale,
-      session: widget.session,
-    );
   }
 
   void _done() {

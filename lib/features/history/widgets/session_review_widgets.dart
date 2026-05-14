@@ -100,11 +100,24 @@ class _SummaryHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            dateStr,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withAlpha(178),
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Text(
+                  dateStr,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurface.withAlpha(178),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (session.weather != null) ...[
+                const SizedBox(width: 8),
+                _WeatherRow(weather: session.weather!),
+              ],
+            ],
           ),
           const SizedBox(height: 6),
           Row(
@@ -175,6 +188,10 @@ class _SummaryHeader extends StatelessWidget {
                 ),
               ],
             ),
+          if (session.weather != null) ...[
+            // Weather is rendered inline next to the date row above; no
+            // separate block here.
+          ],
           // ── Survey-specific info ─────────────────────────
           if (session.type == SessionType.survey) ...[
             if ((session.distanceMeters != null &&
@@ -294,8 +311,150 @@ class _StopReasonBanner extends StatelessWidget {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// Spectrogram Strip
+// Weather Row
 // ═════════════════════════════════════════════════════════════════════════════
+
+/// Compact weather summary shown under the location row in the session
+/// summary header. Tapping the row reveals a details dialog with all
+/// captured fields and the Open-Meteo attribution.
+class _WeatherRow extends StatelessWidget {
+  const _WeatherRow({required this.weather});
+
+  final WeatherSnapshot weather;
+
+  String _conditionLabel(AppLocalizations l10n, WeatherCondition c) {
+    switch (c) {
+      case WeatherCondition.clear:
+        return l10n.weatherCodeClear;
+      case WeatherCondition.partlyCloudy:
+        return l10n.weatherCodePartlyCloudy;
+      case WeatherCondition.cloudy:
+        return l10n.weatherCodeCloudy;
+      case WeatherCondition.fog:
+        return l10n.weatherCodeFog;
+      case WeatherCondition.drizzle:
+        return l10n.weatherCodeDrizzle;
+      case WeatherCondition.rain:
+        return l10n.weatherCodeRain;
+      case WeatherCondition.snow:
+        return l10n.weatherCodeSnow;
+      case WeatherCondition.thunder:
+        return l10n.weatherCodeThunder;
+      case WeatherCondition.unknown:
+        return l10n.weatherCodeUnknown;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final cond = weatherConditionFromCode(weather.weatherCode);
+    final tempLabel = formatTemperature(weather.temperatureC);
+
+    return InkWell(
+      onTap: () => _showDetails(context, l10n, cond),
+      borderRadius: BorderRadius.circular(4),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              weatherConditionIcon(cond),
+              size: 18,
+              color: theme.colorScheme.onSurface.withAlpha(178),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              tempLabel,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withAlpha(200),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showDetails(
+    BuildContext context,
+    AppLocalizations l10n,
+    WeatherCondition cond,
+  ) {
+    final theme = Theme.of(context);
+    showDialog<void>(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            title: Row(
+              children: [
+                Icon(weatherConditionIcon(cond)),
+                const SizedBox(width: 8),
+                Text(l10n.sessionWeatherSection),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _kv(l10n.sessionWeatherCondition, _conditionLabel(l10n, cond)),
+                _kv(
+                  l10n.sessionWeatherTemperature,
+                  formatTemperature(weather.temperatureC),
+                ),
+                _kv(
+                  l10n.sessionWeatherWind,
+                  formatWind(weather.windSpeedMs, weather.windDirectionDeg),
+                ),
+                _kv(
+                  l10n.sessionWeatherPrecipitation,
+                  formatPrecipitation(weather.precipitationMm),
+                ),
+                _kv(
+                  l10n.sessionWeatherCloudCover,
+                  formatCloudCover(weather.cloudCoverPercent),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  l10n.sessionWeatherAttribution,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withAlpha(140),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text(MaterialLocalizations.of(ctx).okButtonLabel),
+              ),
+            ],
+          ),
+    );
+  }
+
+  Widget _kv(String key, String value, {bool showKey = true}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (showKey)
+            SizedBox(
+              width: 110,
+              child: Text(
+                key,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+          Expanded(child: Text(value)),
+        ],
+      ),
+    );
+  }
+}
 
 /// Shows a scrollable spectrogram from a pre-computed image.
 ///

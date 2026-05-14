@@ -19,6 +19,8 @@ Sie können jede gespeicherte Sitzung auch über die [Sitzungsbibliothek] (sessi
 
 Session Review kombiniert Wiedergabe, Spektrogrammnavigation und eine Artenliste. Für Umfragesitzungen kann auch der zugeordnete Kontext angezeigt werden.
 
+Der Zusammenfassungs-Header oben trägt das Datum, einen Standort-Chip (Lat/Lon plus optionaler aufgelöster Ortsname, wenn **Einstellungen → Datenschutz → Ortsnamen-Suche erlauben** aktiv ist) und – wenn **Einstellungen → Datenschutz → Wetterabfrage erlauben** zum Aufnahmezeitpunkt aktiv war – eine **Wetterzeile** unter dem Standort, die die am Sitzungsende erfassten Bedingungen zeigt: ein Einzeiler wie *„20,1 °C · Leichter Regen · 3,2 m/s SW“* mit vorangestelltem Wettersymbol. Tippe die Zeile an, um ein kleines Sheet mit Temperatur, Wind, Niederschlag und Bewölkung sowie der Open-Meteo-Quellenangabe einzublenden. Derselbe Snapshot wandert in den JSON-Export, den Metadaten-Block und den HTML-Bericht.
+
 ### Artenliste
 
 Arten werden in erweiterbaren Reihen gruppiert. Sie können Erkennungen nach Arten untersuchen und sich durch die Aufzeichnung bewegen, während Sie sie überprüfen.

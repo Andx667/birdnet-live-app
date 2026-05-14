@@ -28,6 +28,7 @@ import 'package:material_design_icons_flutter/material_design_icons_flutter.dart
 
 import '../../core/theme/score_colors.dart';
 import '../../shared/providers/settings_providers.dart';
+import '../../shared/services/weather_service.dart';
 import '../../shared/widgets/app_help_bottom_sheet.dart';
 import '../../shared/widgets/confirm_destructive.dart';
 import '../audio/audio_providers.dart';
@@ -647,6 +648,16 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
       if (session != null && mounted) {
         final repo = ref.read(sessionRepositoryProvider);
         session.sessionNumber = await repo.nextSessionNumber(session.type);
+        if (session.latitude != null && session.longitude != null) {
+          try {
+            final svc = ref.read(weatherServiceProvider);
+            session.weather = await svc.fetch(
+              latitude: session.latitude!,
+              longitude: session.longitude!,
+              observedAt: session.endTime ?? DateTime.now(),
+            );
+          } catch (_) {}
+        }
         await repo.save(session);
         ref.invalidate(sessionListProvider);
 

@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Last updated:** April 2026
+**Last updated:** May 2026
 
 BirdNET Live respects your privacy. This document explains how the app handles your data.
 
@@ -25,6 +25,7 @@ BirdNET Live does **not** collect, transmit, or share any personal data. There i
 | Detection results | Species, confidence, timestamps | SQLite database |
 | GPS coordinates | Geotagging detections, survey tracks, geo-model predictions | SQLite database |
 | Session metadata | Session history, review, export | SQLite database |
+| Weather snapshot (optional) | One-shot temperature, precipitation, wind, cloud cover, weather code captured per session when **Allow weather lookup** is on | SQLite database |
 | App settings | User preferences | SharedPreferences |
 
 ### Bundled offline data
@@ -33,16 +34,23 @@ Species images, descriptions, and taxonomy data are **bundled in the app** and l
 
 ## External Resources
 
-The app may access the following external resources:
+The app may access the following external resources. Each resource is gated by an independent toggle under **Settings → Privacy**, and **all three are off by default** on a fresh install. Nothing leaves your device until you opt in.
 
-| Resource | Purpose | When |
-|----------|---------|------|
-| Map tiles (OpenTopoMap) | GPS track visualization in surveys | When opening a map view (user consent required) |
-| Reverse geocoding (OpenStreetMap Nominatim) | Resolving GPS coordinates into a human-readable place name (e.g. "Berlin, Germany") for session display | Once per session when a session with GPS coordinates is reviewed, the device is online, **and the user has approved OpenStreetMap network access** |
+| Resource | Purpose | Gated by | Sent on each request |
+|----------|---------|----------|----------------------|
+| Map tiles (OpenStreetMap) | Base map for the location picker, the Survey live map, the session map, and the offline-tile downloader | **Settings → Privacy → Allow map tiles** | Tile coordinates `(z, x, y)` only — no PII |
+| Reverse geocoding (OpenStreetMap Nominatim) | Resolving GPS coordinates into a human-readable place name (e.g. "Berlin, Germany") for session display | **Settings → Privacy → Allow place name lookup** | The session's latitude / longitude, plus a `BirdNET-Live/<version>` user-agent string |
+| Weather snapshot (Open-Meteo) | One-shot capture of local conditions (temperature, precipitation, wind, cloud cover, WMO weather code) at the recording coordinates and end time | **Settings → Privacy → Allow weather lookup** | The session's latitude / longitude and end timestamp, plus a `BirdNET-Live/<version>` user-agent string |
 
-Map tile requests are standard HTTPS GET requests to `tile.opentopomap.org`. Only tile coordinates are sent — no personally identifiable information.
+Map tile requests are standard HTTPS GET requests to `tile.openstreetmap.org`. Only tile coordinates are sent — no personally identifiable information.
 
-Reverse-geocoding requests send the session's latitude and longitude to `nominatim.openstreetmap.org` over HTTPS, together with a generic `BirdNETLive/<version>` user-agent string as required by the [Nominatim Usage Policy](https://operations.osmfoundation.org/policies/nominatim/). The resolved place name is stored locally with the session so a session is only geocoded once. Reverse geocoding is gated by the same one-time consent prompt as map tiles: until you approve OpenStreetMap network access (shown the first time you open a map view), no reverse-geocoding requests are made. No request is made if the session has no GPS coordinates or the device is offline. Revoking location permission at the OS level prevents new sessions from acquiring coordinates and therefore from being geocoded.
+Reverse-geocoding requests send the session's latitude and longitude to `nominatim.openstreetmap.org` over HTTPS, together with a generic `BirdNET-Live/<version>` user-agent string as required by the [Nominatim Usage Policy](https://operations.osmfoundation.org/policies/nominatim/). The resolved place name is stored locally with the session so a session is only geocoded once. No request is made if the session has no GPS coordinates or the device is offline.
+
+Weather requests send the session's latitude / longitude and end timestamp to `api.open-meteo.com` over HTTPS, together with a generic `BirdNET-Live/<version>` user-agent string. [Open-Meteo](https://open-meteo.com/) is a free service and requires neither an account nor an API key. The returned weather snapshot is stored locally with the session and is also written into the JSON export, the per-session `metadata.json` block, and the HTML report.
+
+**Retention:** none of the third-party services above is contacted to *upload* or *store* user data. Returned values (place name, weather snapshot) live only inside the local session record on your device, and travel only into export files you explicitly produce.
+
+**Revocation:** you can disable any of the three services at any time under **Settings → Privacy**. Existing locally-stored place names and weather snapshots remain attached to the sessions where they were captured; if you also want to remove that historical data, use **Settings → Danger Zone → Clear All Data**.
 
 **No other network requests are made.** The app functions fully offline.
 
@@ -58,11 +66,11 @@ GPS data is stored locally and included in exports only when you explicitly shar
 
 ## Data Export
 
-You can export session data in multiple formats (Raven selection tables, CSV, JSON, GPX). Exports are generated locally and shared via the system share sheet. The app does not upload export data to any server.
+You can export session data in multiple formats (Raven Selection Tables, CSV, JSON, GPX) and tick any combination of formats at once under **Settings → Export → Formats**; selected formats are bundled together inside a single ZIP next to any audio clips and the optional self-contained HTML report. Exports are generated locally and shared via the system share sheet. The app does not upload export data to any server.
 
 ## Data Deletion
 
-All app data (sessions, recordings, settings) can be deleted via **Settings > Danger Zone > Clear All Data**. Uninstalling the app removes all stored data.
+All app data (sessions, recordings, settings) can be deleted via **Settings → Danger Zone → Clear All Data**. Uninstalling the app removes all stored data.
 
 ## Contact
 

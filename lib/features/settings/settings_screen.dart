@@ -95,6 +95,12 @@ class SettingsScreen extends ConsumerWidget {
       SettingsContext.survey,
       SettingsContext.pointCount,
     },
+    'privacy': {
+      SettingsContext.live,
+      SettingsContext.survey,
+      SettingsContext.pointCount,
+      SettingsContext.fileAnalysis,
+    },
     'about': {
       SettingsContext.live,
       SettingsContext.survey,
@@ -558,19 +564,7 @@ class SettingsScreen extends ConsumerWidget {
                 title: l10n.settingsExport,
                 subtitle: l10n.settingsExportDescription,
               ),
-              _ChoiceTile<String>(
-                title: l10n.settingsExportFormat,
-                helpBody: l10n.settingsHelpExportFormat,
-                value: ref.watch(exportFormatProvider),
-                options: const {
-                  'raven': 'Raven Selection Table',
-                  'csv': 'CSV',
-                  'json': 'JSON',
-                  'gpx': 'GPX (track + waypoints)',
-                },
-                onChanged:
-                    (v) => ref.read(exportFormatProvider.notifier).set(v),
-              ),
+              _ExportFormatChecklist(),
               SwitchListTile(
                 title: _TitleWithHelp(
                   title: l10n.settingsIncludeAudioFiles,
@@ -588,6 +582,50 @@ class SettingsScreen extends ConsumerWidget {
                 value: ref.watch(exportHtmlReportProvider),
                 onChanged:
                     (v) => ref.read(exportHtmlReportProvider.notifier).set(v),
+              ),
+              const Divider(),
+            ],
+
+            // --- Privacy ---
+            if (_showSection('privacy')) ...[
+              _SectionHeader(
+                title: l10n.settingsPrivacy,
+                subtitle: l10n.settingsPrivacyDescription,
+              ),
+              SwitchListTile(
+                title: _TitleWithHelp(
+                  title: l10n.settingsPrivacyAllowMap,
+                  helpBody: l10n.settingsHelpPrivacyAllowMap,
+                ),
+                subtitle: Text(l10n.settingsPrivacyAllowMapSubtitle),
+                value: ref.watch(privacyAllowMapProvider),
+                onChanged:
+                    (v) => ref.read(privacyAllowMapProvider.notifier).set(v),
+              ),
+              SwitchListTile(
+                title: _TitleWithHelp(
+                  title: l10n.settingsPrivacyAllowReverseGeocoding,
+                  helpBody: l10n.settingsHelpPrivacyAllowReverseGeocoding,
+                ),
+                subtitle: Text(
+                  l10n.settingsPrivacyAllowReverseGeocodingSubtitle,
+                ),
+                value: ref.watch(privacyAllowReverseGeocodingProvider),
+                onChanged:
+                    (v) => ref
+                        .read(privacyAllowReverseGeocodingProvider.notifier)
+                        .set(v),
+              ),
+              SwitchListTile(
+                title: _TitleWithHelp(
+                  title: l10n.settingsPrivacyAllowWeather,
+                  helpBody: l10n.settingsHelpPrivacyAllowWeather,
+                ),
+                subtitle: Text(l10n.settingsPrivacyAllowWeatherSubtitle),
+                value: ref.watch(privacyAllowWeatherProvider),
+                onChanged:
+                    (v) =>
+                        ref.read(privacyAllowWeatherProvider.notifier).set(v),
               ),
               const Divider(),
             ],
@@ -1346,6 +1384,56 @@ class _GpsRefreshTileState extends ConsumerState<_GpsRefreshTile> {
               )
               : const Icon(Icons.refresh),
       onTap: _refreshing ? null : _refresh,
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// _ExportFormatChecklist — multi-select export formats (I2)
+// ---------------------------------------------------------------------------
+//
+// Replaces the single-choice export-format selector with a row of
+// independent toggles. The pipeline now bundles every enabled format
+// into the export ZIP, so users can grab Raven + CSV + JSON in one
+// share. Selection is persisted via [exportSelectionProvider]; an empty
+// selection silently falls back to `{raven}` so the export always
+// produces at least one document.
+// ---------------------------------------------------------------------------
+
+class _ExportFormatChecklist extends ConsumerWidget {
+  const _ExportFormatChecklist();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final selection = ref.watch(exportSelectionProvider);
+    const formats = <(String, String)>[
+      ('raven', 'Raven Selection Table'),
+      ('csv', 'CSV'),
+      ('json', 'JSON'),
+      ('gpx', 'GPX (track + waypoints)'),
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: _TitleWithHelp(
+            title: l10n.settingsExportFormat,
+            helpBody: l10n.settingsHelpExportFormat,
+          ),
+        ),
+        for (final fmt in formats)
+          CheckboxListTile(
+            dense: true,
+            title: Text(fmt.$2),
+            value: selection.contains(fmt.$1),
+            onChanged:
+                (v) => ref
+                    .read(exportSelectionProvider.notifier)
+                    .toggle(fmt.$1, v ?? false),
+          ),
+      ],
     );
   }
 }

@@ -1,6 +1,6 @@
 # Política de Privacidad
 
-**Última actualización:** Abril 2026
+**Última actualización:** Mayo 2026
 
 BirdNET Live respeta su privacidad. Este documento explica cómo la aplicación maneja sus datos.
 
@@ -11,13 +11,26 @@ Todo el análisis de audio ocurre **completamente en su dispositivo** mediante e
 BirdNET Live **no** recopila, transmite ni comparte datos personales o telemetría.
 - Audio, metadatos, GPS y configuraciones se guardan **localmente**.
 - Imágenes y datos taxonómicos de las especies están integrados de forma offline.
+- Cuando **Permitir consulta meteorológica** está activo, cada sesión guarda localmente una instantánea de temperatura, precipitación, viento, nubosidad y código del tiempo en sus coordenadas.
 
 ## Recursos Externos
-Solo se acede a internet si usted abre mapas con GPS explícitamente:
-- **OpenTopoMap / OSM Nominatim**: para mostrar mapas y resolver nombres de lugares. Todo mediante HTTPS estándar bajo el consentimiento del usuario. No se solicitan más redes.
+
+La app puede acceder a los siguientes servicios externos. Cada uno está controlado por un interruptor independiente bajo **Ajustes → Privacidad**, y **los tres están desactivados por defecto** en una instalación nueva. Nada sale de su dispositivo hasta que usted lo permita.
+
+| Recurso | Propósito | Interruptor | Enviado en cada solicitud |
+|---------|-----------|-------------|---------------------------|
+| Mosaicos de mapa (OpenStreetMap) | Mapa base para selector de ubicación, mapa en vivo de Survey, mapa de la sesión y descarga previa de mosaicos | **Ajustes → Privacidad → Permitir mosaicos de mapa** | Sólo coordenadas de mosaico `(z, x, y)` — sin PII |
+| Geocodificación inversa (OpenStreetMap Nominatim) | Resolver coordenadas GPS en un nombre de lugar (p. ej. “Madrid, España”) | **Ajustes → Privacidad → Permitir búsqueda de nombre de lugar** | Lat/lon de la sesión y un user-agent genérico `BirdNET-Live/<versión>` |
+| Instantánea meteorológica (Open-Meteo) | Captura puntual de las condiciones (temperatura, precipitación, viento, nubes, código WMO) en las coordenadas y la hora de fin | **Ajustes → Privacidad → Permitir consulta meteorológica** | Lat/lon de la sesión y marca temporal de fin, más un user-agent genérico `BirdNET-Live/<versión>` |
+
+Las solicitudes de mosaicos son HTTPS GET estándar a `tile.openstreetmap.org`; la geocodificación inversa va a `nominatim.openstreetmap.org` siguiendo la [Política de uso de Nominatim](https://operations.osmfoundation.org/policies/nominatim/); las consultas meteorológicas van a `api.open-meteo.com`. [Open-Meteo](https://open-meteo.com/) es un servicio gratuito y no requiere cuenta ni clave API.
+
+**Retención:** ninguno de estos servicios externos almacena datos del usuario. Los valores devueltos (nombre del lugar, instantánea meteorológica) viven sólo en el registro local de la sesión y sólo viajan a los archivos de exportación que usted produzca explícitamente.
+
+**Revocación:** puede desactivar cualquiera de los tres servicios en cualquier momento bajo **Ajustes → Privacidad**. Para borrar también los nombres de lugar e instantáneas meteorológicas históricos, use **Ajustes → Zona de Peligro → Borrar todos los datos**.
 
 ## GPS y Exportación de Datos
-El GPS se usa para filtros y encuestas de especies. Los datos son exportables manualmente (CSV, Raven, etc.) y no se suben a la nube.
+El GPS se usa para filtros y encuestas de especies. Bajo **Ajustes → Exportar → Formatos** puede marcar cualquier combinación de formatos (Raven Selection Table, CSV, JSON, GPX) y los exportados se agruparán en un único ZIP junto con los clips de audio y el informe HTML opcional. Los datos no se suben a la nube.
 Usted puede borrar todos sus datos permanentemente desde la sección **Configuración > Zona de Peligro**.
 
 ## Contacto

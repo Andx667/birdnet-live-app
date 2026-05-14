@@ -138,18 +138,36 @@ Zobrazuje se, když je aktivní režim filtru podle polohy.
 
 ## Export a synchronizace
 
-### Formát
+### Formáty
 
-Vyberte jeden cíl exportu:
+Zaškrtněte libovolnou kombinaci výstupních formátů — každé uložení / sdílení sbalí všechny vybrané formáty dohromady do jediného ZIPu. Pokud zvolíte jediný formát bez audioklipů a bez HTML reportu, dostanete kvůli zpětné kompatibilitě syrový soubor (např. `session.csv`):
 
-- Tabulka výběru Raven
-- CSV
-- JSON
-- GPX (trať + trasové body)
+- Tabulka výběru Raven — pro Cornell Raven Pro.
+- CSV — otevře se v jakémkoli tabulkovém procesoru.
+- JSON — nejvhodnější pro programové zpracování; nese kompletní metadata relace.
+- GPX — trasa a trasové body pro mapové aplikace (smysluplné jen, když bylo aktivní GPS).
+
+Intuice: spousta workflow potřebuje více formátů zároveň — CSV do tabulky, Raven tabulku pro desktopový review a JSON pro analytický skript. Dříve to znamenalo exportovat tutéž relaci třikrát; teď zaškrtnete všechny tři najednou a putují do ZIPu společně.
 
 ### Zahrnout zvukové soubory
 
 Zahrňte uložený zvuk vedle exportovaných tabulek nebo metadat, pokud to pracovní postup exportu podporuje.
+
+## Soukromí
+
+Tato sekce řídí, **které externí služby smí BirdNET Live kontaktovat vaším jménem**. Samotná inference běží zcela na vašem zařízení — tyto přepínače řídí pouze volitelné síťové funkce. Všechny tři přepínače jsou při čisté instalaci **standardně vypnuté**; nic se nenahraje, dokud to neschválíte. Intuice: každý přepínač pokrývá právě jednu službu a jeden konkrétní přínos, takže si zapnete přesně to, co potřebujete.
+
+### Povolit mapové dlaždice
+
+Vyžadováno pro každou interaktivní mapu (výběr polohy, živá mapa Survey, mapa relace, předstahování dlaždic). Když je zapnuto, mapové prvky stahují rastrové dlaždice z veřejných serverů **OpenStreetMap**; požadavky o souřadnice dlaždic prozrazují, kterou oblast světa právě prohlížíte. Když je vypnuto, všechny mapové obrazovky zobrazí zástupný panel.
+
+### Povolit vyhledávání názvu místa
+
+Když je zapnuto, aplikace odesílá vaše souřadnice službě **Nominatim** OpenStreetMap, aby získala krátký název místa (např. „Berlín, Německo“) zobrazený vedle relace v Knihovně relací a v Přehledu relace. Intuice: numerické souřadnice jsou přesné, ale špatně se čtou ve dlouhém seznamu — název místa zlistuje seznam srozumitelný na první pohled. Když je vypnuto, ukazují se jen hrubé souřadnice a Nominatim nikdy není kontaktován.
+
+### Povolit vyhledávání počasí
+
+Když je zapnuto, každá uložená relace zachytí jednorázovou momentku místních podmínek (teplota, srážky, vítr, oblačnost) na souřadnicích záznamu a v čase ukončení prostřednictvím **Open-Meteo**. Momentka se objeví v Přehledu relace pod řádkem polohy a propíše se do JSON exportu, metadatového bloku a HTML reportu. Intuice: počasí je jeden z nejsilnějších prediktorů ptačí aktivity; jeho automatický záznam dělá z každé relace úplnější dokument. Open-Meteo je zdarma a nevyžaduje účet ani API klíč. Když je vypnuto, žádná data o počasí se nestahují ani neukládají.
 
 ## O
 

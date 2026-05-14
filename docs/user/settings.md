@@ -158,14 +158,16 @@ Appears when a location-based filter mode is active.
 
 ## Export & Sync
 
-### Format
+### Formats
 
-Choose one export target:
+Tick any combination of export formats — every save / share will bundle all the selected formats together inside a single ZIP. Pick a single format with no audio clips and no HTML report and you'll get a raw file (e.g. `session.csv`) instead of a ZIP, for backwards compatibility:
 
-- Raven Selection Table
-- CSV
-- JSON
-- GPX (track + waypoints)
+- Raven Selection Table — for use in Cornell Raven Pro.
+- CSV — opens in any spreadsheet.
+- JSON — easiest for programmatic processing; carries the full per-session metadata.
+- GPX — track and waypoints for use in mapping tools (only meaningful when GPS was on).
+
+The intuition: many workflows need more than one format at the same time — a CSV for the spreadsheet, a Raven table for the desktop reviewer, and a JSON for the analysis script. Untangling that with a single-format toggle used to mean exporting the same session three times. Now you tick all three once and they ride together in the ZIP.
 
 ### Include audio files
 
@@ -174,6 +176,22 @@ Include saved audio alongside the exported tables or metadata when supported by 
 ### Include HTML report
 
 When on, every export ZIP also contains a `report.html` file alongside the table, audio clips, and GPX. Open it in any web browser and you get a print-ready summary of the session: header card with date, location, observer, and totals; an interactive map of the GPS track and detection markers; a card per detection with the Cornell taxonomy thumbnail, names, score pill, your confirmation, any note you typed, and the original audio clip inline as a player; and the analysis settings used. The intuition: a CSV is great for analysis pipelines but useless for sharing with a non-technical collaborator or printing a quick field summary — the HTML report fills that gap with one tap. Species thumbnails and map tiles need a connection the first time the file is opened (they're fetched live from the BirdNET taxonomy API and OpenStreetMap), but everything else — text, layout, audio playback, links — works fully offline. Turn this off if you only need the raw data and want to keep the ZIP a few KB smaller.
+
+## Privacy
+
+This section controls **which third-party services BirdNET Live may contact on your behalf**. Inference itself runs entirely on your device — these toggles only govern optional network features that enrich the experience. All three toggles are **off by default** on a fresh install; nothing reaches out until you say so. The intuition: each toggle is scoped to one concrete service and one concrete benefit, so you can opt into exactly what's useful to your workflow and nothing else.
+
+### Allow map tiles
+
+Required for any interactive map in the app (the location picker, the Survey live map, the session map, and the map tiles inside the offline-tile downloader). When on, map widgets fetch raster tiles from the public **OpenStreetMap** servers; tile-coordinate requests reveal which area of the world you're viewing. When off, every map screen falls back to a placeholder card so the rest of the app still works without network leakage.
+
+### Allow place name lookup
+
+When on, the app sends your recorded coordinates to **OpenStreetMap's Nominatim** service to resolve a short place name (e.g. *"Berlin, Germany"*) that is shown next to the session in Session Library and Session Review. The intuition: numeric coordinates are precise but hard to scan when scrolling through a long list of sessions — a place name turns the list into something you can read at a glance. When off, sessions show the raw lat/lon only, and Nominatim is never contacted.
+
+### Allow weather lookup
+
+When on, every saved session captures a one-shot snapshot of local conditions (temperature, precipitation, wind, cloud cover) at the recording coordinates and end time via **Open-Meteo**. The snapshot lands in Session Review under the location row and is mirrored into the JSON export, the per-session metadata block, and the HTML report. The intuition: weather is one of the strongest predictors of bird activity, and capturing it automatically — without you having to remember to check a separate app — turns every session into a more complete record. Open-Meteo is a free service and requires neither an account nor an API key. When off, no weather data is fetched or stored.
 
 ## About
 

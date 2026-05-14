@@ -138,18 +138,36 @@ Apparaît lorsqu'un mode de filtrage basé sur l'emplacement est actif.
 
 ## Exporter et synchroniser
 
-###Format
+### Formats
 
-Choisissez une cible d'exportation :
+Cochez n'importe quelle combinaison de formats d'export — chaque enregistrement / partage regroupera tous les formats sélectionnés ensemble dans un unique ZIP. Si vous choisissez un seul format sans clips audio et sans rapport HTML, vous obtiendrez un fichier brut (p. ex. `session.csv`) par rétrocompatibilité :
 
-- Tableau de sélection du Corbeau
-- CSV
--JSON
-- GPX (trace + waypoints)
+- Table de sélection Raven — pour Cornell Raven Pro.
+- CSV — s'ouvre dans n'importe quel tableur.
+- JSON — idéal pour le traitement programmatique ; contient les métadonnées complètes de la session.
+- GPX — trace et waypoints pour les applis cartographiques (utile uniquement si le GPS était actif).
+
+L'intuition : beaucoup de workflows ont besoin de plusieurs formats simultanément — un CSV pour le tableur, une table Raven pour le relecteur bureau et un JSON pour le script d'analyse. Avant, il fallait exporter la même session trois fois ; vous cochez maintenant les trois en une seule fois et ils voyagent ensemble dans le ZIP.
 
 ### Inclure les fichiers audio
 
 Incluez l'audio enregistré aux côtés des tables ou métadonnées exportées lorsque cela est pris en charge par le flux de travail d'exportation.
+
+## Confidentialité
+
+Cette section contrôle **quels services tiers BirdNET Live peut contacter en votre nom**. L'inférence elle-même s'exécute entièrement sur votre appareil — ces interrupteurs ne pilotent que des fonctions réseau optionnelles. Les trois interrupteurs sont **désactivés par défaut** sur une nouvelle installation ; rien ne sort tant que vous ne l'avez pas autorisé. L'intuition : chaque interrupteur cible un service concret et un bénéfice concret, pour que vous activiez exactement ce dont vous avez besoin.
+
+### Autoriser les tuiles de carte
+
+Requis pour toute carte interactive (sélecteur de position, carte live de Survey, carte de la session, pré-téléchargement de tuiles). Quand actif, les widgets carte demandent des tuiles raster aux serveurs publics **OpenStreetMap** ; les requêtes de coordonnées de tuile révèlent quelle zone du monde vous regardez. Quand désactivé, tous les écrans cartographiques affichent un panneau d'attente.
+
+### Autoriser la recherche de nom de lieu
+
+Quand actif, l'appli envoie vos coordonnées enregistrées au service **Nominatim** d'OpenStreetMap pour résoudre un nom de lieu court (p. ex. «Paris, France») affiché à côté de la session dans la Bibliothèque des sessions et dans la Revue de session. L'intuition : les coordonnées numériques sont précises mais difficiles à lire dans une longue liste ; un nom de lieu la rend lisible d'un coup d'œil. Quand désactivé, seules les coordonnées brutes sont affichées et Nominatim n'est jamais contacté.
+
+### Autoriser la requête météo
+
+Quand actif, chaque session enregistrée capture un instantané unique des conditions locales (température, précipitations, vent, nuages) aux coordonnées et à l'heure de fin via **Open-Meteo**. L'instantané apparaît dans la Revue de session sous la ligne de localisation et est repris dans l'export JSON, le bloc de métadonnées et le rapport HTML. L'intuition : la météo est l'un des prédicteurs les plus forts de l'activité des oiseaux, et la capturer automatiquement fait de chaque session un dossier plus complet. Open-Meteo est gratuit et ne nécessite ni compte ni clé API. Quand désactivé, aucune donnée météo n'est récupérée ni stockée.
 
 ## À propos
 

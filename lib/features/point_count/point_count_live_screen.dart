@@ -33,6 +33,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/services/wakelock_service.dart';
 import '../../shared/providers/settings_providers.dart';
+import '../../shared/services/weather_service.dart';
 import '../../shared/widgets/app_help_bottom_sheet.dart';
 import '../../shared/widgets/confirm_destructive.dart';
 import '../audio/audio_capture_service.dart';
@@ -275,6 +276,17 @@ class _PointCountLiveScreenState extends ConsumerState<PointCountLiveScreen>
         } catch (_) {
           // Location unavailable.
         }
+      }
+
+      if (session.latitude != null && session.longitude != null) {
+        try {
+          final svc = ref.read(weatherServiceProvider);
+          session.weather = await svc.fetch(
+            latitude: session.latitude!,
+            longitude: session.longitude!,
+            observedAt: session.endTime ?? DateTime.now(),
+          );
+        } catch (_) {}
       }
 
       await repo.save(session);

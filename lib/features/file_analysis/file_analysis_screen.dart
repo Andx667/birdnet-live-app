@@ -39,6 +39,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../../core/services/reverse_geocoding_service.dart';
 import '../../shared/providers/settings_providers.dart';
+import '../../shared/services/weather_service.dart';
 import '../../shared/widgets/app_help_bottom_sheet.dart';
 import '../../shared/widgets/confirm_destructive.dart';
 import '../../shared/widgets/map_picker_screen.dart';
@@ -95,23 +96,24 @@ class _FileAnalysisScreenState extends ConsumerState<FileAnalysisScreen> {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      builder: (_) => AppHelpBottomSheet(
-        title: l10n.fileAnalysisHelpTitle,
-        sections: [
-          AppHelpSection(
-            icon: Icons.audio_file_rounded,
-            body: l10n.fileAnalysisHelpSteps,
+      builder:
+          (_) => AppHelpBottomSheet(
+            title: l10n.fileAnalysisHelpTitle,
+            sections: [
+              AppHelpSection(
+                icon: Icons.audio_file_rounded,
+                body: l10n.fileAnalysisHelpSteps,
+              ),
+              AppHelpSection(
+                icon: Icons.location_on_rounded,
+                body: l10n.fileAnalysisHelpLocation,
+              ),
+              AppHelpSection(
+                icon: Icons.play_arrow_rounded,
+                body: l10n.fileAnalysisHelpAnalyze,
+              ),
+            ],
           ),
-          AppHelpSection(
-            icon: Icons.location_on_rounded,
-            body: l10n.fileAnalysisHelpLocation,
-          ),
-          AppHelpSection(
-            icon: Icons.play_arrow_rounded,
-            body: l10n.fileAnalysisHelpAnalyze,
-          ),
-        ],
-      ),
     );
   }
 
@@ -321,6 +323,16 @@ class _FileAnalysisScreenState extends ConsumerState<FileAnalysisScreen> {
       // Save session and navigate to review.
       final repo = ref.read(sessionRepositoryProvider);
       session.sessionNumber = await repo.nextSessionNumber(session.type);
+      if (session.latitude != null && session.longitude != null) {
+        try {
+          final svc = ref.read(weatherServiceProvider);
+          session.weather = await svc.fetch(
+            latitude: session.latitude!,
+            longitude: session.longitude!,
+            observedAt: session.endTime ?? DateTime.now(),
+          );
+        } catch (_) {}
+      }
       await repo.save(session);
       ref.invalidate(sessionListProvider);
 
@@ -387,13 +399,14 @@ class _FileAnalysisScreenState extends ConsumerState<FileAnalysisScreen> {
         title: l10n.fileAnalysisMode,
         step: _currentStep,
         totalSteps: 4,
-        leading: isAnalyzing
-            ? IconButton(
-                icon: const Icon(Icons.close),
-                tooltip: l10n.tooltipCancelAnalysis,
-                onPressed: _confirmCancel,
-              )
-            : null,
+        leading:
+            isAnalyzing
+                ? IconButton(
+                  icon: const Icon(Icons.close),
+                  tooltip: l10n.tooltipCancelAnalysis,
+                  onPressed: _confirmCancel,
+                )
+                : null,
         actions: [
           IconButton(
             icon: const Icon(Icons.help_outline_rounded, size: 20),
@@ -405,9 +418,10 @@ class _FileAnalysisScreenState extends ConsumerState<FileAnalysisScreen> {
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute<void>(
-                  builder: (_) => const SettingsScreen(
-                    settingsContext: SettingsContext.fileAnalysis,
-                  ),
+                  builder:
+                      (_) => const SettingsScreen(
+                        settingsContext: SettingsContext.fileAnalysis,
+                      ),
                 ),
               );
             },
@@ -416,9 +430,10 @@ class _FileAnalysisScreenState extends ConsumerState<FileAnalysisScreen> {
         ],
         showFooter: !isAnalyzing && analysisState != FileAnalysisState.complete,
         onBack: _currentStep > 0 ? () => _goToStep(_currentStep - 1) : null,
-        onNext: _currentStep == 3
-            ? _startAnalysis
-            : (_canProceed ? () => _goToStep(_currentStep + 1) : null),
+        onNext:
+            _currentStep == 3
+                ? _startAnalysis
+                : (_canProceed ? () => _goToStep(_currentStep + 1) : null),
         backLabel: l10n.fileAnalysisBack,
         nextLabel:
             _currentStep == 3 ? l10n.fileAnalysisStart : l10n.fileAnalysisNext,
@@ -462,14 +477,14 @@ class _FileAnalysisScreenState extends ConsumerState<FileAnalysisScreen> {
               sensitivity: _sensitivity,
               confidenceThreshold: _confidenceThreshold,
               speciesFilterMode: _speciesFilterMode,
-              onWindowDurationChanged: (v) =>
-                  setState(() => _windowDuration = v),
+              onWindowDurationChanged:
+                  (v) => setState(() => _windowDuration = v),
               onOverlapChanged: (v) => setState(() => _overlap = v),
               onSensitivityChanged: (v) => setState(() => _sensitivity = v),
-              onConfidenceChanged: (v) =>
-                  setState(() => _confidenceThreshold = v),
-              onFilterModeChanged: (v) =>
-                  setState(() => _speciesFilterMode = v),
+              onConfidenceChanged:
+                  (v) => setState(() => _confidenceThreshold = v),
+              onFilterModeChanged:
+                  (v) => setState(() => _speciesFilterMode = v),
             ),
             _AnalysisStep(
               state: analysisState,
@@ -534,9 +549,11 @@ class _FileStep extends StatelessWidget {
           FilledButton.icon(
             onPressed: isInspecting ? null : onPickFile,
             icon: const Icon(Icons.audio_file_rounded),
-            label: Text(fileInfo == null
-                ? l10n.fileAnalysisPickButton
-                : l10n.fileAnalysisChangeFile),
+            label: Text(
+              fileInfo == null
+                  ? l10n.fileAnalysisPickButton
+                  : l10n.fileAnalysisChangeFile,
+            ),
           ),
 
           if (isInspecting) ...[
@@ -745,10 +762,7 @@ class _LocationStep extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (locationName != null) ...[
-                        Text(
-                          locationName!,
-                          style: theme.textTheme.titleMedium,
-                        ),
+                        Text(locationName!, style: theme.textTheme.titleMedium),
                         const SizedBox(height: 4),
                       ],
                       Text(
@@ -780,7 +794,9 @@ class _LocationStep extends StatelessWidget {
                   child: TextField(
                     controller: latController,
                     keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true, signed: true),
+                      decimal: true,
+                      signed: true,
+                    ),
                     decoration: InputDecoration(
                       labelText: l10n.fileAnalysisLatitude,
                       border: const OutlineInputBorder(),
@@ -793,7 +809,9 @@ class _LocationStep extends StatelessWidget {
                   child: TextField(
                     controller: lonController,
                     keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true, signed: true),
+                      decimal: true,
+                      signed: true,
+                    ),
                     decoration: InputDecoration(
                       labelText: l10n.fileAnalysisLongitude,
                       border: const OutlineInputBorder(),
@@ -808,10 +826,11 @@ class _LocationStep extends StatelessWidget {
               onPressed: () async {
                 final result = await Navigator.of(context).push<LatLng>(
                   MaterialPageRoute<LatLng>(
-                    builder: (_) => MapPickerScreen(
-                      initialLat: double.tryParse(latController.text),
-                      initialLon: double.tryParse(lonController.text),
-                    ),
+                    builder:
+                        (_) => MapPickerScreen(
+                          initialLat: double.tryParse(latController.text),
+                          initialLon: double.tryParse(lonController.text),
+                        ),
                   ),
                 );
                 if (result != null) {
@@ -864,9 +883,10 @@ class _DatePickerTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final now = DateTime.now();
-    final label = selectedDate != null
-        ? '${selectedDate!.year}-${selectedDate!.month.toString().padLeft(2, '0')}-${selectedDate!.day.toString().padLeft(2, '0')}'
-        : l10n.fileAnalysisDateToday;
+    final label =
+        selectedDate != null
+            ? '${selectedDate!.year}-${selectedDate!.month.toString().padLeft(2, '0')}-${selectedDate!.day.toString().padLeft(2, '0')}'
+            : l10n.fileAnalysisDateToday;
 
     return Row(
       children: [
@@ -1176,7 +1196,8 @@ class _AnalysisStepState extends State<_AnalysisStep> {
     final remainingMs = (estimatedTotalMs - elapsed.inMilliseconds).round();
     if (remainingMs <= 0) return null;
     return l10n.fileAnalysisEtaRemaining(
-        _formatRemaining(Duration(milliseconds: remainingMs)));
+      _formatRemaining(Duration(milliseconds: remainingMs)),
+    );
   }
 
   @override
@@ -1260,21 +1281,23 @@ class _AnalysisStepState extends State<_AnalysisStep> {
             ),
 
             // ── ETA ───────────────────────────────────────────
-            Builder(builder: (_) {
-              final eta = _etaLabel(l10n);
-              if (eta == null) return const SizedBox(height: 24);
-              return Padding(
-                padding: const EdgeInsets.only(top: 4, bottom: 24),
-                child: Center(
-                  child: Text(
-                    eta,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+            Builder(
+              builder: (_) {
+                final eta = _etaLabel(l10n);
+                if (eta == null) return const SizedBox(height: 24);
+                return Padding(
+                  padding: const EdgeInsets.only(top: 4, bottom: 24),
+                  child: Center(
+                    child: Text(
+                      eta,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ),
-                ),
-              );
-            }),
+                );
+              },
+            ),
 
             // ── Stats cards ───────────────────────────────────
             Row(
@@ -1318,8 +1341,10 @@ class _AnalysisStepState extends State<_AnalysisStep> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.error_outline,
-                            color: theme.colorScheme.onErrorContainer),
+                        Icon(
+                          Icons.error_outline,
+                          color: theme.colorScheme.onErrorContainer,
+                        ),
                         const SizedBox(width: 8),
                         Text(
                           l10n.fileAnalysisError,

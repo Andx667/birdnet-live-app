@@ -15,6 +15,8 @@
 
 import 'package:intl/intl.dart';
 
+import '../../shared/models/weather_snapshot.dart';
+
 import '../../shared/models/gps_point.dart';
 import '../inference/models/detection.dart';
 import '../inference/models/species.dart';
@@ -490,6 +492,7 @@ class LiveSession {
     this.observerName,
     this.stopReason,
     this.stopReasonValue,
+    this.weather,
     int? recordedDurationSeconds,
   }) : detections = detections ?? [],
        annotations = annotations ?? [],
@@ -574,6 +577,14 @@ class LiveSession {
   /// [SessionStopReason.lowBattery], or duration hours for
   /// [SessionStopReason.maxDuration]). `null` when not applicable.
   num? stopReasonValue;
+
+  /// Optional weather snapshot captured once at session save time when
+  /// the user has consented to weather lookups (see
+  /// `PrefKeys.privacyAllowWeather`) and a recording location is
+  /// available. `null` for legacy sessions, sessions without a
+  /// location, or when the Open-Meteo lookup failed; the UI must
+  /// degrade gracefully.
+  WeatherSnapshot? weather;
 
   /// Persisted total of seconds during which the session was actively
   /// recording, **excluding** any pause/resume gaps. `null` for legacy
@@ -730,7 +741,7 @@ class LiveSession {
       stopReasonValue: json['stopReasonValue'] as num?,
       recordedDurationSeconds:
           (json['recordedDurationSeconds'] as num?)?.toInt(),
-    );
+    )..weather = WeatherSnapshot.fromJson(json['weather']);
   }
 
   /// Serialize to JSON.
@@ -758,6 +769,7 @@ class LiveSession {
     if (observerName != null) 'observerName': observerName,
     if (stopReason != null) 'stopReason': stopReason!.name,
     if (stopReasonValue != null) 'stopReasonValue': stopReasonValue,
+    if (weather != null) 'weather': weather!.toJson(),
     if (_recordedDurationSeconds != null)
       'recordedDurationSeconds': _recordedDurationSeconds,
   };

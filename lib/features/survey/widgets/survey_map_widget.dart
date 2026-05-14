@@ -142,7 +142,7 @@ class _SurveyMapWidgetState extends ConsumerState<SurveyMapWidget> {
   void _checkConsent() {
     final prefs = ref.read(sharedPreferencesProvider);
     setState(() {
-      _hasConsent = prefs.getBool(PrefKeys.mapTileConsent) ?? false;
+      _hasConsent = prefs.getBool(PrefKeys.privacyAllowMap) ?? false;
     });
   }
 
@@ -168,7 +168,7 @@ class _SurveyMapWidgetState extends ConsumerState<SurveyMapWidget> {
     );
     if (agreed == true) {
       final prefs = ref.read(sharedPreferencesProvider);
-      await prefs.setBool(PrefKeys.mapTileConsent, true);
+      await prefs.setBool(PrefKeys.privacyAllowMap, true);
       setState(() => _hasConsent = true);
     }
   }

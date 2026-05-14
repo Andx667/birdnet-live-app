@@ -619,6 +619,70 @@
   "@sessionNoLocation": {
     "description": "Shown in session review and library card when the session has no GPS coordinates"
   },
+  "sessionWeatherSection": "Weather",
+  "@sessionWeatherSection": {
+    "description": "Header for the weather row/card in session review and HTML report"
+  },
+  "sessionWeatherAttribution": "Weather data: Open-Meteo",
+  "@sessionWeatherAttribution": {
+    "description": "Attribution shown next to the weather row when expanded"
+  },
+  "sessionWeatherCondition": "Condition",
+  "@sessionWeatherCondition": {
+    "description": "Label for the weather condition field in weather details"
+  },
+  "sessionWeatherTemperature": "Temperature",
+  "@sessionWeatherTemperature": {
+    "description": "Label for the temperature field in weather details"
+  },
+  "sessionWeatherPrecipitation": "Precipitation",
+  "@sessionWeatherPrecipitation": {
+    "description": "Label for the precipitation field in weather details"
+  },
+  "sessionWeatherWind": "Wind",
+  "@sessionWeatherWind": {
+    "description": "Label for the wind field in weather details"
+  },
+  "sessionWeatherCloudCover": "Cloud cover",
+  "@sessionWeatherCloudCover": {
+    "description": "Label for the cloud cover field in weather details"
+  },
+  "weatherCodeClear": "Clear",
+  "@weatherCodeClear": {
+    "description": "WMO weather code group: clear sky"
+  },
+  "weatherCodePartlyCloudy": "Partly cloudy",
+  "@weatherCodePartlyCloudy": {
+    "description": "WMO weather code group: mainly clear / partly cloudy"
+  },
+  "weatherCodeCloudy": "Overcast",
+  "@weatherCodeCloudy": {
+    "description": "WMO weather code group: overcast"
+  },
+  "weatherCodeFog": "Fog",
+  "@weatherCodeFog": {
+    "description": "WMO weather code group: fog or rime fog"
+  },
+  "weatherCodeDrizzle": "Drizzle",
+  "@weatherCodeDrizzle": {
+    "description": "WMO weather code group: drizzle"
+  },
+  "weatherCodeRain": "Rain",
+  "@weatherCodeRain": {
+    "description": "WMO weather code group: rain or rain showers"
+  },
+  "weatherCodeSnow": "Snow",
+  "@weatherCodeSnow": {
+    "description": "WMO weather code group: snow or snow showers"
+  },
+  "weatherCodeThunder": "Thunderstorm",
+  "@weatherCodeThunder": {
+    "description": "WMO weather code group: thunderstorm"
+  },
+  "weatherCodeUnknown": "Unknown",
+  "@weatherCodeUnknown": {
+    "description": "Fallback when the WMO weather code is missing or unrecognized"
+  },
   "sessionShare": "Share",
   "@sessionShare": {
     "description": "Share session button label"
@@ -2578,6 +2642,54 @@
   "settingsExportHtmlReport": "Include HTML report",
   "@settingsExportHtmlReport": {
     "description": "Toggle: bundle a self-contained HTML report inside the export ZIP"
+  },
+  "settingsPrivacy": "Privacy",
+  "@settingsPrivacy": {
+    "description": "Settings section header for third-party network gates"
+  },
+  "settingsPrivacyDescription": "Choose which third-party services BirdNET Live may contact on your behalf. All toggles are off by default.",
+  "@settingsPrivacyDescription": {
+    "description": "Settings section subtitle"
+  },
+  "settingsPrivacyAllowMap": "Allow map tiles",
+  "@settingsPrivacyAllowMap": {
+    "description": "Privacy toggle for OpenStreetMap tile downloads"
+  },
+  "settingsPrivacyAllowMapSubtitle": "Downloads map images from OpenStreetMap.",
+  "@settingsPrivacyAllowMapSubtitle": {
+    "description": "Subtitle naming the third-party service for map tiles"
+  },
+  "settingsHelpPrivacyAllowMap": "When enabled, map widgets in the app fetch raster tiles from the public OpenStreetMap servers. Coordinates around your location are sent with each tile request. Disable to keep map screens blank.",
+  "@settingsHelpPrivacyAllowMap": {
+    "description": "Long-form help for the OSM tile privacy toggle"
+  },
+  "settingsPrivacyAllowReverseGeocoding": "Allow place name lookup",
+  "@settingsPrivacyAllowReverseGeocoding": {
+    "description": "Privacy toggle for Nominatim reverse geocoding"
+  },
+  "settingsPrivacyAllowReverseGeocodingSubtitle": "Sends coordinates to OpenStreetMap Nominatim to resolve a human-readable place name.",
+  "@settingsPrivacyAllowReverseGeocodingSubtitle": {
+    "description": "Subtitle naming the third-party service for reverse geocoding"
+  },
+  "settingsHelpPrivacyAllowReverseGeocoding": "When enabled, recorded coordinates are sent to OpenStreetMap's Nominatim service to resolve a short place name (for example: 'Berlin, Germany') that is shown next to the session. Coordinates are not shared with anyone else.",
+  "@settingsHelpPrivacyAllowReverseGeocoding": {
+    "description": "Long-form help for the Nominatim privacy toggle"
+  },
+  "settingsPrivacyAllowWeather": "Allow weather lookup",
+  "@settingsPrivacyAllowWeather": {
+    "description": "Privacy toggle for Open-Meteo weather requests"
+  },
+  "settingsPrivacyAllowWeatherSubtitle": "Fetches local temperature, wind, and conditions from Open-Meteo when a session is saved.",
+  "@settingsPrivacyAllowWeatherSubtitle": {
+    "description": "Subtitle naming the third-party service for weather"
+  },
+  "settingsHelpPrivacyAllowWeather": "When enabled, the app sends your recording coordinates and the session time to Open-Meteo once per session and stores the returned conditions (temperature, precipitation, wind, cloud cover) with the session for context. Open-Meteo is a free service that does not require an account or API key.",
+  "@settingsHelpPrivacyAllowWeather": {
+    "description": "Long-form help for the Open-Meteo privacy toggle"
+  },
+  "siteContextOfflineNote": "Offline — you can add place name and weather later from the session review.",
+  "@siteContextOfflineNote": {
+    "description": "Note shown on the site-context card when reverse-geocoding or weather lookup failed (typically no internet). Tells the user the data can be filled in later from the session review screen, which retries both services on open."
   },
   "settingsMicrophone": "Microphone",
   "@settingsMicrophone": {

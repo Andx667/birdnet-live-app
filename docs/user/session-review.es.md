@@ -19,6 +19,8 @@ También puede volver a abrir cualquier sesión guardada desde la [Biblioteca de
 
 Session Review combina reproducción, navegación por espectrograma y una lista de especies. Para sesiones de encuesta, también puede mostrar el contexto mapeado.
 
+La cabecera de resumen lleva la fecha, un chip de ubicación (lat/lon más un nombre de lugar resuelto cuando **Ajustes → Privacidad → Permitir búsqueda de nombre de lugar** está activado) y — si **Ajustes → Privacidad → Permitir consulta meteorológica** estaba activo durante la grabación — una **fila de meteorología** bajo la ubicación con las condiciones capturadas al final de la sesión: una línea como *“20,1 °C · Lluvia ligera · 3,2 m/s SO”* precedida por un icono. Toque la fila para desplegar un pequeño panel con temperatura, viento, precipitación y nubosidad junto con la atribución de Open-Meteo. La misma instantánea aparece en la exportación JSON, el bloque de metadatos y el informe HTML.
+
 ### Lista de especies
 
 Las especies se agrupan en filas ampliables. Podrás inspeccionar las detecciones por especie y moverte por la grabación mientras las revisas.

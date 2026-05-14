@@ -22,8 +22,10 @@
 // =============================================================================
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/constants/app_constants.dart';
+import '../../core/services/reverse_geocoding_service.dart';
 import '../../shared/providers/settings_providers.dart';
 import '../audio/audio_providers.dart';
 import '../history/session_repository.dart';
@@ -81,14 +83,16 @@ final liveStateProvider = StateProvider<LiveState>((ref) => LiveState.idle);
 /// All detection records from the current session (newest first).
 ///
 /// Updated by the live screen after each inference cycle.
-final sessionDetectionsProvider =
-    StateProvider<List<DetectionRecord>>((ref) => const []);
+final sessionDetectionsProvider = StateProvider<List<DetectionRecord>>(
+  (ref) => const [],
+);
 
 /// Latest batch of detections from the most recent inference cycle.
 ///
 /// Updated by the live screen after each inference cycle.
-final latestLiveDetectionsProvider =
-    StateProvider<List<DetectionRecord>>((ref) => const []);
+final latestLiveDetectionsProvider = StateProvider<List<DetectionRecord>>(
+  (ref) => const [],
+);
 
 /// The currently active [LiveSession] (null when idle).
 final currentSessionProvider = StateProvider<LiveSession?>((ref) => null);
@@ -105,7 +109,43 @@ final sessionRepositoryProvider = Provider<SessionRepository>((ref) {
 /// List of all saved sessions (newest first).
 ///
 /// Refresh by invalidating this provider after saving/deleting.
+///
+/// Side-effect: any session that has GPS coordinates but no resolved
+/// `locationName` is silently backfilled from the persistent reverse-
+/// geocode cache (no network call). This makes labels resolved in one
+/// session "stick" to every other nearby session in the library, and
+/// promotes the cached label to a permanent per-session field so the
+/// next list load doesn't repeat the lookup.
 final sessionListProvider = FutureProvider<List<LiveSession>>((ref) async {
   final repo = ref.watch(sessionRepositoryProvider);
-  return repo.listAll();
+  final sessions = await repo.listAll();
+
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    for (final s in sessions) {
+      final lat = s.latitude;
+      final lon = s.longitude;
+      if (lat == null || lon == null) continue;
+      if (s.locationName != null && s.locationName!.isNotEmpty) continue;
+      final cached = cachedReverseGeocode(
+        prefs: prefs,
+        latitude: lat,
+        longitude: lon,
+      );
+      if (cached != null) {
+        s.locationName = cached;
+        // Best-effort persist; failure is non-fatal — the in-memory
+        // value still reaches the UI for this load.
+        try {
+          await repo.save(s);
+        } catch (_) {
+          /* non-fatal */
+        }
+      }
+    }
+  } catch (_) {
+    // Cache backfill is purely a UX nicety; never let it break the list.
+  }
+
+  return sessions;
 });

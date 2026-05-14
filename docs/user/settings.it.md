@@ -138,18 +138,36 @@ Appare quando è attiva una modalità di filtro basata sulla posizione.
 
 ## Esporta e sincronizza
 
-### Formato
+### Formati
 
-Scegli una destinazione di esportazione:
+Spunta qualsiasi combinazione di formati di esportazione: ogni salvataggio / condivisione raggrupperà tutti i formati selezionati in un unico ZIP. Se scegli un solo formato senza clip audio e senza report HTML, otterrai un file grezzo (es. `session.csv`) per retrocompatibilità:
 
-- Tabella di selezione del corvo
--CSV
-- JSON
-- GPX (traccia + waypoint)
+- Tabella di selezione Raven — per Cornell Raven Pro.
+- CSV — si apre in qualsiasi foglio di calcolo.
+- JSON — ottimo per l'elaborazione programmatica; contiene i metadati completi della sessione.
+- GPX — traccia e waypoint per app cartografiche (utile solo se il GPS era attivo).
+
+L'intuizione: molti flussi di lavoro richiedono più formati contemporaneamente — un CSV per il foglio, una tabella Raven per il revisore desktop e un JSON per lo script di analisi. Prima bisognava esportare tre volte la stessa sessione; ora spunti tutti e tre una volta sola e viaggiano insieme nel ZIP.
 
 ### Include file audio
 
 Includi l'audio salvato insieme alle tabelle o ai metadati esportati quando supportato dal flusso di lavoro di esportazione.
+
+## Privacy
+
+Questa sezione controlla **quali servizi di terze parti BirdNET Live può contattare per tuo conto**. L'inferenza viene eseguita interamente sul tuo dispositivo — questi interruttori governano solo funzionalità di rete opzionali. Tutti e tre gli interruttori sono **disattivati per impostazione predefinita** su una nuova installazione; nulla esce finché non lo autorizzi. L'intuizione: ogni interruttore copre un servizio concreto e un beneficio concreto, così attivi esattamente ciò che ti serve.
+
+### Consenti tile della mappa
+
+Richiesto per qualsiasi mappa interattiva (selettore di posizione, mappa live di Survey, mappa della sessione, prescaricamento di tile). Quando attivo, i widget mappa scaricano tile raster dai server pubblici **OpenStreetMap**; le richieste di coordinate dei tile rivelano quale area del mondo stai guardando. Quando disattivato, tutte le schermate di mappa mostrano un pannello segnaposto.
+
+### Consenti ricerca nome luogo
+
+Quando attivo, l'app invia le tue coordinate registrate al servizio **Nominatim** di OpenStreetMap per ottenere un breve nome di luogo (es. “Roma, Italia”) mostrato accanto alla sessione nella Libreria delle sessioni e nella Revisione della sessione. L'intuizione: le coordinate numeriche sono precise ma difficili da leggere in un lungo elenco; un nome di luogo lo rende leggibile a colpo d'occhio. Quando disattivato, vengono mostrate solo le coordinate grezze e Nominatim non viene mai contattato.
+
+### Consenti ricerca meteo
+
+Quando attivo, ogni sessione salvata cattura un'istantanea una tantum delle condizioni locali (temperatura, precipitazioni, vento, nuvolosità) alle coordinate di registrazione e all'ora di fine tramite **Open-Meteo**. L'istantanea compare nella Revisione della sessione sotto la riga della posizione e viene riportata nell'esportazione JSON, nel blocco metadati e nel report HTML. L'intuizione: il meteo è uno dei predittori più forti dell'attività degli uccelli, e catturarlo automaticamente trasforma ogni sessione in un documento più completo. Open-Meteo è gratuito e non richiede né account né chiave API. Quando disattivato, nessun dato meteo viene scaricato o salvato.
 
 ## Di
 

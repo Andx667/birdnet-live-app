@@ -19,6 +19,8 @@ Puoi anche riaprire qualsiasi sessione salvata da [Libreria sessioni](session-li
 
 Session Review combina la riproduzione, la navigazione dello spettrogramma e un elenco di specie. Per le sessioni di sondaggio può anche mostrare il contesto mappato.
 
+L'intestazione del riepilogo in alto riporta la data, un chip di posizione (lat/lon più un nome di luogo risolto se **Impostazioni → Privacy → Consenti ricerca nome luogo** è attivo) e — se **Impostazioni → Privacy → Consenti ricerca meteo** era attivo al momento della registrazione — una **riga meteo** sotto la posizione con le condizioni acquisite a fine sessione: una sola riga come *“20,1 °C · Pioggia leggera · 3,2 m/s SO”* preceduta da un'icona meteo. Tocca la riga per espandere un piccolo pannello con temperatura, vento, precipitazioni e nuvolosità e l'attribuzione Open-Meteo. Lo stesso snapshot viene riportato nell'esportazione JSON, nel blocco dei metadati e nel report HTML.
+
 ### Elenco delle specie
 
 Le specie sono raggruppate in righe espandibili. Puoi esaminare i rilevamenti per specie e spostarti nella registrazione mentre li rivedi.

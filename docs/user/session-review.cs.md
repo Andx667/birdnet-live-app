@@ -19,6 +19,8 @@ Můžete také znovu otevřít jakoukoli uloženou relaci z [Knihovna relací] (
 
 Session Review kombinuje přehrávání, navigaci spektrogramem a seznam druhů. U průzkumných relací může také zobrazit mapovaný kontext.
 
+Hlavička souhrnu nahoře nese datum, štítek polohy (lat/lon plus volitelně vyřešený název místa, když je **Nastavení → Soukromí → Povolit vyhledávání názvu místa** zapnuto) a — pokud bylo při záznamu zapnuto **Nastavení → Soukromí → Povolit vyhledávání počasí** — **řádek počasí** pod polohou s podmínkami zachycenými ke konci relace: jednoradák typu *„20,1 °C · Slabý déšť · 3,2 m/s SZ“* s ikonou počasí na začátku. Klepnutím na řádek se rozbalí malý panel s teplotou, větrem, srážkami a oblačností včetně atribuce Open-Meteo. Týž snapshot se objevuje v JSON exportu, bloku metadat a HTML reportu.
+
 ### Seznam druhů
 
 Druhy jsou seskupeny do rozbalitelných řad. Detekce můžete prohlížet podle druhů a procházet záznamem při jejich prohlížení.

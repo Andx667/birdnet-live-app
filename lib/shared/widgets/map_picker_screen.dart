@@ -51,31 +51,32 @@ class _MapPickerScreenState extends ConsumerState<MapPickerScreen> {
 
   void _checkConsent() {
     final prefs = ref.read(sharedPreferencesProvider);
-    _hasConsent = prefs.getBool(PrefKeys.mapTileConsent) ?? false;
+    _hasConsent = prefs.getBool(PrefKeys.privacyAllowMap) ?? false;
   }
 
   Future<void> _requestConsent() async {
     final l10n = AppLocalizations.of(context)!;
     final agreed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.mapTileConsentTitle),
-        content: Text(l10n.mapTileConsentBody),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(l10n.mapTileConsentCancel),
+      builder:
+          (context) => AlertDialog(
+            title: Text(l10n.mapTileConsentTitle),
+            content: Text(l10n.mapTileConsentBody),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(l10n.mapTileConsentCancel),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text(l10n.mapTileConsentAllow),
+              ),
+            ],
           ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(l10n.mapTileConsentAllow),
-          ),
-        ],
-      ),
     );
     if (agreed == true) {
       final prefs = ref.read(sharedPreferencesProvider);
-      await prefs.setBool(PrefKeys.mapTileConsent, true);
+      await prefs.setBool(PrefKeys.privacyAllowMap, true);
       setState(() => _hasConsent = true);
     }
   }
@@ -97,9 +98,10 @@ class _MapPickerScreenState extends ConsumerState<MapPickerScreen> {
             ),
         ],
       ),
-      body: _hasConsent == true
-          ? _buildMap(center, theme)
-          : _buildConsentPlaceholder(theme, l10n),
+      body:
+          _hasConsent == true
+              ? _buildMap(center, theme)
+              : _buildConsentPlaceholder(theme, l10n),
     );
   }
 
@@ -129,14 +131,8 @@ class _MapPickerScreenState extends ConsumerState<MapPickerScreen> {
           ),
         RichAttributionWidget(
           attributions: [
-            TextSourceAttribution(
-              'OpenStreetMap (ODbL)',
-              onTap: () {},
-            ),
-            TextSourceAttribution(
-              'OpenStreetMap contributors',
-              onTap: () {},
-            ),
+            TextSourceAttribution('OpenStreetMap (ODbL)', onTap: () {}),
+            TextSourceAttribution('OpenStreetMap contributors', onTap: () {}),
           ],
         ),
       ],
@@ -150,8 +146,11 @@ class _MapPickerScreenState extends ConsumerState<MapPickerScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.map_outlined,
-                size: 64, color: theme.colorScheme.onSurface.withAlpha(100)),
+            Icon(
+              Icons.map_outlined,
+              size: 64,
+              color: theme.colorScheme.onSurface.withAlpha(100),
+            ),
             const SizedBox(height: 24),
             FilledButton.icon(
               onPressed: _requestConsent,

@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/services/wakelock_service.dart';
 
 import '../../shared/providers/settings_providers.dart';
+import '../../shared/services/weather_service.dart';
 import '../../shared/widgets/app_help_bottom_sheet.dart';
 import '../../shared/widgets/confirm_destructive.dart';
 import '../audio/audio_capture_service.dart';
@@ -370,6 +371,19 @@ class _LiveScreenState extends ConsumerState<LiveScreen>
         }
       } catch (_) {
         // Location unavailable — leave fields null.
+      }
+
+      // Best-effort weather snapshot (gated by privacy toggle, 8 s
+      // timeout, never blocks save on failure).
+      if (session.latitude != null && session.longitude != null) {
+        try {
+          final svc = ref.read(weatherServiceProvider);
+          session.weather = await svc.fetch(
+            latitude: session.latitude!,
+            longitude: session.longitude!,
+            observedAt: session.endTime ?? DateTime.now(),
+          );
+        } catch (_) {}
       }
 
       // Persist completed session.

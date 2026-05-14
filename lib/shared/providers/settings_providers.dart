@@ -206,12 +206,70 @@ final liveAutoStartProvider = StateNotifierProvider<BoolSettingNotifier, bool>((
 // Export Settings
 // ---------------------------------------------------------------------------
 
-/// Export format ('csv', 'json', 'gpx' — default 'csv').
+/// Export format ('raven', 'csv', 'json', 'gpx' — default 'raven').
+///
+/// Deprecated since 0.12.0: the export pipeline now reads
+/// [exportSelectionProvider] (a multi-select bitmask). This provider
+/// remains for one-time migration of pre-0.12.0 installs and for
+/// backward-compatible reads from a few legacy call sites.
 final exportFormatProvider =
     StateNotifierProvider<StringSettingNotifier, String>((ref) {
       final prefs = ref.watch(sharedPreferencesProvider);
       return StringSettingNotifier(prefs, PrefKeys.exportFormat, 'raven');
     });
+
+/// Set of formats included in every export ZIP, persisted as a
+/// comma-separated string under [PrefKeys.exportSelection]. Empty
+/// selections fall back to `{'raven'}` at read time so the pipeline
+/// always produces at least one document.
+final exportSelectionProvider =
+    StateNotifierProvider<ExportSelectionNotifier, Set<String>>((ref) {
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return ExportSelectionNotifier(prefs);
+    });
+
+class ExportSelectionNotifier extends StateNotifier<Set<String>> {
+  ExportSelectionNotifier(this._prefs) : super(_load(_prefs));
+
+  static const Set<String> _allFormats = {'raven', 'csv', 'json', 'gpx'};
+  static const Set<String> _defaultFormats = {'raven'};
+
+  final SharedPreferences _prefs;
+
+  static Set<String> _load(SharedPreferences prefs) {
+    final raw = prefs.getString(PrefKeys.exportSelection);
+    if (raw == null || raw.isEmpty) {
+      // Migrate from the legacy single-choice key when present.
+      final legacy = prefs.getString(PrefKeys.exportFormat);
+      if (legacy != null && _allFormats.contains(legacy)) {
+        return {legacy};
+      }
+      return {..._defaultFormats};
+    }
+    final parts = raw.split(',').where(_allFormats.contains).toSet();
+    return parts.isEmpty ? {..._defaultFormats} : parts;
+  }
+
+  void toggle(String format, bool enabled) {
+    if (!_allFormats.contains(format)) return;
+    final next = {...state};
+    if (enabled) {
+      next.add(format);
+    } else {
+      next.remove(format);
+    }
+    if (next.isEmpty) next.addAll(_defaultFormats);
+    state = next;
+    _prefs.setString(PrefKeys.exportSelection, next.join(','));
+  }
+
+  void set(Set<String> formats) {
+    final filtered = formats.where(_allFormats.contains).toSet();
+    final next = filtered.isEmpty ? {..._defaultFormats} : filtered;
+    state = next;
+    _prefs.setString(PrefKeys.exportSelection, next.join(','));
+  }
+}
 
 /// Include audio files in export (default true).
 final includeAudioProvider = StateNotifierProvider<BoolSettingNotifier, bool>((
@@ -242,6 +300,41 @@ final useGpsProvider = StateNotifierProvider<BoolSettingNotifier, bool>((ref) {
   final prefs = ref.watch(sharedPreferencesProvider);
   return BoolSettingNotifier(prefs, PrefKeys.useGps, true);
 });
+
+// ---------------------------------------------------------------------------
+// Privacy Gates (0.12.0)
+// ---------------------------------------------------------------------------
+//
+// Three independent toggles, each gating one third-party service. All
+// default `false` for new installs. Pre-0.12.0 installs that previously
+// consented to OSM tiles get the first two flipped on by the migration
+// in `main()`. Consumer code reads these providers and short-circuits
+// every network call when the corresponding gate is off.
+
+/// Allow OSM map tile fetches (tile.openstreetmap.org).
+final privacyAllowMapProvider =
+    StateNotifierProvider<BoolSettingNotifier, bool>((ref) {
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return BoolSettingNotifier(prefs, PrefKeys.privacyAllowMap, false);
+    });
+
+/// Allow reverse geocoding via Nominatim (nominatim.openstreetmap.org).
+final privacyAllowReverseGeocodingProvider =
+    StateNotifierProvider<BoolSettingNotifier, bool>((ref) {
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return BoolSettingNotifier(
+        prefs,
+        PrefKeys.privacyAllowReverseGeocoding,
+        false,
+      );
+    });
+
+/// Allow weather snapshot fetches via Open-Meteo (api.open-meteo.com).
+final privacyAllowWeatherProvider =
+    StateNotifierProvider<BoolSettingNotifier, bool>((ref) {
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return BoolSettingNotifier(prefs, PrefKeys.privacyAllowWeather, false);
+    });
 
 /// Show scientific names below common names (default true).
 final showSciNamesProvider = StateNotifierProvider<BoolSettingNotifier, bool>((

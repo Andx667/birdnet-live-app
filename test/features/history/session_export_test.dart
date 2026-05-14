@@ -1,5 +1,5 @@
-// =============================================================================
-// Session Export Tests — Raven selection table and ZIP bundle
+﻿// =============================================================================
+// Session Export Tests â€” Raven selection table and ZIP bundle
 // =============================================================================
 
 import 'dart:convert';
@@ -56,7 +56,7 @@ DetectionRecord _det(
 
 /// The expected BirdNET_Live export prefix for the test session
 /// (2025-06-15 08:00:00 UTC, no session number). Built from local time so
-/// the test stays timezone-agnostic — export filenames are always rendered
+/// the test stays timezone-agnostic â€” export filenames are always rendered
 /// in the user's local time so they sort sensibly in their file browser.
 final _prefix =
     'BirdNET_Live_${DateFormat('yyyy-MM-dd_HH-mm-ss').format(DateTime.utc(2025, 6, 15, 8, 0, 0).toLocal())}';
@@ -119,7 +119,7 @@ void main() {
 
       expect(lines.length, 3); // header + 2 detections
 
-      // First detection — columns shifted by Begin File.
+      // First detection â€” columns shifted by Begin File.
       final cols1 = lines[1].split('\t');
       expect(cols1[0], '1'); // Selection
       expect(cols1[1], 'Spectrogram 1'); // View
@@ -335,7 +335,7 @@ void main() {
     });
   });
 
-  // ── CSV export ───────────────────────────────────────────────────────
+  // â”€â”€ CSV export â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   group('buildCsvExport', () {
     test('includes File column when audioFileName provided', () {
@@ -414,7 +414,7 @@ void main() {
     });
   });
 
-  // ── ZIP bundle ───────────────────────────────────────────────────────
+  // â”€â”€ ZIP bundle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   group('buildSessionExport', () {
     late Directory tempDir;
@@ -431,7 +431,7 @@ void main() {
       final session = _makeSession(recordingPath: null);
       final result = await buildSessionExport(
         session,
-        format: 'raven',
+        formats: const {'raven'},
         includeAudio: true,
       );
       expect(result, isNotNull);
@@ -447,7 +447,7 @@ void main() {
         );
         final result = await buildSessionExport(
           session,
-          format: 'raven',
+          formats: const {'raven'},
           includeAudio: true,
         );
         expect(result, isNotNull);
@@ -477,7 +477,7 @@ void main() {
 
         final zipPath = await buildSessionExport(
           session,
-          format: 'raven',
+          formats: const {'raven'},
           includeAudio: true,
         );
         expect(zipPath, isNotNull);
@@ -538,7 +538,7 @@ void main() {
 
       final zipPath = await buildSessionExport(
         session,
-        format: 'raven',
+        formats: const {'raven'},
         includeAudio: true,
       );
       expect(zipPath, isNotNull);
@@ -583,7 +583,7 @@ void main() {
 
       final zipPath = await buildSessionExport(
         session,
-        format: 'raven',
+        formats: const {'raven'},
         includeAudio: true,
       );
       expect(zipPath, isNotNull);
@@ -619,7 +619,7 @@ void main() {
 
       final zipPath = await buildSessionExport(
         session,
-        format: 'raven',
+        formats: const {'raven'},
         includeAudio: true,
       );
       expect(zipPath, isNotNull);
@@ -639,7 +639,7 @@ void main() {
     });
   });
 
-  // ── JSON export: new fields ──────────────────────────────────────────
+  // â”€â”€ JSON export: new fields â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   group('buildJsonExport new fields', () {
     test('includes trim offsets when set', () {
@@ -751,7 +751,7 @@ void main() {
     });
   });
 
-  // ── ZIP bundle: annotations file ────────────────────────────────────
+  // â”€â”€ ZIP bundle: annotations file â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   group('ZIP bundle with annotations', () {
     late Directory tempDir;
@@ -783,7 +783,7 @@ void main() {
 
       final zipPath = await buildSessionExport(
         session,
-        format: 'raven',
+        formats: const {'raven'},
         includeAudio: true,
       );
       expect(zipPath, isNotNull);
@@ -811,7 +811,7 @@ void main() {
 
       final zipPath = await buildSessionExport(
         session,
-        format: 'raven',
+        formats: const {'raven'},
         includeAudio: true,
       );
       expect(zipPath, isNotNull);
@@ -824,7 +824,7 @@ void main() {
     });
   });
 
-  // ── Confirmed-detection flag in exports (#33) ────────────────────────
+  // â”€â”€ Confirmed-detection flag in exports (#33) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   group('confirmed-detection flag in exports', () {
     DetectionRecord makeConfirmed(
@@ -998,7 +998,7 @@ void main() {
           gpx,
           contains('<cmt>Confirmed at 2025-06-15T09:30:00.000Z</cmt>'),
         );
-        // Exactly one of each — the unconfirmed waypoint must not emit them.
+        // Exactly one of each â€” the unconfirmed waypoint must not emit them.
         expect('<sym>confirmed</sym>'.allMatches(gpx).length, 1);
         expect('<cmt>'.allMatches(gpx).length, 1);
       },

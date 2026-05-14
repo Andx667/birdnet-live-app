@@ -28,6 +28,7 @@ import '../../shared/models/taxonomy_species.dart';
 import '../../shared/providers/settings_providers.dart';
 import '../../shared/widgets/app_help_bottom_sheet.dart';
 import '../../shared/widgets/map_picker_screen.dart';
+import '../../shared/widgets/site_context_card.dart';
 import '../../shared/widgets/wizard_scaffold.dart';
 import '../audio/audio_providers.dart';
 import '../explore/explore_providers.dart';
@@ -335,6 +336,8 @@ class _SurveySetupScreenState extends ConsumerState<SurveySetupScreen>
           _ => _ReadyStep(
             key: const ValueKey(4),
             hasBackgroundGps: _hasBackgroundGps,
+            latitude: _latitude,
+            longitude: _longitude,
           ),
         },
       ),
@@ -1919,8 +1922,15 @@ class _SegmentedCountControl extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _ReadyStep extends ConsumerWidget {
-  const _ReadyStep({super.key, required this.hasBackgroundGps});
+  const _ReadyStep({
+    super.key,
+    required this.hasBackgroundGps,
+    this.latitude,
+    this.longitude,
+  });
   final bool hasBackgroundGps;
+  final double? latitude;
+  final double? longitude;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1981,6 +1991,22 @@ class _ReadyStep extends ConsumerWidget {
               ),
             ),
           ),
+
+          // Site context: place name + current weather, fetched live so
+          // the user knows what the session will record before pressing
+          // Start. Hidden when no GPS coordinates are set.
+          if (latitude != null && longitude != null) ...[
+            const SizedBox(height: 12),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: SiteContextCard(
+                  latitude: latitude!,
+                  longitude: longitude!,
+                ),
+              ),
+            ),
+          ],
 
           const SizedBox(height: 16),
 

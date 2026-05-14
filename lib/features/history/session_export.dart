@@ -476,6 +476,7 @@ Map<String, dynamic> buildExportMetadata({
           'observerName': session.observerName,
         if (session.transectId != null && session.transectId!.isNotEmpty)
           'transectId': session.transectId,
+        if (session.weather != null) 'weather': session.weather!.toJson(),
         'detectionCount': session.detections.length,
       },
     if (slimAudioModel != null) 'audioModel': slimAudioModel,
@@ -511,6 +512,7 @@ String buildJsonExport(LiveSession session, {Map<String, dynamic>? metadata}) {
     if (session.stopReason != null) 'stopReason': session.stopReason!.name,
     if (session.stopReasonValue != null)
       'stopReasonValue': session.stopReasonValue,
+    if (session.weather != null) 'weather': session.weather!.toJson(),
     'recordingPath': session.recordingPath,
     'settings': session.settings.toJson(),
     if (session.trimStartSec != null) 'trimStartSec': session.trimStartSec,
@@ -544,11 +546,17 @@ String buildJsonExport(LiveSession session, {Map<String, dynamic>? metadata}) {
 ///
 /// All exported files use the `BirdNET_Live_…` prefix regardless of the
 /// session's display name.  When [includeAudio] is true and audio exists
-/// (full recording or detection clips), returns a .zip path.  Otherwise
-/// returns the path to the raw document file.
+/// (full recording or detection clips), or when more than one format is
+/// requested, returns a `.zip` path. Otherwise returns the path to the
+/// raw document file for the single requested format.
+///
+/// [formats] is a non-empty set of format tokens drawn from `raven`,
+/// `csv`, `json`, `gpx`. Each enabled format produces its own document
+/// inside the ZIP. Empty sets fall back to `{raven}` to guarantee at
+/// least one output.
 Future<String?> buildSessionExport(
   LiveSession session, {
-  required String format,
+  required Set<String> formats,
   required bool includeAudio,
   TaxonomyService? taxonomy,
   String speciesLocale = 'en',
@@ -557,6 +565,14 @@ Future<String?> buildSessionExport(
   bool useAbsoluteSurveyTime = false,
   bool includeHtmlReport = false,
 }) async {
+  // Resolve the active format set; an empty / all-invalid input falls
+  // back to raven so the export always produces a document.
+  const allFormats = {'raven', 'csv', 'json', 'gpx'};
+  final activeFormats =
+      formats.where(allFormats.contains).toSet()
+        ..removeWhere((_) => false); // no-op, keep order intent clear
+  final selected = activeFormats.isEmpty ? <String>{'raven'} : activeFormats;
+
   final prefix = _exportPrefix(session);
   final audioPath = session.recordingPath;
 
@@ -606,65 +622,105 @@ Future<String?> buildSessionExport(
     clipFileMap = clipExportNames;
   }
 
-  // ── Generate document content ─────────────────────────────────────
-  String fileContent;
-  String extension;
-
-  switch (format) {
-    case 'csv':
-      fileContent = buildCsvExport(
-        session,
-        audioFileName: hasFullRecording ? audioFileName : null,
-        clipFileMap: clipFileMap,
-        taxonomy: taxonomy,
-        speciesLocale: speciesLocale,
-        clipContextSecondsOverride: clipContextSecondsOverride,
-        useAbsoluteSurveyTime: useAbsoluteSurveyTime,
-      );
-      extension = '.csv';
-      break;
-    case 'json':
-      fileContent = buildJsonExport(session, metadata: metadata);
-      extension = '.json';
-      break;
-    case 'gpx':
-      fileContent = buildGpxExport(session);
-      extension = '.gpx';
-      break;
-    case 'raven':
-    default:
-      fileContent = buildRavenSelectionTable(
-        session,
-        audioFileName: hasFullRecording ? audioFileName : null,
-        clipFileMap: clipFileMap,
-        taxonomy: taxonomy,
-        speciesLocale: speciesLocale,
-        clipContextSecondsOverride: clipContextSecondsOverride,
-        useAbsoluteSurveyTime: useAbsoluteSurveyTime,
-      );
-      extension = '.selections.txt';
-      break;
+  // ── Generate document content for every selected format ──────────
+  // Map: format token → (extension, content). The order in
+  // `formatPriority` chooses the "primary" file when only one format is
+  // selected and no audio is present (the function returns that one
+  // file directly instead of zipping).
+  const formatPriority = ['raven', 'csv', 'json', 'gpx'];
+  final docs = <String, ({String extension, String content})>{};
+  for (final fmt in formatPriority) {
+    if (!selected.contains(fmt)) continue;
+    switch (fmt) {
+      case 'csv':
+        docs[fmt] = (
+          extension: '.csv',
+          content: buildCsvExport(
+            session,
+            audioFileName: hasFullRecording ? audioFileName : null,
+            clipFileMap: clipFileMap,
+            taxonomy: taxonomy,
+            speciesLocale: speciesLocale,
+            clipContextSecondsOverride: clipContextSecondsOverride,
+            useAbsoluteSurveyTime: useAbsoluteSurveyTime,
+          ),
+        );
+        break;
+      case 'json':
+        docs[fmt] = (
+          extension: '.json',
+          content: buildJsonExport(session, metadata: metadata),
+        );
+        break;
+      case 'gpx':
+        docs[fmt] = (extension: '.gpx', content: buildGpxExport(session));
+        break;
+      case 'raven':
+      default:
+        docs[fmt] = (
+          extension: '.selections.txt',
+          content: buildRavenSelectionTable(
+            session,
+            audioFileName: hasFullRecording ? audioFileName : null,
+            clipFileMap: clipFileMap,
+            taxonomy: taxonomy,
+            speciesLocale: speciesLocale,
+            clipContextSecondsOverride: clipContextSecondsOverride,
+            useAbsoluteSurveyTime: useAbsoluteSurveyTime,
+          ),
+        );
+        break;
+    }
   }
 
-  final bytes = Uint8List.fromList(utf8.encode(fileContent));
+  // Decide whether to ZIP. We zip when any of:
+  //   • the user wants audio bundled and audio exists,
+  //   • more than one format is selected (multiple docs need a container),
+  //   • the user enabled the HTML report,
+  //   • we have provenance metadata to ship and the user didn't pick the
+  //     JSON format (which already embeds the metadata block). Forcing a
+  //     ZIP in that last case is what carries the weather snapshot and
+  //     prefs/model context out alongside an otherwise plain CSV/Raven
+  //     selection — without it, those fields would silently disappear.
+  final mustZip =
+      (includeAudio && hasAnyAudio) ||
+      docs.length > 1 ||
+      includeHtmlReport ||
+      (metadata != null &&
+          session.weather != null &&
+          !selected.contains('json'));
 
-  // ── Bundle into ZIP when audio is available and requested ──────────
-  if (includeAudio && hasAnyAudio) {
+  // ── Bundle into ZIP ───────────────────────────────────────────────
+  if (mustZip) {
     final archive = Archive();
 
-    if (hasFullRecording) {
-      final audioBytes = await File(audioPath).readAsBytes();
-      archive.addFile(
-        ArchiveFile(audioFileName, audioBytes.length, audioBytes),
-      );
-    } else {
-      for (final entry in clipExportNames.entries) {
-        final clipBytes = await clipEntries[entry.key]!.readAsBytes();
-        archive.addFile(ArchiveFile(entry.value, clipBytes.length, clipBytes));
+    if (includeAudio && hasAnyAudio) {
+      if (hasFullRecording) {
+        final audioBytes = await File(audioPath).readAsBytes();
+        archive.addFile(
+          ArchiveFile(audioFileName, audioBytes.length, audioBytes),
+        );
+      } else {
+        for (final entry in clipExportNames.entries) {
+          final clipBytes = await clipEntries[entry.key]!.readAsBytes();
+          archive.addFile(
+            ArchiveFile(entry.value, clipBytes.length, clipBytes),
+          );
+        }
       }
     }
 
-    archive.addFile(ArchiveFile('$prefix$extension', bytes.length, bytes));
+    // Drop every selected document into the ZIP root.
+    for (final entry in docs.entries) {
+      final docBytes = Uint8List.fromList(utf8.encode(entry.value.content));
+      archive.addFile(
+        ArchiveFile(
+          '$prefix${entry.value.extension}',
+          docBytes.length,
+          docBytes,
+        ),
+      );
+    }
 
     // Bundle voice memos under a memos/ folder so the CSV's "Voice
     // Memo" column (relative path: memos/<basename>) resolves inside
@@ -702,7 +758,7 @@ Future<String?> buildSessionExport(
 
     // Always drop a metadata side-file when the caller provided one, so
     // the provenance information travels with the bundle regardless of
-    // which document format the user picked (Raven / CSV / GPX).
+    // which document format the user picked.
     if (metadata != null) {
       final metaJson = const JsonEncoder.withIndent('  ').convert(metadata);
       final metaBytes = Uint8List.fromList(utf8.encode(metaJson));
@@ -723,8 +779,9 @@ Future<String?> buildSessionExport(
       );
     }
 
-    // Auto-include GPX for surveys (if the export format isn't already GPX).
-    if (session.type == SessionType.survey && format != 'gpx') {
+    // Auto-include GPX for surveys when GPX wasn't already a selected
+    // document — the track is intrinsic to the survey artifact.
+    if (session.type == SessionType.survey && !selected.contains('gpx')) {
       final gpxContent = buildGpxExport(session);
       final gpxBytes = Uint8List.fromList(utf8.encode(gpxContent));
       archive.addFile(ArchiveFile('$prefix.gpx', gpxBytes.length, gpxBytes));
@@ -754,21 +811,26 @@ Future<String?> buildSessionExport(
     final zipDir =
         hasFullRecording
             ? p.dirname(audioPath)
-            : p.dirname(clipEntries.values.first.path);
+            : (hasClips
+                ? p.dirname(clipEntries.values.first.path)
+                : Directory.systemTemp.path);
     final zipPath = p.join(zipDir, '$prefix.zip');
     await File(zipPath).writeAsBytes(zipBytes);
 
     return zipPath;
   } else {
+    // Single-document, no audio, no HTML, no ZIP.
+    final entry = docs.values.first;
     final dir =
         hasFullRecording
             ? p.dirname(audioPath)
             : (hasClips
                 ? p.dirname(clipEntries.values.first.path)
                 : Directory.systemTemp.path);
-    final filePath = p.join(dir, '$prefix$extension');
-    await File(filePath).writeAsBytes(bytes);
-
+    final filePath = p.join(dir, '$prefix${entry.extension}');
+    await File(
+      filePath,
+    ).writeAsBytes(Uint8List.fromList(utf8.encode(entry.content)));
     return filePath;
   }
 }

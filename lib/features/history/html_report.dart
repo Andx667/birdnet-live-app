@@ -733,6 +733,31 @@ String _buildMetadataRows(LiveSession session) {
           : '${session.distanceMeters!.round()} m',
     ));
   }
+  if (session.weather != null) {
+    final w = session.weather!;
+    if (w.temperatureC != null) {
+      rows.add(('Temperature', '${w.temperatureC!.toStringAsFixed(1)} °C'));
+    }
+    if (w.windSpeedMs != null) {
+      final dir = w.windDirectionDeg;
+      final compass = dir == null ? '' : _compass(dir);
+      rows.add((
+        'Wind',
+        compass.isEmpty
+            ? '${w.windSpeedMs!.toStringAsFixed(1)} m/s'
+            : '${w.windSpeedMs!.toStringAsFixed(1)} m/s $compass',
+      ));
+    }
+    if (w.precipitationMm != null) {
+      rows.add((
+        'Precipitation',
+        '${w.precipitationMm!.toStringAsFixed(1)} mm',
+      ));
+    }
+    if (w.cloudCoverPercent != null) {
+      rows.add(('Cloud cover', '${w.cloudCoverPercent} %'));
+    }
+  }
   rows.add(('Detections', session.detections.length.toString()));
   rows.add((
     'Species',
@@ -847,4 +872,10 @@ String _esc(String input) {
       .replaceAll('>', '&gt;')
       .replaceAll('"', '&quot;')
       .replaceAll("'", '&#39;');
+}
+
+String _compass(double bearingDeg) {
+  final n = ((bearingDeg % 360) + 360) % 360;
+  const sectors = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+  return sectors[((n + 22.5) / 45).floor() % 8];
 }

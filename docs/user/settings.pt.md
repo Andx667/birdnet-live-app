@@ -138,18 +138,36 @@ Aparece quando um modo de filtro baseado em localização está ativo.
 
 ## Exportar e sincronizar
 
-### Formato
+### Formatos
 
-Escolha um destino de exportação:
+Marque qualquer combinação de formatos de exportação — cada salvar / compartilhar agrupará todos os formatos selecionados num único ZIP. Se escolher um único formato sem clipes de áudio e sem relatório HTML, receberá um arquivo bruto (ex. `session.csv`) por compatibilidade:
 
-- Tabela de Seleção Raven
--CSV
-- JSON
-- GPX (trilha + waypoints)
+- Tabela de Seleção Raven — para Cornell Raven Pro.
+- CSV — abre em qualquer planilha.
+- JSON — ideal para processamento programático; carrega os metadados completos da sessão.
+- GPX — trilha e waypoints para apps de mapa (útil apenas quando o GPS estava ativo).
+
+A intuição: muitos fluxos precisam de vários formatos ao mesmo tempo — um CSV para a planilha, uma tabela Raven para o revisor desktop e um JSON para o script de análise. Antes era preciso exportar a mesma sessão três vezes; agora marca todos os três de uma vez e eles viajam juntos no ZIP.
 
 ### Incluir arquivos de áudio
 
 Incluir áudio salvo junto com as tabelas ou metadados exportados quando compatível com o fluxo de trabalho de exportação.
+
+## Privacidade
+
+Esta seção controla **quais serviços de terceiros o BirdNET Live pode contatar em seu nome**. A inferência roda inteiramente no seu dispositivo — estes interruptores comandam apenas recursos de rede opcionais. Todos os três estão **desligados por padrão** em instalações novas; nada é enviado até você autorizar. A intuição: cada interruptor cobre um serviço concreto e um benefício concreto, então você ativa exatamente o que precisa.
+
+### Permitir tiles de mapa
+
+Necessário para qualquer mapa interativo (seletor de localização, mapa ao vivo do Survey, mapa da sessão, pré-download de tiles). Quando ativo, os widgets de mapa baixam tiles raster dos servidores públicos do **OpenStreetMap**; as requisições de coordenadas de tile revelam que área do mundo você está olhando. Quando desligado, todas as telas de mapa mostram um painel marcador.
+
+### Permitir busca de nome de lugar
+
+Quando ativo, o app envia suas coordenadas gravadas ao serviço **Nominatim** do OpenStreetMap para resolver um nome de lugar curto (ex. “Lisboa, Portugal”) mostrado ao lado da sessão na Biblioteca de sessões e na Revisão de sessão. A intuição: coordenadas numéricas são precisas mas difíceis de ler numa lista longa; um nome de lugar a torna legível num relance. Quando desligado, apenas as coordenadas brutas são mostradas e o Nominatim nunca é contatado.
+
+### Permitir consulta de clima
+
+Quando ativo, cada sessão salva captura um instantâneo único das condições locais (temperatura, precipitação, vento, nuvens) nas coordenadas de gravação e hora de fim via **Open-Meteo**. O instantâneo aparece na Revisão de sessão abaixo da linha de localização e é espelhado na exportação JSON, no bloco de metadados e no relatório HTML. A intuição: o clima é um dos preditores mais fortes da atividade de aves, e capturar isso automaticamente torna cada sessão um registro mais completo. O Open-Meteo é gratuito e não exige conta nem chave de API. Quando desligado, nenhum dado meteorológico é buscado ou armazenado.
 
 ## Sobre
 

@@ -19,6 +19,8 @@ Vous pouvez également rouvrir n'importe quelle session enregistrée à partir d
 
 Session Review combine la lecture, la navigation par spectrogramme et une liste d’espèces. Pour les sessions d'enquête, il peut également afficher le contexte cartographié.
 
+L'entête de résumé affiche la date, un chip de localisation (lat/lon plus un nom de lieu résolu si **Réglages → Confidentialité → Autoriser la recherche de nom de lieu** est actif) et — si **Réglages → Confidentialité → Autoriser la requête météo** était actif lors de l'enregistrement — une **ligne météo** sous la localisation avec les conditions capturées à la fin de la session : une ligne comme *« 20,1 °C · Pluie légère · 3,2 m/s SO »* précédée d'une icône météo. Touchez la ligne pour déplier un petit panneau avec température, vent, précipitations et nuages, ainsi que l'attribution Open-Meteo. Le même instantané est repris dans l'export JSON, le bloc de métadonnées et le rapport HTML.
+
 ### Liste des espèces
 
 Les espèces sont regroupées en lignes extensibles. Vous pouvez inspecter les détections par espèce et parcourir l’enregistrement tout en les examinant.

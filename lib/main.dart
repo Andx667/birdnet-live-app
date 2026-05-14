@@ -29,11 +29,25 @@ Future<void> main() async {
   // Initialize SharedPreferences before running the app.
   final prefs = await SharedPreferences.getInstance();
 
+  // One-time privacy-gate migration (0.12.0). Pre-0.12.0 stored a single
+  // `mapTileConsent` flag that gated both OSM tiles and reverse
+  // geocoding. We now have three independent toggles; if the user had
+  // previously consented, inherit that consent into both equivalent
+  // gates so they don't have to re-approve. The legacy key is left in
+  // place as a one-shot trigger and is otherwise ignored.
+  final hasNewMap = prefs.containsKey('privacy_allow_map');
+  final hasNewGeo = prefs.containsKey('privacy_allow_reverse_geocoding');
+  if (!hasNewMap || !hasNewGeo) {
+    final legacyConsent = prefs.getBool('map_tile_consent') ?? false;
+    if (!hasNewMap) await prefs.setBool('privacy_allow_map', legacyConsent);
+    if (!hasNewGeo) {
+      await prefs.setBool('privacy_allow_reverse_geocoding', legacyConsent);
+    }
+  }
+
   runApp(
     ProviderScope(
-      overrides: [
-        sharedPreferencesProvider.overrideWithValue(prefs),
-      ],
+      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
       child: const App(),
     ),
   );
