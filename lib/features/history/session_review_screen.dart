@@ -65,6 +65,7 @@ import '../../core/theme/score_colors.dart';
 import '../../shared/models/gps_point.dart';
 import '../../shared/models/taxonomy_species.dart';
 import '../../shared/models/weather_snapshot.dart';
+import '../../shared/services/weather_service.dart';
 import '../../shared/providers/settings_providers.dart';
 import '../../shared/services/taxonomy_service.dart';
 import '../../shared/utils/timestamp_format.dart';
@@ -318,6 +319,7 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
     );
     _initAudio();
     _resolveLocation();
+    _resolveWeather();
     _loadSpeciesSort();
   }
 
@@ -439,6 +441,44 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
       widget.session.locationName = name;
       final repo = ref.read(sessionRepositoryProvider);
       await repo.save(widget.session);
+    }
+  }
+
+  /// Attempt to retrieve a weather snapshot for the session location.
+  ///
+  /// Mirrors [_resolveLocation]: if the session already has weather data
+  /// (captured at session-end or by the setup wizard), keep it untouched.
+  /// Otherwise — typically because the original capture failed (no
+  /// consent at the time, no internet, Open-Meteo unreachable) — try
+  /// once more now that the user has explicitly opened the review.
+  /// [WeatherService.fetch] honors the privacy gate and the persistent
+  /// 6 h cache, so this is cheap to call repeatedly. Successful results
+  /// are persisted so the next open is a no-op.
+  Future<void> _resolveWeather() async {
+    if (widget.session.weather != null) return;
+    final lat = widget.session.latitude;
+    final lon = widget.session.longitude;
+    if (lat == null || lon == null) return;
+
+    try {
+      final svc = ref.read(weatherServiceProvider);
+      final snap = await svc.fetch(
+        latitude: lat,
+        longitude: lon,
+        observedAt: widget.session.endTime ?? DateTime.now(),
+      );
+      if (snap != null && mounted) {
+        setState(() {
+          // No dedicated state field — _SummaryHeader reads
+          // widget.session.weather directly, so updating the model
+          // and triggering rebuild is enough.
+        });
+        widget.session.weather = snap;
+        final repo = ref.read(sessionRepositoryProvider);
+        await repo.save(widget.session);
+      }
+    } catch (_) {
+      // Best-effort retry — silently give up; we'll try again next open.
     }
   }
 
