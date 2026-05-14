@@ -287,62 +287,81 @@ void main() {
       now = now.add(const Duration(seconds: 31));
     });
 
-    AnnouncementDetection det(String name, double score) => AnnouncementDetection(
-      speciesId: name,
-      displayName: name,
-      score: score,
-      at: now,
-    );
+    AnnouncementDetection det(String name, double score) =>
+        AnnouncementDetection(
+          speciesId: name,
+          displayName: name,
+          score: score,
+          at: now,
+        );
 
     test('speakerOutputAllowed=false suppresses when on speaker', () async {
       routing.speaker = true;
-      final out = await ctrl.announce([
-        det('Robin', 0.9),
-      ], _cfg(kFrequencyProfiles[AnnouncementFrequency.normal]!,
-          speakerOutputAllowed: false));
+      final out = await ctrl.announce(
+        [det('Robin', 0.9)],
+        _cfg(
+          kFrequencyProfiles[AnnouncementFrequency.normal]!,
+          speakerOutputAllowed: false,
+        ),
+      );
       expect(out, AnnounceOutcome.speakerOutputDisallowed);
       expect(tts.spoken, isEmpty);
     });
 
     test('speakerOutputAllowed=true speaks even on speaker', () async {
       routing.speaker = true;
-      final out = await ctrl.announce([
-        det('Robin', 0.9),
-      ], _cfg(kFrequencyProfiles[AnnouncementFrequency.normal]!,
-          speakerOutputAllowed: true));
+      final out = await ctrl.announce(
+        [det('Robin', 0.9)],
+        _cfg(
+          kFrequencyProfiles[AnnouncementFrequency.normal]!,
+          speakerOutputAllowed: true,
+        ),
+      );
       expect(out, AnnounceOutcome.spoken);
     });
 
     test('muteCaptureDuringSpeech=false leaves ring buffer unmuted', () async {
-      final out = await ctrl.announce([
-        det('Robin', 0.9),
-      ], _cfg(kFrequencyProfiles[AnnouncementFrequency.normal]!,
-          muteCaptureDuringSpeech: false));
+      final out = await ctrl.announce(
+        [det('Robin', 0.9)],
+        _cfg(
+          kFrequencyProfiles[AnnouncementFrequency.normal]!,
+          muteCaptureDuringSpeech: false,
+        ),
+      );
       expect(out, AnnounceOutcome.spoken);
       expect(ring.isMuted, false);
     });
 
     test('duckOtherAudio flag is forwarded to routing service', () async {
-      await ctrl.announce([
-        det('Robin', 0.9),
-      ], _cfg(kFrequencyProfiles[AnnouncementFrequency.normal]!,
-          duckOtherAudio: false));
+      await ctrl.announce(
+        [det('Robin', 0.9)],
+        _cfg(
+          kFrequencyProfiles[AnnouncementFrequency.normal]!,
+          duckOtherAudio: false,
+        ),
+      );
       expect(routing.lastDuckRequest, false);
     });
 
     test('prerollCue=true plays cue before speech', () async {
-      await ctrl.announce([
-        det('Robin', 0.9),
-      ], _cfg(kFrequencyProfiles[AnnouncementFrequency.normal]!,
-          prerollCue: true));
+      await ctrl.announce(
+        [det('Robin', 0.9)],
+        _cfg(
+          kFrequencyProfiles[AnnouncementFrequency.normal]!,
+          prerollCue: true,
+        ),
+      );
       expect(tts.prerollCueCount, 1);
     });
 
     test('prerollCue=false skips cue', () async {
-      await ctrl.announce([
-        det('Robin', 0.9),
-      ], _cfg(kFrequencyProfiles[AnnouncementFrequency.normal]!,
-          prerollCue: false));
+      await ctrl.announce(
+        [det('Robin', 0.9)],
+        _cfg(
+          kFrequencyProfiles[AnnouncementFrequency.normal]!,
+          prerollCue: false,
+        ),
+      );
       expect(tts.prerollCueCount, 0);
     });
   });

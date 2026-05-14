@@ -21,11 +21,12 @@
 //   - On Android use `AndroidAudioUsage.assistanceAccessibility` so
 //     the system treats our utterance like a screen-reader prompt
 //     (ducks media, doesn't steal the mic).
-//   - Detect HFP downgrade by sampling `AudioSession.devicesEvent`
-//     before/after speech start; if the active input device drops to
-//     a BT SCO mic, mark the session as "routing failed" so the
-//     controller can suppress further announcements until the user
-//     unplugs/replugs.
+//   - Detect HFP downgrade by sampling the available input devices
+//     and only flagging it when *no* non-BT input (built-in mic /
+//     wired headset mic) is present — the OS can only record over SCO
+//     in that case. With any non-BT input available, a listed
+//     `bluetoothSco` entry is just an available device, not the
+//     active route.
 //
 // This file deliberately keeps the *interface* small. The platform
 // glue lives behind a `RoutingService` abstraction so the controller
@@ -150,16 +151,39 @@ class AudioSessionRoutingService implements RoutingService {
       }
       final activated = await session.setActive(true);
       if (!activated) return RoutingState.failed;
-      // Sample the input device set; if any is a BT-SCO mic, the OS
-      // has forced HFP and inference will be junk.
+      // Sample available inputs. `getDevices` returns the *available*
+      // devices, not the active route, so a paired BT earbud will
+      // always advertise both a `bluetoothA2dp` output and a
+      // `bluetoothSco` input. We only treat this as a true HFP
+      // downgrade when there's no other input the OS could record
+      // from — i.e. no built-in mic and no wired headset mic. When a
+      // non-BT input is available, the OS records from it and the
+      // listed SCO entry is a red herring.
       final devices = await session.getDevices(includeInputs: true);
+      var hasScoInput = false;
+      var hasNonBtInput = false;
       for (final d in devices) {
-        if (d.isInput && _isBluetoothSco(d)) {
-          return RoutingState.hfpDowngrade;
+        if (!d.isInput) continue;
+        if (_isBluetoothSco(d)) {
+          hasScoInput = true;
+        } else {
+          hasNonBtInput = true;
         }
+      }
+      if (hasScoInput && !hasNonBtInput) {
+        // No fallback mic — recording really would be SCO. Release the
+        // session so we don't leave the audio focus held while the
+        // controller suppresses speech.
+        try {
+          await session.setActive(false);
+        } catch (_) {}
+        return RoutingState.hfpDowngrade;
       }
       return RoutingState.ok;
     } catch (_) {
+      try {
+        await session.setActive(false);
+      } catch (_) {}
       return RoutingState.failed;
     }
   }

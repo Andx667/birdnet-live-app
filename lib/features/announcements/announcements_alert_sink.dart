@@ -210,7 +210,9 @@ class AnnouncementsAlertSink {
       enabled: enabled,
       verbosity: verbosity,
       profile: profile,
-      speakerOutputAllowed: _ref.read(announcementsSpeakerOutputAllowedProvider),
+      speakerOutputAllowed: _ref.read(
+        announcementsSpeakerOutputAllowedProvider,
+      ),
       muteCaptureDuringSpeech: _ref.read(
         announcementsMuteCaptureDuringSpeechProvider,
       ),

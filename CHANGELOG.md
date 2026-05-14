@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.9] - Unreleased
+
+### Fixed
+
+- **Announcements no longer go silent (and the spectrogram no longer hiccups) when a Bluetooth earbud is paired but the internal mic is in use.** The pre-speech HFP-downgrade check was reading the *available* input device list and unconditionally treating any listed `bluetoothSco` mic as proof that the OS had forced HFP — but paired BT earbuds always advertise an SCO input alongside their A2DP sink, regardless of which mic is actually recording. Every announcement therefore aborted with a routing failure, and the audio session was left active (jolting the record stream). The check now only flags a true downgrade when *no* non-BT input is available (no built-in mic, no wired headset mic), and aborted-routing paths deactivate the session before returning.
+
 ## [0.13.8] - Unreleased
 
 ### Changed
