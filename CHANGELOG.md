@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.10] - Unreleased
+
+### Changed
+
+- **"Mute capture during speech" now defaults to off.** On Android, briefly muting the active `AudioRecord` stream while the phone speaks shows up as a visible flat band in the live spectrogram. TTS audio is quiet enough that bleed-back into the built-in mic doesn't trigger spurious detections in practice, so we no longer pay the visual cost by default. Users who notice false positives during long announcements can still opt in from Advanced.
+
+### Fixed
+
+- **Spectrogram no longer hiccups at the start of every announcement.** The routing service used to call `session.setActive(true)` immediately before each utterance, which on Android transiently re-routes the live capture stream and creates a visible gap or wobble. Removed the per-utterance focus toggle — the session is already configured at init time, and `flutter_tts` requests its own audio focus (with the `assistanceAccessibility` usage we set) when it actually speaks, so the OS still ducks other audio without us perturbing the recording.
+
 ## [0.13.9] - Unreleased
 
 ### Fixed

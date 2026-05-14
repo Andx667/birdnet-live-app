@@ -149,16 +149,20 @@ class AudioSessionRoutingService implements RoutingService {
       if (duckOtherAudio != _appliedDuck) {
         await _applyConfiguration(session, duck: duckOtherAudio);
       }
-      final activated = await session.setActive(true);
-      if (!activated) return RoutingState.failed;
+      // Deliberately *do not* call `session.setActive(true)` here.
+      // On Android, toggling audio focus mid-capture briefly
+      // re-routes the AudioRecord stream and shows up as a visible
+      // gap / wobble in the live spectrogram. `flutter_tts` requests
+      // its own focus when it actually speaks (with our configured
+      // `assistanceAccessibility` usage), so the OS will duck other
+      // audio without us touching the session per-utterance.
+      //
       // Sample available inputs. `getDevices` returns the *available*
       // devices, not the active route, so a paired BT earbud will
       // always advertise both a `bluetoothA2dp` output and a
       // `bluetoothSco` input. We only treat this as a true HFP
       // downgrade when there's no other input the OS could record
-      // from — i.e. no built-in mic and no wired headset mic. When a
-      // non-BT input is available, the OS records from it and the
-      // listed SCO entry is a red herring.
+      // from — i.e. no built-in mic and no wired headset mic.
       final devices = await session.getDevices(includeInputs: true);
       var hasScoInput = false;
       var hasNonBtInput = false;
@@ -171,19 +175,10 @@ class AudioSessionRoutingService implements RoutingService {
         }
       }
       if (hasScoInput && !hasNonBtInput) {
-        // No fallback mic — recording really would be SCO. Release the
-        // session so we don't leave the audio focus held while the
-        // controller suppresses speech.
-        try {
-          await session.setActive(false);
-        } catch (_) {}
         return RoutingState.hfpDowngrade;
       }
       return RoutingState.ok;
     } catch (_) {
-      try {
-        await session.setActive(false);
-      } catch (_) {}
       return RoutingState.failed;
     }
   }

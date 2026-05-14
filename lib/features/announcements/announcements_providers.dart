@@ -121,13 +121,20 @@ final announcementsSpeakerOutputAllowedProvider =
 
 /// Mute the input ring buffer for the duration of an utterance plus
 /// the routing-mode guard band.
+///
+/// Defaults to `false`: on Android, briefly muting the active
+/// `AudioRecord` stream produces a visible wobble in the live
+/// spectrogram (the empty samples render as a flat band), and modern
+/// TTS engines don't bleed loud enough through the built-in mic to
+/// cause spurious detections in practice. Users who notice false
+/// positives during long announcements can opt in.
 final announcementsMuteCaptureDuringSpeechProvider =
     StateNotifierProvider<BoolSettingNotifier, bool>((ref) {
       final prefs = ref.watch(sharedPreferencesProvider);
       return BoolSettingNotifier(
         prefs,
         PrefKeys.announcementsMuteCaptureDuringSpeech,
-        true,
+        false,
       );
     });
 
