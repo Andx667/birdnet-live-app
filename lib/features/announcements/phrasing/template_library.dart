@@ -32,6 +32,7 @@ import 'package:flutter/services.dart' show AssetBundle, rootBundle;
 
 import '../domain/announcement_buckets.dart';
 import '../domain/announcement_presets.dart';
+import '../domain/announcement_signals.dart';
 
 /// In-memory representation of one locale's templates. Each bucket holds
 /// the variants for [AnnouncementVerbosity.balanced] (always present)
@@ -40,8 +41,16 @@ import '../domain/announcement_presets.dart';
 class TemplateBundle {
   final String locale;
   final Map<AnnouncementBucket, _BucketTemplates> _buckets;
+  final Map<CommonnessBin, List<String>> _commonness;
+  final List<String> _seasonalAddendum;
 
-  const TemplateBundle._(this.locale, this._buckets);
+  const TemplateBundle._(
+    this.locale,
+    this._buckets, {
+    Map<CommonnessBin, List<String>> commonness = const {},
+    List<String> seasonalAddendum = const [],
+  }) : _commonness = commonness,
+       _seasonalAddendum = seasonalAddendum;
 
   /// Returns the template variants to choose from for [bucket] given
   /// the user's [verbosity]. Falls back to the balanced list when a
@@ -60,6 +69,20 @@ class TemplateBundle {
     return entry.balanced;
   }
 
+  /// Variants for the Chatty first-announcement commonness phrase. Used
+  /// only when verbosity is Chatty, the species is being spoken for the
+  /// first time in the session, and a [CommonnessBin] is available.
+  /// Returns an empty list when the locale doesn't define commonness
+  /// phrases, in which case the engine simply skips the addendum.
+  List<String> commonnessVariantsFor(CommonnessBin bin) =>
+      _commonness[bin] ?? const [];
+
+  /// Variants for the optional out-of-season tail appended after the
+  /// commonness phrase when the species is currently below its annual
+  /// peak at this location. Empty list = locale opts out and the
+  /// engine skips the tail.
+  List<String> seasonalAddendumVariants() => _seasonalAddendum;
+
   /// Parse one JSON document. Bucket entries that don't match the
   /// expected shape are skipped quietly; the engine's locale-fallback
   /// path covers any gaps.
@@ -75,7 +98,20 @@ class TemplateBundle {
       if (balanced.isEmpty) continue;
       out[bucket] = _BucketTemplates(balanced: balanced, chatty: chatty);
     }
-    return TemplateBundle._(locale, out);
+    final commonnessRaw =
+        json['commonness'] as Map<String, dynamic>? ?? const {};
+    final commonness = <CommonnessBin, List<String>>{};
+    for (final bin in CommonnessBin.values) {
+      final list = _stringList(commonnessRaw[bin.name]);
+      if (list.isNotEmpty) commonness[bin] = list;
+    }
+    final seasonalAddendum = _stringList(commonnessRaw['seasonalAddendum']);
+    return TemplateBundle._(
+      locale,
+      out,
+      commonness: commonness,
+      seasonalAddendum: seasonalAddendum,
+    );
   }
 
   /// Empty bundle used as a last-resort fallback so the engine never

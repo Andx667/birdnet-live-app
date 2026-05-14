@@ -61,11 +61,29 @@ class AnnouncementDetection {
   /// Timestamp the detection was produced.
   final DateTime at;
 
+  /// Optional precomputed "how common is this species here right now"
+  /// bucket from the geo-model (see [CommonnessBin]). When non-null,
+  /// the Chatty engine appends a one-line commonness phrase the *first*
+  /// time the species is announced this session. Null when no location
+  /// fix is available, the geo-model isn't loaded, or the species is
+  /// not in the geo-model labels — the engine then skips the addendum.
+  final CommonnessBin? commonness;
+
+  /// `true` when the species is currently outside its annual peak at
+  /// the user's location (current-week probability is well below the
+  /// species' annual maximum). Lets the Chatty engine append a short
+  /// "...not usually here this time of year" tail for migrants caught
+  /// outside their normal window. Ignored when [commonness] is null
+  /// or `rare` (where the seasonal hint adds no information).
+  final bool isOutOfSeason;
+
   const AnnouncementDetection({
     required this.speciesId,
     required this.displayName,
     required this.score,
     required this.at,
+    this.commonness,
+    this.isOutOfSeason = false,
   });
 }
 
@@ -298,6 +316,13 @@ class AnnouncementsController {
   ) {
     final st = _bySpecies[det.speciesId];
     final isFirstInSession = st == null;
+    // "First time we're actually about to *speak* this species." A
+    // species can be `_touchSpecies`'d for many cycles while the
+    // throttling gates filter it out; the lastAnnouncedAt sentinel
+    // (epoch) marks "seen but never voiced". This is the trigger for
+    // the Chatty commonness/season tag-on.
+    final isFirstAnnouncement =
+        st == null || st.lastAnnouncedAt.millisecondsSinceEpoch == 0;
     final isRecent =
         st != null &&
         now.difference(st.lastSeenAt).inSeconds < profile.recencyResetSeconds;
@@ -312,7 +337,17 @@ class AnnouncementsController {
       confidence: confidenceBinFor(det.score),
       isRecent: isRecent,
       isFirstInSession: isFirstInSession,
+      isFirstAnnouncement: isFirstAnnouncement,
       streakLength: streakLength,
+      commonness: det.commonness,
+      // The seasonal tail only adds information when the species is
+      // common enough at this location for "off-peak" to mean
+      // something. For genuinely rare birds the tail would just
+      // restate the obvious.
+      isOutOfSeason:
+          det.isOutOfSeason &&
+          det.commonness != null &&
+          det.commonness != CommonnessBin.rare,
     );
   }
 

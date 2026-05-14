@@ -112,5 +112,38 @@
         "Busy moment — {name1}, {name2}, {name3}, and a handful of others."
       ]
     }
+  },
+  "_commonnessComment": [
+    "Optional one-line tag-on appended (Chatty only) the *first* time a species",
+    "is announced in a session. Bin = current-week geo-model probability divided",
+    "by the top-scoring species at this location/week. The seasonal addendum is",
+    "appended only when the species is also currently below its annual peak."
+  ],
+  "commonness": {
+    "abundant": [
+      "A really common bird in your area.",
+      "You'll hear this one a lot around here.",
+      "Very common in your area at this time of year."
+    ],
+    "common": [
+      "A common bird around here.",
+      "Fairly common in your area at this time of year.",
+      "Regular visitor in this area."
+    ],
+    "uncommon": [
+      "Not super common around here.",
+      "A bit less common in your area.",
+      "Worth noting — not heard every day around here."
+    ],
+    "rare": [
+      "A bit of a rarity around here — nice catch!",
+      "Unusual species for this area.",
+      "Quite rare for your area, that one."
+    ],
+    "seasonalAddendum": [
+      "Though they're not usually around this time of year.",
+      "And a touch out of season too.",
+      "Bit early or late for them, normally."
+    ]
   }
 }

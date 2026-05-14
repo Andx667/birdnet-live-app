@@ -122,5 +122,32 @@
         "Belle activité : {name1}, {name2}, {name3} et d'autres encore."
       ]
     }
+  },
+  "commonness": {
+    "abundant": [
+      "Une espèce très commune dans ta région.",
+      "On l'entend vraiment beaucoup ici.",
+      "Très répandue chez toi en cette saison."
+    ],
+    "common": [
+      "Une espèce commune par ici.",
+      "Plutôt présente dans ta région à cette époque.",
+      "Visiteur régulier dans la région."
+    ],
+    "uncommon": [
+      "Pas vraiment courante par ici.",
+      "Un peu moins fréquente dans ta région.",
+      "À noter — on ne l'entend pas tous les jours."
+    ],
+    "rare": [
+      "Une jolie rareté pour le coin — bien repérée !",
+      "Espèce inhabituelle pour cette région.",
+      "Plutôt rare dans ta région, celle-là."
+    ],
+    "seasonalAddendum": [
+      "Et en plus, pas vraiment la saison pour elle.",
+      "Et un peu hors saison aussi.",
+      "Un peu tôt ou tard, normalement."
+    ]
   }
 }

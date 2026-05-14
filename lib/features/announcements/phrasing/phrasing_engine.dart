@@ -43,6 +43,14 @@ class PhrasingEngine {
   /// [_antiRepeatHistory] entries; oldest entry is dropped on push.
   final Map<AnnouncementBucket, List<int>> _recent = {};
 
+  /// Per-commonness-bin ring buffer for the Chatty addendum phrases.
+  /// Kept separate from [_recent] so a fresh commonness phrase doesn't
+  /// crowd out the bucket variants and vice versa.
+  final Map<CommonnessBin, List<int>> _recentCommonness = {};
+
+  /// Ring buffer for the optional seasonal-tail phrase (single bin).
+  final List<int> _recentSeasonal = <int>[];
+
   PhrasingEngine({required TemplateBundle bundle, Random? random})
     : _bundle = bundle,
       _random = random ?? Random();
@@ -63,7 +71,22 @@ class PhrasingEngine {
     final bucket = selectBucket(signals);
     final template = _pickTemplate(bucket, verbosity);
     if (template == null) return '$name.';
-    return template.replaceAll('{name}', name);
+    final base = template.replaceAll('{name}', name);
+    // Chatty + first time we're actually speaking this species in the
+    // session = the one moment we add a commonness/season tag-on. The
+    // signal is gated on geo data being present, so this is silently
+    // skipped for users without a location fix or for species missing
+    // from the geo-model labels.
+    if (verbosity != AnnouncementVerbosity.chatty) return base;
+    if (!signals.isFirstAnnouncement) return base;
+    final bin = signals.commonness;
+    if (bin == null) return base;
+    final commonnessPhrase = _pickCommonness(bin);
+    if (commonnessPhrase == null) return base;
+    final tail = signals.isOutOfSeason ? _pickSeasonalTail() : null;
+    return tail == null
+        ? '$base $commonnessPhrase'
+        : '$base $commonnessPhrase $tail';
   }
 
   /// Speak a coalesced multi-species batch. [names] should already be
@@ -113,7 +136,11 @@ class PhrasingEngine {
 
   /// Reset the per-bucket anti-repeat memory. Called at session start
   /// and from the unit tests.
-  void reset() => _recent.clear();
+  void reset() {
+    _recent.clear();
+    _recentCommonness.clear();
+    _recentSeasonal.clear();
+  }
 
   String? _pickTemplate(
     AnnouncementBucket bucket,
@@ -129,6 +156,42 @@ class PhrasingEngine {
     // If every variant is in the history (small lists ≤ 3), allow
     // anything except the most-recent one. If the bucket has only one
     // variant we can do nothing about repetition — speak it anyway.
+    final pool =
+        candidates.isNotEmpty
+            ? candidates
+            : (variants.length > 1
+                ? [
+                  for (var i = 0; i < variants.length; i++)
+                    if (i != history.last) i,
+                ]
+                : [0]);
+    final picked = pool[_random.nextInt(pool.length)];
+    history.add(picked);
+    if (history.length > _antiRepeatHistory) history.removeAt(0);
+    return variants[picked];
+  }
+
+  String? _pickCommonness(CommonnessBin bin) {
+    final variants = _bundle.commonnessVariantsFor(bin);
+    if (variants.isEmpty) return null;
+    final history = _recentCommonness.putIfAbsent(bin, () => <int>[]);
+    return _pickFrom(variants, history);
+  }
+
+  String? _pickSeasonalTail() {
+    final variants = _bundle.seasonalAddendumVariants();
+    if (variants.isEmpty) return null;
+    return _pickFrom(variants, _recentSeasonal);
+  }
+
+  /// Shared anti-repeat picker. Same 3-slot ring buffer as
+  /// [_pickTemplate] but parameterised so it can drive both the
+  /// commonness and seasonal addendum lists.
+  String _pickFrom(List<String> variants, List<int> history) {
+    final candidates = <int>[
+      for (var i = 0; i < variants.length; i++)
+        if (!history.contains(i)) i,
+    ];
     final pool =
         candidates.isNotEmpty
             ? candidates

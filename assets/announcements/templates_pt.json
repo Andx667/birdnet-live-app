@@ -121,5 +121,32 @@
         "Bastante movimento: {name1}, {name2}, {name3} e mais alguns."
       ]
     }
+  },
+  "commonness": {
+    "abundant": [
+      "Uma espécie muito comum na tua zona.",
+      "Por aqui ouve-se imenso.",
+      "Muito frequente na tua zona nesta época do ano."
+    ],
+    "common": [
+      "Uma espécie comum por aqui.",
+      "Habitual na tua zona nesta época.",
+      "Visitante regular desta zona."
+    ],
+    "uncommon": [
+      "Não é particularmente comum por aqui.",
+      "Um pouco menos frequente na tua zona.",
+      "Vale a pena anotar — não se ouve todos os dias."
+    ],
+    "rare": [
+      "Uma bela raridade por aqui — bem ouvida!",
+      "Espécie pouco habitual nesta zona.",
+      "Bastante rara para a tua zona, essa."
+    ],
+    "seasonalAddendum": [
+      "E normalmente não costuma aparecer nesta época do ano.",
+      "E um pouco fora de época também.",
+      "Um pouco cedo ou tarde para ela, na verdade."
+    ]
   }
 }

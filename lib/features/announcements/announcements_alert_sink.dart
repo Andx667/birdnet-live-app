@@ -45,6 +45,7 @@ import '../audio/audio_providers.dart';
 import 'announcements_controller.dart';
 import 'announcements_providers.dart';
 import 'domain/announcement_presets.dart';
+import 'geo_commonness_provider.dart';
 import 'phrasing/phrasing_engine.dart';
 import 'phrasing/template_library.dart';
 import 'platform/routing_service.dart';
@@ -74,10 +75,44 @@ class AnnouncementsAlertSink {
         return AnnounceOutcome.disabled;
       }
       final controller = _controller ?? await _ensureController();
-      return await controller.announce(batch, _readConfig());
+      final enriched = _enrichWithCommonness(batch);
+      return await controller.announce(enriched, _readConfig());
     } catch (_) {
       return AnnounceOutcome.routingFailed;
     }
+  }
+
+  /// Attach geo-model commonness/season metadata to each detection in
+  /// the batch when available. Reads the cached
+  /// [geoCommonnessProvider] value non-blockingly via
+  /// `valueOrNull` — if the geo data isn't ready yet we just hand the
+  /// batch through unchanged and the engine will skip the Chatty
+  /// addendum (the bucket templates still render normally). Detections
+  /// that already carry a non-null `commonness` (e.g. from tests) are
+  /// preserved.
+  List<AnnouncementDetection> _enrichWithCommonness(
+    List<AnnouncementDetection> batch,
+  ) {
+    final map = _ref.read(geoCommonnessProvider).valueOrNull;
+    if (map == null || map.isEmpty) return batch;
+    return [
+      for (final d in batch)
+        if (d.commonness != null)
+          d
+        else
+          () {
+            final entry = map[d.speciesId];
+            if (entry == null) return d;
+            return AnnouncementDetection(
+              speciesId: d.speciesId,
+              displayName: d.displayName,
+              score: d.score,
+              at: d.at,
+              commonness: entry.commonness,
+              isOutOfSeason: entry.isOutOfSeason,
+            );
+          }(),
+    ];
   }
 
   /// Reset per-session bookkeeping. Wire to mode-controller session

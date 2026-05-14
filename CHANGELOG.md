@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.4] - Unreleased
+
+### Added
+
+- **Chatty announcements now mention how common a species is in your area, the first time it's heard each session.** Phrases like *"A common bird around here"*, *"Not super common in your area"*, or *"A bit of a rarity around here — nice catch!"* are appended to the first announcement of each new species. For migrants caught well outside their annual peak at your location, a short seasonal hint follows (*"Though they're not usually around this time of year."*). All driven by the existing on-device geo-model, so it works fully offline — no extra network call, no extra battery cost. Translated for all seven UI languages.
+
 ## [0.13.3] - Unreleased
 
 ### Changed

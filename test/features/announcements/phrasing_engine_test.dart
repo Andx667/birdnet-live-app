@@ -199,4 +199,132 @@ void main() {
       );
     });
   });
+
+  group('commonnessBinForRatio', () {
+    test('null / NaN / Inf / negative → null', () {
+      expect(commonnessBinForRatio(null), isNull);
+      expect(commonnessBinForRatio(double.nan), isNull);
+      expect(commonnessBinForRatio(double.infinity), isNull);
+      expect(commonnessBinForRatio(-0.1), isNull);
+    });
+    test('threshold mapping', () {
+      expect(commonnessBinForRatio(1.0), CommonnessBin.abundant);
+      expect(commonnessBinForRatio(0.50), CommonnessBin.abundant);
+      expect(commonnessBinForRatio(0.49), CommonnessBin.common);
+      expect(commonnessBinForRatio(0.20), CommonnessBin.common);
+      expect(commonnessBinForRatio(0.19), CommonnessBin.uncommon);
+      expect(commonnessBinForRatio(0.05), CommonnessBin.uncommon);
+      expect(commonnessBinForRatio(0.049), CommonnessBin.rare);
+      expect(commonnessBinForRatio(0.0), CommonnessBin.rare);
+    });
+  });
+
+  group('Chatty commonness addendum', () {
+    TemplateBundle bundleWithCommonness() {
+      final json = {
+        'locale': 'en',
+        'buckets': {
+          'A': {
+            'balanced': ['BAL {name}.'],
+            'chatty': ['CHATTY {name}.'],
+          },
+        },
+        'commonness': {
+          'abundant': ['Very common.'],
+          'common': ['Common bird.'],
+          'uncommon': ['Uncommon here.'],
+          'rare': ['A rarity.'],
+          'seasonalAddendum': ['Off-season too.'],
+        },
+      };
+      return TemplateBundle.fromJson(json);
+    }
+
+    AnnouncementSignals firstAnnSig({
+      CommonnessBin? bin,
+      bool offSeason = false,
+      bool first = true,
+    }) => AnnouncementSignals(
+      confidence: ConfidenceBin.high,
+      isRecent: false,
+      isFirstInSession: true,
+      streakLength: 1,
+      isFirstAnnouncement: first,
+      commonness: bin,
+      isOutOfSeason: offSeason,
+    );
+
+    test('chatty + first announcement + commonness appends phrase', () {
+      final engine = PhrasingEngine(bundle: bundleWithCommonness());
+      final out = engine.speakOne(
+        name: 'Robin',
+        signals: firstAnnSig(bin: CommonnessBin.common),
+        verbosity: AnnouncementVerbosity.chatty,
+      );
+      expect(out, 'CHATTY Robin. Common bird.');
+    });
+
+    test('chatty + first + commonness + out-of-season appends both', () {
+      final engine = PhrasingEngine(bundle: bundleWithCommonness());
+      final out = engine.speakOne(
+        name: 'Robin',
+        signals: firstAnnSig(
+          bin: CommonnessBin.uncommon,
+          offSeason: true,
+        ),
+        verbosity: AnnouncementVerbosity.chatty,
+      );
+      expect(out, 'CHATTY Robin. Uncommon here. Off-season too.');
+    });
+
+    test('balanced verbosity never appends commonness', () {
+      final engine = PhrasingEngine(bundle: bundleWithCommonness());
+      final out = engine.speakOne(
+        name: 'Robin',
+        signals: firstAnnSig(bin: CommonnessBin.common),
+        verbosity: AnnouncementVerbosity.balanced,
+      );
+      expect(out, 'BAL Robin.');
+    });
+
+    test('not-first-announcement skips commonness even in chatty', () {
+      final engine = PhrasingEngine(bundle: bundleWithCommonness());
+      final out = engine.speakOne(
+        name: 'Robin',
+        signals: firstAnnSig(bin: CommonnessBin.common, first: false),
+        verbosity: AnnouncementVerbosity.chatty,
+      );
+      expect(out, 'CHATTY Robin.');
+    });
+
+    test('null commonness skips addendum', () {
+      final engine = PhrasingEngine(bundle: bundleWithCommonness());
+      final out = engine.speakOne(
+        name: 'Robin',
+        signals: firstAnnSig(bin: null),
+        verbosity: AnnouncementVerbosity.chatty,
+      );
+      expect(out, 'CHATTY Robin.');
+    });
+
+    test('locale opting out of commonness leaves base phrase intact', () {
+      // No `commonness` key in the JSON.
+      final json = {
+        'locale': 'en',
+        'buckets': {
+          'A': {
+            'balanced': ['BAL {name}.'],
+            'chatty': ['CHATTY {name}.'],
+          },
+        },
+      };
+      final engine = PhrasingEngine(bundle: TemplateBundle.fromJson(json));
+      final out = engine.speakOne(
+        name: 'Robin',
+        signals: firstAnnSig(bin: CommonnessBin.abundant, offSeason: true),
+        verbosity: AnnouncementVerbosity.chatty,
+      );
+      expect(out, 'CHATTY Robin.');
+    });
+  });
 }

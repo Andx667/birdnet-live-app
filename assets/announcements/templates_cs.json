@@ -119,5 +119,32 @@
         "Pěkný ruch: {name1}, {name2}, {name3} a další."
       ]
     }
+  },
+  "commonness": {
+    "abundant": [
+      "Velmi hojný druh v této oblasti.",
+      "Tady ho slyšíš opravdu často.",
+      "V této době roku tu bývá hojně."
+    ],
+    "common": [
+      "Běžný druh v okolí.",
+      "V této roční době tu bývá pravidelně.",
+      "Pravidelný host v této oblasti."
+    ],
+    "uncommon": [
+      "V okolí není moc hojný.",
+      "Tady spíš méně častý.",
+      "Stojí za zmínku — tady ho člověk neslyší každý den."
+    ],
+    "rare": [
+      "Pěkná vzácnost pro tuto oblast — dobrý úlovek!",
+      "Neobvyklý druh pro tuto oblast.",
+      "Tady opravdu vzácný."
+    ],
+    "seasonalAddendum": [
+      "Navíc v této roční době tu obvykle nebývá.",
+      "A taky trochu mimo sezónu.",
+      "Vlastně trochu brzy nebo pozdě na něj."
+    ]
   }
 }

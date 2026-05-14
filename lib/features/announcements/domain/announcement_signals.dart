@@ -30,6 +30,34 @@ ConfidenceBin confidenceBinFor(double score) {
   return ConfidenceBin.low;
 }
 
+/// How common a species is at the user's location *right now*, derived
+/// from the geo-model's current-week probability normalised against the
+/// top-scoring species at the same location/week. Used by Chatty
+/// verbosity to add a single first-announcement phrase like
+/// *"A common bird in your area"* / *"A bit of a rarity around here."*
+///
+/// Bins are intentionally coarse — the goal is a one-line nudge, not a
+/// precise abundance estimate. The mapping (see [commonnessBinForRatio])
+/// is rank-relative so the same thresholds work in tropical hotspots
+/// (where absolute geo-scores are crowded) and in low-diversity regions
+/// (where a single species can dominate the top of the list).
+enum CommonnessBin { abundant, common, uncommon, rare }
+
+/// Map a normalised current-week ratio (this species's geo-model score
+/// divided by the *top* current-week score at the same location) to a
+/// [CommonnessBin]. Returns null when [ratio] is non-finite or
+/// negative — the caller should then skip the commonness phrase
+/// entirely rather than guess.
+CommonnessBin? commonnessBinForRatio(double? ratio) {
+  if (ratio == null || ratio.isNaN || ratio.isInfinite || ratio < 0) {
+    return null;
+  }
+  if (ratio >= 0.50) return CommonnessBin.abundant;
+  if (ratio >= 0.20) return CommonnessBin.common;
+  if (ratio >= 0.05) return CommonnessBin.uncommon;
+  return CommonnessBin.rare;
+}
+
 /// Everything the phrasing engine needs to pick a bucket for a single
 /// detection.
 ///
@@ -57,10 +85,39 @@ class AnnouncementSignals {
   /// calling" territory rather than re-announcing the same bird.
   final int streakLength;
 
+  /// `true` if this is the very first time the species is being
+  /// **spoken** in the current session. Distinct from
+  /// [isFirstInSession] (which only tracks whether the species has
+  /// been *seen*): a species can be seen for many cycles but throttled
+  /// out, and this flag stays `true` until the announcement actually
+  /// fires for the first time. Drives the optional Chatty
+  /// commonness/season tag-on (*"A common bird in your area at this
+  /// time of year."*).
+  final bool isFirstAnnouncement;
+
+  /// Coarse "how common is this species here right now" bucket from
+  /// the geo-model. `null` when no location is available, the
+  /// geo-model isn't loaded yet, or the species is missing from the
+  /// geo-model labels. The phrasing engine omits the commonness
+  /// addendum when this is null.
+  final CommonnessBin? commonness;
+
+  /// `true` when the species is currently outside its annual peak at
+  /// this location — specifically, when `currentWeekScore /
+  /// annualMaxScore < 0.4` *and* the current score is high enough for
+  /// the comparison to be meaningful (commonness is at least
+  /// [CommonnessBin.uncommon]). Used by the Chatty engine to optionally
+  /// append a "...not usually here this time of year" tail for migrant
+  /// birds caught outside their normal window.
+  final bool isOutOfSeason;
+
   const AnnouncementSignals({
     required this.confidence,
     required this.isRecent,
     required this.isFirstInSession,
     required this.streakLength,
+    this.isFirstAnnouncement = false,
+    this.commonness,
+    this.isOutOfSeason = false,
   });
 }

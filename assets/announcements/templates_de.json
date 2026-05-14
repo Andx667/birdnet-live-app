@@ -132,5 +132,32 @@
         "Geschäftiger Moment — {name1}, {name2}, {name3} und ein paar weitere."
       ]
     }
+  },
+  "commonness": {
+    "abundant": [
+      "Eine sehr häufige Art in deiner Region.",
+      "Den hört man hier wirklich oft.",
+      "Sehr verbreitet bei euch um diese Jahreszeit."
+    ],
+    "common": [
+      "Eine recht häufige Art hier.",
+      "Bei euch zu dieser Jahreszeit gut vertreten.",
+      "Regelmäßiger Gast in deiner Gegend."
+    ],
+    "uncommon": [
+      "Nicht besonders häufig in deiner Region.",
+      "Eher selten hier zu hören.",
+      "Bemerkenswert — den bekommt man hier nicht jeden Tag."
+    ],
+    "rare": [
+      "Eine ziemliche Rarität bei euch — gut gehört!",
+      "Eine ungewöhnliche Art für deine Region.",
+      "Sehr selten in deiner Gegend, der da."
+    ],
+    "seasonalAddendum": [
+      "Allerdings normalerweise nicht um diese Jahreszeit.",
+      "Und etwas außerhalb der üblichen Saison.",
+      "Eigentlich etwas früh oder spät dafür."
+    ]
   }
 }

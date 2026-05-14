@@ -121,5 +121,32 @@
         "Bel movimento: {name1}, {name2}, {name3} e ancora altri."
       ]
     }
+  },
+  "commonness": {
+    "abundant": [
+      "Una specie molto comune nella tua zona.",
+      "Da queste parti si sente davvero spesso.",
+      "Molto diffusa qui in questo periodo dell'anno."
+    ],
+    "common": [
+      "Una specie comune da queste parti.",
+      "Frequente nella tua zona in questa stagione.",
+      "Visitatrice regolare di questa zona."
+    ],
+    "uncommon": [
+      "Non particolarmente comune da queste parti.",
+      "Un po' meno frequente nella tua zona.",
+      "Da segnalare — non si sente tutti i giorni."
+    ],
+    "rare": [
+      "Una bella rarità da queste parti — bell'ascolto!",
+      "Specie insolita per questa zona.",
+      "Piuttosto rara nella tua zona, quella."
+    ],
+    "seasonalAddendum": [
+      "E di solito non si trova in questo periodo dell'anno.",
+      "E anche un po' fuori stagione.",
+      "In realtà un po' presto o tardi per lei."
+    ]
   }
 }
