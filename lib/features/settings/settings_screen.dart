@@ -7,6 +7,7 @@ import '../../shared/providers/app_providers.dart';
 import '../../shared/providers/settings_providers.dart';
 import '../../shared/widgets/content_width_constraint.dart';
 import '../about/about_screen.dart';
+import '../announcements/widgets/announcements_settings_section.dart';
 import '../audio/audio_providers.dart';
 import '../explore/explore_providers.dart';
 import '../spectrogram/color_maps.dart';
@@ -100,6 +101,11 @@ class SettingsScreen extends ConsumerWidget {
       SettingsContext.survey,
       SettingsContext.pointCount,
       SettingsContext.fileAnalysis,
+    },
+    'announcements': {
+      SettingsContext.live,
+      SettingsContext.survey,
+      SettingsContext.pointCount,
     },
     'about': {
       SettingsContext.live,
@@ -629,6 +635,17 @@ class SettingsScreen extends ConsumerWidget {
               ),
               const Divider(),
             ],
+
+            // --- Announcements ---
+            if (_showSection('announcements'))
+              AnnouncementsSettingsSection(
+                sectionHeader:
+                    ({required String title, required String subtitle}) =>
+                        _SectionHeader(title: title, subtitle: subtitle),
+                titleWithHelp:
+                    ({required String title, String? helpBody}) =>
+                        _TitleWithHelp(title: title, helpBody: helpBody),
+              ),
 
             // --- About ---
             if (_showSection('about'))

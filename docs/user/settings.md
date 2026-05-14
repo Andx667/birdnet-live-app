@@ -193,6 +193,45 @@ When on, the app sends your recorded coordinates to **OpenStreetMap's Nominatim*
 
 When on, every saved session captures a one-shot snapshot of local conditions (temperature, precipitation, wind, cloud cover) at the recording coordinates and end time via **Open-Meteo**. The snapshot lands in Session Review under the location row and is mirrored into the JSON export, the per-session metadata block, and the HTML report. The intuition: weather is one of the strongest predictors of bird activity, and capturing it automatically — without you having to remember to check a separate app — turns every session into a more complete record. Open-Meteo is a free service and requires neither an account nor an API key. When off, no weather data is fetched or stored.
 
+## Announcements
+
+This section controls whether BirdNET Live **reads detections aloud through your headphones or the phone speaker** while a session is recording. The whole feature is **off by default** because it changes the acoustic environment around the microphone — turning it on is a deliberate trade-off. The first time you switch it on, a short setup helps you choose a voice and how chatty it should be. The intuition: in long surveys you can't keep glancing at the screen; a discreet voice in your ear means you can keep your eyes on the habitat and still know what was just heard.
+
+### Speak detections aloud (master toggle)
+
+Off by default. When on, the app speaks each accepted detection using your device's built-in text-to-speech. **Headphones are strongly recommended** — using the phone speaker risks the announcement being picked up by the microphone and re-detected, so the app briefly mutes the recorder around each utterance to prevent that loop (see *Mute mic while speaking* below). When you have a screen reader (TalkBack on Android, VoiceOver on iOS) active the *first* time you launch the app, this toggle is enabled automatically as an accessibility default — you can turn it back off here at any time.
+
+### Verbosity preset
+
+How much the app says about each detection. **Minimal** speaks just the species name (best for very long surveys where you only want the cue). **Balanced** is the default — short, varied phrases like *"Robin"*, *"Heard a Robin"*, *"Robin again"*. **Chatty** adds a touch more context and is closer to having someone narrate alongside you. **Custom** appears automatically if you tweak the Advanced numerics by hand. The intuition: the same throttling settings can feel either too quiet or too noisy depending on phrasing — verbosity lets you keep the cadence and just dial the wordiness.
+
+### Frequency preset
+
+How often the app is allowed to speak at all. **Sparse** waits longer between announcements and caps the rate; well-suited to a multi-hour survey where you want a sense of activity without a running commentary. **Normal** is the default. **Frequent** shortens the gaps and lifts the cap; appropriate for short Live sessions or when you want closer-to-real-time feedback. **Custom** appears when you change the timing fields in Advanced. The intuition: this is the one knob that decides whether the app stays in the background or becomes a presence — pick the preset that matches the *kind* of listening you're doing today.
+
+### Voice (speed and pitch)
+
+Two sliders that adjust the platform TTS voice. **Speed** ranges 0.5×–1.5×; the default 1.0× is the platform "normal" pace. **Pitch** ranges 0.7×–1.3×. The intuition: a small reduction in pitch and a slight slowdown can make announcements much easier to parse outdoors with wind or moving water in the background; the *Speak a sample* button below previews three common bird names with the current settings so you can iterate without leaving the screen.
+
+### Run setup again
+
+Reopens the announcements first-run setup. Use this if you got a new pair of headphones, switched to a clip-on lapel mic, or want to revisit the speaker/headphone trade-off.
+
+### Advanced
+
+A disclosure that exposes the underlying numeric and routing controls. You generally do not need to open this — the verbosity and frequency presets stamp sensible defaults. Touching anything in here downgrades the corresponding preset to *Custom* so the UI never claims a preset is in effect when it isn't.
+
+- **Allow phone speaker** — When off, announcements are silently skipped if no headphones or external speaker is connected. When on, the phone speaker is used as a fallback. Turn this on for casual listening at home; leave it off for fieldwork to guarantee no acoustic feedback into the microphone.
+- **Mute mic while speaking** — Replaces incoming audio with silence while the app speaks, so the speaker output cannot be picked up by the microphone and re-detected. Highly recommended (and the default). Only turn this off if your microphone is acoustically isolated from the phone speaker — for example a clip-on lapel mic on a different cable or a Bluetooth headset.
+- **Lower other audio** — Briefly reduces the volume of music or podcasts from other apps during the announcement and restores it afterwards. Off plays at full mix.
+- **Cue tone before speaking** — Plays a short, quiet tone before each utterance so your ear has a moment to switch from passive listening to attending to the voice. Particularly helpful when announcements are infrequent or when you have music playing in the background.
+- **Startup grace** — Seconds of silence at the start of each session before the first announcement is allowed. Avoids a flurry of utterances during the noisy "phone in pocket / mic just settled" period.
+- **Minimum gap** — Minimum seconds between any two announcements, regardless of species.
+- **Max per minute** — Hard ceiling on the number of utterances within any 60-second sliding window. Prevents a sudden chorus from triggering rapid-fire speech.
+- **Streak silence** — How long to stay silent about a *single species* after it has been announced repeatedly in a row. Stops the same name from dominating the soundtrack.
+- **Recency reset** — How long until a previously-announced species is treated as "new again" and re-eligible for a phrasing that does not assume recent context.
+- **What to announce** — Picks which detections are eligible for an announcement at all. *Every detection* (default) lets the throttling decide. *First time per session* announces a species only the first time it appears in the current session. *Watchlist only* limits announcements to species on your watchlist (useful for targeted survey work where you want to hear about your priority taxa and nothing else).
+
 ## About
 
 The **About** row opens the in-app About screen.
