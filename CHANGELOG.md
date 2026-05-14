@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.3] - 2026-05-22
+
+### Changed
+
+- **Inline consent prompts on the wizard site-context card.** When the place-name or weather privacy toggle is still off and you reach the "Ready" step of the survey or point-count wizard, the corresponding row now shows a tap-to-allow link instead of being hidden. Tapping flips the privacy toggle on, runs the lookup, and replaces itself with the result — no detour through Settings.
+- **Offline note when a site-context lookup fails.** If you have consent on but the network is unreachable (no signal in the field, service down), the wizard card now shows a small "Offline — you can add place name and weather later from the session review" hint instead of silently dropping the row. Both lookups already retry on session-review open, so the data isn't lost.
+
 ## [0.12.2] - 2026-05-22
 
 ### Changed
