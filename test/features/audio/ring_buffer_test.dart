@@ -336,5 +336,69 @@ void main() {
         expect(sample, -1.0);
       });
     });
+
+    group('mute window', () {
+      test('replaces incoming write() samples with silence while muted', () {
+        final buf = RingBuffer(capacity: 16);
+        var fakeNow = DateTime(2026, 1, 1, 12, 0, 0);
+        buf.clock = () => fakeNow;
+        buf.muteFor(const Duration(seconds: 1));
+        expect(buf.isMuted, true);
+
+        buf.write(Float32List.fromList(List.filled(8, 0.5)));
+        final read = buf.readLast(8);
+        for (final s in read) {
+          expect(s, 0.0);
+        }
+        expect(buf.totalWritten, 8, reason: 'sample count must still advance');
+      });
+
+      test('passes samples through unchanged after the window expires', () {
+        final buf = RingBuffer(capacity: 16);
+        var fakeNow = DateTime(2026, 1, 1, 12, 0, 0);
+        buf.clock = () => fakeNow;
+        buf.muteFor(const Duration(milliseconds: 100));
+        fakeNow = fakeNow.add(const Duration(milliseconds: 200));
+        expect(buf.isMuted, false);
+
+        buf.write(Float32List.fromList(List.filled(4, 0.5)));
+        expect(buf.readLast(4), Float32List.fromList([0.5, 0.5, 0.5, 0.5]));
+      });
+
+      test('writeSample() also respects the mute window', () {
+        final buf = RingBuffer(capacity: 8);
+        var fakeNow = DateTime(2026, 1, 1, 12, 0, 0);
+        buf.clock = () => fakeNow;
+        buf.muteFor(const Duration(seconds: 1));
+        for (var i = 0; i < 4; i++) {
+          buf.writeSample(0.9);
+        }
+        for (final s in buf.readLast(4)) {
+          expect(s, 0.0);
+        }
+      });
+
+      test('muteFor() extends but never shortens an active window', () {
+        final buf = RingBuffer(capacity: 8);
+        var fakeNow = DateTime(2026, 1, 1, 12, 0, 0);
+        buf.clock = () => fakeNow;
+        buf.muteFor(const Duration(seconds: 5));
+        // A shorter request must NOT shorten the window.
+        buf.muteFor(const Duration(milliseconds: 100));
+        fakeNow = fakeNow.add(const Duration(seconds: 1));
+        expect(buf.isMuted, true,
+            reason: 'longer original window must still be in effect');
+      });
+
+      test('unmute() takes effect immediately', () {
+        final buf = RingBuffer(capacity: 4);
+        var fakeNow = DateTime(2026, 1, 1, 12, 0, 0);
+        buf.clock = () => fakeNow;
+        buf.muteFor(const Duration(seconds: 1));
+        buf.unmute();
+        buf.write(Float32List.fromList([0.4, 0.4]));
+        expect(buf.readLast(2), Float32List.fromList([0.4, 0.4]));
+      });
+    });
   });
 }
