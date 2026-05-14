@@ -21,6 +21,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../shared/providers/settings_providers.dart';
+import '../announcements/announcements_alert_sink.dart';
 import '../audio/audio_providers.dart';
 import '../recording/recording_service.dart';
 import '../live/live_session.dart';
@@ -57,6 +58,14 @@ final surveyControllerProvider = Provider<SurveyController>((ref) {
     ringBuffer: ringBuffer,
     recordingService: recordingService,
   );
+
+  // Announcements wiring (Phase 4): the per-mode "fresh detection"
+  // callback feeds the spoken-detection pipeline. The sink itself is
+  // lazy — no TTS plugin is touched until the user enables the
+  // feature, so this hook is free for users who never opt in.
+  final announcementsSink = ref.read(announcementsAlertSinkProvider);
+  controller.onFreshDetections = announcementsSink.submit;
+  controller.onSessionStarted = announcementsSink.resetSession;
 
   ref.onDispose(() => controller.dispose());
   return controller;

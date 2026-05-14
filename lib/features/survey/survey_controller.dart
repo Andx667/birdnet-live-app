@@ -40,6 +40,7 @@ import 'survey_alert_coordinator.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/services/asset_pack_service.dart';
 import '../../core/services/memory_monitor.dart';
+import '../announcements/announcements_controller.dart' show AnnouncementDetection;
 import '../audio/ring_buffer.dart';
 import '../inference/inference_isolate.dart';
 import '../inference/model_config.dart';
@@ -210,6 +211,17 @@ class SurveyController {
 
   /// Called when auto-stop triggers (max duration or battery).
   void Function(String reason)? onAutoStop;
+
+  /// Called once per inference cycle with the species that *just*
+  /// appeared (i.e. were not in the previous cycle's active-card set).
+  /// Used by the Announcements feature; errors thrown by the callback
+  /// are swallowed so TTS hiccups never reach the inference loop.
+  void Function(List<AnnouncementDetection> batch)? onFreshDetections;
+
+  /// Called when a fresh survey starts (at the bottom of
+  /// [startSurvey]). Used by the Announcements feature to reset
+  /// per-session bookkeeping.
+  void Function()? onSessionStarted;
 
   /// Attach (or detach) the per-survey alert coordinator. Call before
   /// [startSurvey] / [resumeSurvey] so initial detections go through the
@@ -479,6 +491,7 @@ class SurveyController {
       );
 
       _state = SurveyState.active;
+      onSessionStarted?.call();
       _notifyListeners();
 
       debugPrint(
@@ -1082,6 +1095,29 @@ class SurveyController {
             _sessionDetections.length,
           );
           _refreshRecentForNotification();
+        }
+
+        // Hand the freshly-appeared species to the Announcements
+        // pipeline (no-op when the feature is disabled). Done after
+        // the records are durably tracked so a spoken announcement
+        // implies the detection was kept.
+        final cb = onFreshDetections;
+        if (cb != null && appeared.isNotEmpty) {
+          final batch = <AnnouncementDetection>[
+            for (final d in filteredDetections)
+              if (appeared.contains(d.species.scientificName))
+                AnnouncementDetection(
+                  speciesId: d.species.scientificName,
+                  displayName: d.species.commonName,
+                  score: d.confidence,
+                  at: d.timestamp ?? DateTime.now(),
+                ),
+          ];
+          if (batch.isNotEmpty) {
+            try {
+              cb(batch);
+            } catch (_) {/* Announcements errors must never escape. */}
+          }
         }
       }
 

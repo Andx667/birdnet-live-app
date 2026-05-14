@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.2] - Unreleased
+
+### Added
+
+- **Spoken detections now fire from Live, Point Count, and Survey.** With the master toggle in **Settings → Announcements** on, the announcement pipeline (verbosity / frequency presets, throttling, anti-repeat, ring-buffer mute) is wired into all three live capture modes. Each mode emits an announcement batch only for species that just appeared in the on-screen detection list, and resets per-session throttling state when a new session starts. The alert sink is lazy: no TTS plugin or audio-session work happens at app start, only on the first batch while the feature is enabled, so users who never opt in pay zero startup cost.
+
 ## [0.13.0] - Unreleased
 
 Internal scaffolding for spoken detection announcements (TTS) shipping

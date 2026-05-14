@@ -240,8 +240,7 @@ class _VoiceSubsection extends ConsumerWidget {
             divisions: 10,
             display: rate.toStringAsFixed(2),
             onChanged:
-                (v) =>
-                    ref.read(announcementsVoiceRateProvider.notifier).set(v),
+                (v) => ref.read(announcementsVoiceRateProvider.notifier).set(v),
           ),
           _LabeledSlider(
             label: l10n.settingsAnnouncementsVoicePitch,
@@ -411,9 +410,8 @@ class _AdvancedDisclosure extends ConsumerWidget {
           ),
           value: ref.watch(announcementsDuckOtherAudioProvider),
           onChanged:
-              (v) => ref
-                  .read(announcementsDuckOtherAudioProvider.notifier)
-                  .set(v),
+              (v) =>
+                  ref.read(announcementsDuckOtherAudioProvider.notifier).set(v),
         ),
         SwitchListTile(
           title: titleWithHelp(
@@ -422,8 +420,7 @@ class _AdvancedDisclosure extends ConsumerWidget {
           ),
           value: ref.watch(announcementsPrerollCueProvider),
           onChanged:
-              (v) =>
-                  ref.read(announcementsPrerollCueProvider.notifier).set(v),
+              (v) => ref.read(announcementsPrerollCueProvider.notifier).set(v),
         ),
         const SizedBox(height: 8),
         // Numeric sliders. Each one writes the int and downgrades the
@@ -437,11 +434,12 @@ class _AdvancedDisclosure extends ConsumerWidget {
           min: 0,
           max: 120,
           divisions: 12,
-          onChanged: (v) => _setIntAndCustomize(
-            ref,
-            announcementsStartupGraceSecondsProvider,
-            v,
-          ),
+          onChanged:
+              (v) => _setIntAndCustomize(
+                ref,
+                announcementsStartupGraceSecondsProvider,
+                v,
+              ),
         ),
         _IntAdvancedSlider(
           label: l10n.settingsAnnouncementsMinIntervalSeconds(
@@ -451,11 +449,12 @@ class _AdvancedDisclosure extends ConsumerWidget {
           min: 2,
           max: 60,
           divisions: 29,
-          onChanged: (v) => _setIntAndCustomize(
-            ref,
-            announcementsMinIntervalSecondsProvider,
-            v,
-          ),
+          onChanged:
+              (v) => _setIntAndCustomize(
+                ref,
+                announcementsMinIntervalSecondsProvider,
+                v,
+              ),
         ),
         _IntAdvancedSlider(
           label: l10n.settingsAnnouncementsMaxPerMinute(
@@ -465,11 +464,12 @@ class _AdvancedDisclosure extends ConsumerWidget {
           min: 1,
           max: 20,
           divisions: 19,
-          onChanged: (v) => _setIntAndCustomize(
-            ref,
-            announcementsMaxPerMinuteProvider,
-            v,
-          ),
+          onChanged:
+              (v) => _setIntAndCustomize(
+                ref,
+                announcementsMaxPerMinuteProvider,
+                v,
+              ),
         ),
         _IntAdvancedSlider(
           label: l10n.settingsAnnouncementsStreakSilenceSeconds(
@@ -479,11 +479,12 @@ class _AdvancedDisclosure extends ConsumerWidget {
           min: 10,
           max: 300,
           divisions: 29,
-          onChanged: (v) => _setIntAndCustomize(
-            ref,
-            announcementsStreakSilenceSecondsProvider,
-            v,
-          ),
+          onChanged:
+              (v) => _setIntAndCustomize(
+                ref,
+                announcementsStreakSilenceSecondsProvider,
+                v,
+              ),
         ),
         _IntAdvancedSlider(
           label: l10n.settingsAnnouncementsRecencyResetSeconds(
@@ -493,11 +494,12 @@ class _AdvancedDisclosure extends ConsumerWidget {
           min: 30,
           max: 600,
           divisions: 19,
-          onChanged: (v) => _setIntAndCustomize(
-            ref,
-            announcementsRecencyResetSecondsProvider,
-            v,
-          ),
+          onChanged:
+              (v) => _setIntAndCustomize(
+                ref,
+                announcementsRecencyResetSecondsProvider,
+                v,
+              ),
         ),
         const Divider(),
         _TriggerModePicker(),

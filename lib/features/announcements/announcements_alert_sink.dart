@@ -8,36 +8,59 @@
 // screens stay ignorant of TTS — they just hand a batch of detections
 // to `submit()` whenever new inference results land.
 //
-// Why not `Provider.listen()` straight from the controller? Two
-// reasons:
-//   1. The mode controllers (Live/Survey/Point Count) do not currently
-//      expose detection batches as Riverpod providers; they hold
-//      mutable lists on their `ChangeNotifier` instances. Wiring the
-//      sink as a callable means each mode only needs to add a single
-//      `ref.read(announcementsAlertSinkProvider).submit(...)` line at
-//      the point it already publishes detections — no architecture
-//      changes required.
-//   2. Keeping the sink interface tiny keeps tests trivial: the
-//      controller's behaviour is already covered by
-//      `announcements_controller_test.dart`; the sink only adds the
-//      Riverpod glue to read live preset values.
+// Design notes:
+//
+//   * **Lazy initialization.** The TTS plugin, audio routing service
+//     and template bundle are *only* built on the first `submit()`
+//     call made while announcements are enabled. Users who never turn
+//     the feature on never pay the plugin / asset cost — and we avoid
+//     the `MissingPluginException` that follows a hot-reload of a
+//     freshly-added native plugin.
+//
+//   * **Errors are swallowed.** A TTS hiccup must never bubble up into
+//     the audio capture loop; on any failure `submit()` returns
+//     [AnnounceOutcome.routingFailed] and the mode controller continues
+//     normally.
+//
+//   * **Ref-driven config.** `_readConfig()` reads the live
+//     SharedPreferences-backed providers each call, so flipping a
+//     setting in the UI takes effect on the next detection batch.
+//
+// Wiring (Phase 4):
+//
+//   * [LiveController.onFreshDetections] →
+//     `ref.read(announcementsAlertSinkProvider).submit(batch)`
+//     (also covers Point Count, which reuses LiveController).
+//   * [SurveyController.onFreshDetections] → same.
+//   * Each controller calls `resetSession()` at session start.
 //
 // See `dev/announcements.md` §2 (data flow) and §6 (settings layer).
 // =============================================================================
 
+import 'dart:ui' as ui;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../audio/audio_providers.dart';
 import 'announcements_controller.dart';
 import 'announcements_providers.dart';
 import 'domain/announcement_presets.dart';
+import 'phrasing/phrasing_engine.dart';
+import 'phrasing/template_library.dart';
+import 'platform/routing_service.dart';
+import 'platform/tts_engine.dart';
 
 /// Glue layer the per-mode controllers call when a fresh batch of
 /// detections is published.
 class AnnouncementsAlertSink {
-  final Ref _ref;
-  final AnnouncementsController _controller;
+  AnnouncementsAlertSink(this._ref);
 
-  AnnouncementsAlertSink(this._ref, this._controller);
+  final Ref _ref;
+
+  AnnouncementsController? _controller;
+  TtsEngine? _tts;
+  RoutingService? _routing;
+  Future<AnnouncementsController>? _initFuture;
 
   /// Submit a batch of detections for possible announcement. Returns
   /// the controller's outcome for the call (useful for tests and for
@@ -45,16 +68,67 @@ class AnnouncementsAlertSink {
   /// hiccup never bubbles up into the audio capture loop.
   Future<AnnounceOutcome> submit(List<AnnouncementDetection> batch) async {
     try {
-      final cfg = _readConfig();
-      return await _controller.announce(batch, cfg);
+      // Cheap exit before touching any platform code: if the user has
+      // not enabled announcements, don't even build the TTS engine.
+      if (!_ref.read(announcementsEnabledProvider)) {
+        return AnnounceOutcome.disabled;
+      }
+      final controller = _controller ?? await _ensureController();
+      return await controller.announce(batch, _readConfig());
     } catch (_) {
       return AnnounceOutcome.routingFailed;
     }
   }
 
   /// Reset per-session bookkeeping. Wire to mode-controller session
-  /// start (e.g. Live `start()`, Survey `beginTransect()`).
-  void resetSession() => _controller.resetSession();
+  /// start (Live `startSession()`, Survey `startSurvey()`).
+  void resetSession() => _controller?.resetSession();
+
+  Future<void> dispose() async {
+    final tts = _tts;
+    final routing = _routing;
+    _controller = null;
+    _tts = null;
+    _routing = null;
+    _initFuture = null;
+    if (tts != null) await tts.dispose();
+    if (routing != null) await routing.dispose();
+  }
+
+  Future<AnnouncementsController> _ensureController() {
+    return _initFuture ??= _build();
+  }
+
+  Future<AnnouncementsController> _build() async {
+    final ringBuffer = _ref.read(ringBufferProvider);
+    final tts = FlutterTtsEngine();
+    final routing = AudioSessionRoutingService();
+    await routing.init();
+    await tts.configure(
+      languageTag: _resolveLanguageTag(),
+      rate: _ref.read(announcementsVoiceRateProvider),
+      pitch: _ref.read(announcementsVoicePitchProvider),
+    );
+    final library = TemplateLibrary();
+    final bundle = await library.load(_resolveLanguageTag());
+    final engine = PhrasingEngine(bundle: bundle);
+    final controller = AnnouncementsController(
+      engine: engine,
+      tts: tts,
+      routing: routing,
+      ringBuffer: ringBuffer,
+    );
+    _tts = tts;
+    _routing = routing;
+    _controller = controller;
+    return controller;
+  }
+
+  String _resolveLanguageTag() {
+    final pref = _ref.read(announcementsVoiceLanguageProvider);
+    if (pref.isNotEmpty) return pref;
+    return ui.PlatformDispatcher.instance.locale.toLanguageTag();
+  }
 
   AnnouncementsControllerConfig _readConfig() {
     final enabled = _ref.read(announcementsEnabledProvider);
@@ -70,8 +144,8 @@ class AnnouncementsAlertSink {
           announcementsStartupGraceSecondsProvider,
         ),
         minIntervalSeconds: _ref.read(announcementsMinIntervalSecondsProvider),
-        // No separate "speaker" pref yet; double the headphone value
-        // so speaker mode stays meaningfully stricter (matches the
+        // No separate "speaker" pref yet; nudge the headphone value
+        // up so speaker mode stays meaningfully stricter (matches the
         // ratio used in the named profiles).
         minIntervalSecondsSpeaker:
             _ref.read(announcementsMinIntervalSecondsProvider) * 3 ~/ 2,
@@ -104,3 +178,16 @@ class AnnouncementsAlertSink {
     );
   }
 }
+
+/// Process-wide singleton sink. Lazy: the TTS engine, audio routing
+/// service and template bundle are only built on the first `submit()`
+/// while announcements are enabled.
+final announcementsAlertSinkProvider = Provider<AnnouncementsAlertSink>((ref) {
+  final sink = AnnouncementsAlertSink(ref);
+  ref.onDispose(() {
+    // Fire-and-forget — the provider container only disposes at app
+    // shutdown, where awaiting platform cleanup is best-effort anyway.
+    sink.dispose();
+  });
+  return sink;
+});
