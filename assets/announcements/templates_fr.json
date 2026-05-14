@@ -37,7 +37,9 @@
         "Signal franc : {name}.",
         "Cela ne trompe pas — {name}.",
         "{name} se manifeste — bien net.",
-        "{name} en pleine forme, signal impeccable."
+        "{name}, signal impeccable.",
+        "Bonne identification : {name}.",
+        "{name}, parfaitement audible."
       ]
     },
     "B": {
@@ -68,9 +70,11 @@
         "{name} ne s'arrête pas.",
         "Cela continue : {name}.",
         "{name} reste très actif.",
-        "{name} a beaucoup à dire aujourd'hui.",
-        "Sacrée endurance pour {name}.",
-        "Petit récital de {name}."
+        "{name} reste bien présent aujourd'hui.",
+        "Activité soutenue de {name}.",
+        "{name} continue de se faire entendre.",
+        "Toujours {name} dans le mix.",
+        "{name} maintient le rythme."
       ]
     },
     "D": {

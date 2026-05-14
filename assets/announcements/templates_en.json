@@ -32,10 +32,12 @@
         "That's a {name}, nice and clear.",
         "Definitely a {name} in there.",
         "Picked up a {name}, good signal.",
-        "{name} just chimed in — textbook call.",
+        "{name} just came through — clean call.",
         "No mistaking that one — {name}.",
         "Got a {name} loud and clear.",
-        "{name} — that's a clean one."
+        "{name} — that's a clean one.",
+        "Solid match for {name}.",
+        "{name}, plain as day."
       ]
     },
     "B": {
@@ -66,10 +68,12 @@
       "chatty": [
         "The {name} is keeping at it.",
         "Still going, that {name}.",
-        "{name} is on a roll.",
-        "{name} really doesn't want to stop.",
-        "Looks like the {name} has a lot to say today.",
-        "Quite the performance from {name}."
+        "{name} is keeping it up.",
+        "{name} hasn't stopped yet.",
+        "{name} has been at it for a while now.",
+        "{name} keeps coming through.",
+        "Sustained calling from {name}.",
+        "{name} still busy in the mix."
       ]
     },
     "D": {
@@ -87,8 +91,10 @@
         "I'd call that a {name}, pretty sure.",
         "Looks like a {name} — signal's decent.",
         "Going with {name} on this one.",
-        "That'll be a {name}, I reckon.",
-        "Reasonable match for {name}."
+        "Looks like {name} from here.",
+        "Reasonable match for {name}.",
+        "Leaning toward {name} on this call.",
+        "Decent fit for {name}."
       ]
     },
     "E": {

@@ -35,7 +35,9 @@
         "Čistý signál: {name}.",
         "{name}, jako z učebnice.",
         "Hlasitě a jasně: {name}.",
-        "{name} se hlásí — pěkný signál."
+        "{name} se hlásí — pěkný signál.",
+        "Dobrá identifikace: {name}.",
+        "{name}, dobře slyšitelný hlas."
       ]
     },
     "B": {
@@ -66,9 +68,11 @@
         "{name} jen tak nepřestane.",
         "Pořád pokračuje: {name}.",
         "{name} drží tempo.",
-        "{name} má dnes hodně co říct.",
-        "Pěkná výdrž — {name}.",
-        "Malý koncert od {name}."
+        "{name} je dnes hodně aktivní.",
+        "Trvalá aktivita: {name}.",
+        "{name} se pořád ozyvá.",
+        "{name} stále v záběru.",
+        "{name} nepolevuje."
       ]
     },
     "D": {

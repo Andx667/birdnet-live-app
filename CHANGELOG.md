@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.12] - 2026-05-14
+
+### Changed
+
+- **Announcement chatty phrasing dialed back from comically over-the-top to just informal.** Lines like *"{name} is on a roll."*, *"{name} really doesn't want to stop."*, *"Quite the performance from {name}."*, *"Petit récital de {name}."*, *"Pequeño concierto de {name}."*, *"Beeindruckende Ausdauer von {name}."* and *"Hier singt halb der Wald …"* read as a stage announcer rather than a birding companion when they fired in real surveys. Replaced with shorter, neutral observations (*"{name} is keeping it up."*, *"Sustained calling from {name}."*, *"Activité soutenue de {name}."*, *"Atividade sustentada de {name}."*, *"Anhaltend aktiv: {name}."*) across all seven UI languages. Also dropped the very British *"That'll be a {name}, I reckon."* in favor of *"Looks like {name} from here."*.
+- **A bit more variety in chatty bucket A** (clean first detections, the most-heard bucket) and chatty bucket C (sustained calling), with two new neutral variants per locale so the same handful of phrases doesn't loop within a single session. Gender-neutral phrasing rules are preserved (no inflected articles in front of `{name}` placeholders for DE/FR/ES/IT/PT/CS).
+
 ## [0.13.11] - 2026-05-14
 
 ### Fixed

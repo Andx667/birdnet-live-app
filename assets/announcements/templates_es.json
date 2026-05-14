@@ -35,7 +35,9 @@
         "Señal limpia: {name}.",
         "{name}, como en el manual.",
         "Llega bien claro: {name}.",
-        "{name} se anuncia, alto y claro."
+        "{name} se anuncia, alto y claro.",
+        "Buena identificación: {name}.",
+        "{name}, perfectamente audible."
       ]
     },
     "B": {
@@ -66,9 +68,11 @@
         "{name} continúa sin parar.",
         "Sigue activo: {name}.",
         "{name} mantiene el ritmo.",
-        "{name} tiene mucho que decir hoy.",
-        "Vaya resistencia la de {name}.",
-        "Pequeño concierto de {name}."
+        "{name} sigue muy activo hoy.",
+        "Actividad sostenida de {name}.",
+        "{name} se mantiene bien presente.",
+        "{name} sigue presente en el mix.",
+        "{name} no afloja."
       ]
     },
     "D": {

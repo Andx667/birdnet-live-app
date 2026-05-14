@@ -35,7 +35,9 @@
         "Segnale pulito: {name}.",
         "{name}, da manuale.",
         "Arriva forte e chiaro: {name}.",
-        "{name} si fa sentire — segnale ottimo."
+        "{name} si fa sentire — segnale ottimo.",
+        "Buona identificazione: {name}.",
+        "{name}, perfettamente udibile."
       ]
     },
     "B": {
@@ -66,9 +68,11 @@
         "{name} non si ferma.",
         "Continua: {name}.",
         "{name} mantiene il ritmo.",
-        "{name} ha tanto da dire oggi.",
-        "Bella resistenza per {name}.",
-        "Vero concerto da parte di {name}."
+        "{name} resta molto presente oggi.",
+        "Attività costante da {name}.",
+        "{name} continua a farsi sentire.",
+        "{name} è ancora ben presente nel mix.",
+        "{name} non molla la presa."
       ]
     },
     "D": {
