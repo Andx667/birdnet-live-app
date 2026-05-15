@@ -89,6 +89,31 @@ List<LiveTip> buildLiveTips(AppLocalizations l10n) => <LiveTip>[
     title: l10n.liveTipFileAnalysisTitle,
     body: l10n.liveTipFileAnalysisBody,
   ),
+  LiveTip(
+    icon: Icons.bluetooth_audio,
+    title: l10n.liveTipBluetoothMicTitle,
+    body: l10n.liveTipBluetoothMicBody,
+  ),
+  LiveTip(
+    icon: Icons.notifications_active_outlined,
+    title: l10n.liveTipSurveyNotificationsTitle,
+    body: l10n.liveTipSurveyNotificationsBody,
+  ),
+  LiveTip(
+    icon: Icons.science_outlined,
+    title: l10n.liveTipStudyDesignTitle,
+    body: l10n.liveTipStudyDesignBody,
+  ),
+  LiveTip(
+    icon: Icons.report_problem_outlined,
+    title: l10n.liveTipAiMistakesTitle,
+    body: l10n.liveTipAiMistakesBody,
+  ),
+  LiveTip(
+    icon: Icons.battery_charging_full,
+    title: l10n.liveTipBatteryTitle,
+    body: l10n.liveTipBatteryBody,
+  ),
 ];
 
 /// Rotating tip card. Auto-advances every [interval] (default 10s) with
@@ -96,7 +121,7 @@ List<LiveTip> buildLiveTips(AppLocalizations l10n) => <LiveTip>[
 class LiveTipsCarousel extends StatefulWidget {
   const LiveTipsCarousel({
     super.key,
-    this.interval = const Duration(seconds: 10),
+    this.interval = const Duration(seconds: 15),
   });
 
   final Duration interval;
@@ -144,8 +169,11 @@ class _LiveTipsCarouselState extends State<LiveTipsCarousel> {
     if (tips.isEmpty) return const SizedBox.shrink();
     _tipCount = tips.length;
     final tip = tips[_index % _tipCount];
-    final muted = theme.colorScheme.onSurface.withAlpha(170);
-    final faint = theme.colorScheme.onSurface.withAlpha(115);
+    // Tips use the same faint tone as the empty-state subtitle so the
+    // carousel reads as supporting text and doesn't compete with the
+    // "Listening…" headline above it.
+    final faint = theme.colorScheme.onSurface.withAlpha(140);
+    final fainter = theme.colorScheme.onSurface.withAlpha(115);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -155,7 +183,7 @@ class _LiveTipsCarouselState extends State<LiveTipsCarousel> {
           Text(
             l10n.liveTipsHeader,
             style: theme.textTheme.labelSmall?.copyWith(
-              color: faint,
+              color: fainter,
               letterSpacing: 1.2,
             ),
           ),
@@ -165,44 +193,49 @@ class _LiveTipsCarouselState extends State<LiveTipsCarousel> {
             borderRadius: BorderRadius.circular(12),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 350),
-                transitionBuilder:
-                    (child, anim) =>
-                        FadeTransition(opacity: anim, child: child),
-                child: Padding(
-                  key: ValueKey<int>(_index % _tipCount),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(tip.icon, size: 28, color: muted),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              tip.title,
-                              style: theme.textTheme.titleSmall?.copyWith(
-                                color: theme.colorScheme.onSurface,
-                                fontWeight: FontWeight.w600,
+              // Fixed height so the "Listening…" header above doesn't
+              // jump around when tips of different lengths cycle in.
+              child: SizedBox(
+                height: 110,
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 350),
+                  transitionBuilder:
+                      (child, anim) =>
+                          FadeTransition(opacity: anim, child: child),
+                  child: Padding(
+                    key: ValueKey<int>(_index % _tipCount),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(tip.icon, size: 28, color: fainter),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                tip.title,
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  color: faint,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              tip.body,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: muted,
+                              const SizedBox(height: 4),
+                              Text(
+                                tip.body,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: fainter,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),

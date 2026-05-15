@@ -369,7 +369,7 @@ class _EmptyState extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             if (isActive) ...[
-              const SizedBox(height: 28),
+              const SizedBox(height: 44),
               const LiveTipsCarousel(),
             ],
           ],

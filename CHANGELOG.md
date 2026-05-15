@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.14.2] - 2026-05-15
+
+### Changed
+
+- **Live empty-state tips polish.** The "DID YOU KNOW?" carousel under the "Listening…" placeholder now: (a) uses the same faint gray as the rest of the empty-state copy so it reads as supporting text instead of competing with the headline, (b) cycles every 15 s instead of 10 s so there's enough time to actually read each tip, and (c) sits a bit further below "Listening…" for breathing room.
+- **"Listening…" stays put.** The tip card now has a fixed height, so the "Listening…" headline above it no longer jumps around as longer or shorter tips rotate in.
+
+### Added
+
+- **Five more live tips.** The carousel now includes guidance on using an external Bluetooth or wired microphone for surveys, the foreground-service notification that keeps surveys recording in the background, keeping study design consistent across sessions at a site, the fact that AI detections can be wrong (especially for rare species — review the spectrogram), and bringing a power bank for long surveys with GPS active.
+
 ## [0.14.1] - 2026-05-15
 
 ### Fixed
