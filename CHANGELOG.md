@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.14] - 2026-05-15
+
+### Added
+
+- **Wind speed shown next to temperature on weather chips.** Both the live site-context card and the per-session weather chip in session review now read e.g. *"☀ 18.4 °C · 3.2 m/s SW"* instead of just the temperature. With an icon as the prefix the line stays compact, and wind is the second most useful field for assessing how much wind noise to expect in the recording at a glance — the same value already appears in the long-form weather formatter and detail dialog.
+- **Reset all settings (Danger zone).** New tile in the Settings → Danger zone section restores every preference to its default. Sessions, recordings, voice memos and downloaded map tiles are kept untouched — only the SharedPreferences store is cleared. The app closes after confirmation so the new defaults take effect on next launch. Useful for recovering from an accidental misconfiguration without losing data.
+- **Quiet detection clips are boosted on playback.** When a clip's peak amplitude falls below ~0.5 (e.g. distant birds, low-gain mics, FLAC-compressed clips that preserved the original dynamics) the clip player writes a peak-normalized temporary copy under the OS temp folder and plays that instead. Original recordings on disk are never modified — keeping their bit-exact dynamics matters for analysis and means FLAC compression is not defeated. The cache is bounded (≤32 entries) and pruned LRU-style on each access; the OS reclaims it on uninstall or temp purge.
+
+### Fixed
+
+- **Modal sheets no longer render under the system navigation bar / gesture inset on edge-to-edge displays.** Help sheets, the new-session picker, the device picker, the settings preset sheet, the survey/library "add" menus and the clip player all gained `useSafeArea: true`, so their bottom controls land above the navigation bar on devices that still draw a 3-button bar. Sheets that already wrapped their bodies in a `SafeArea` continue to work; this just brings the rest in line.
+
 ## [0.13.13] - 2026-05-14
 
 ### Fixed

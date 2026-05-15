@@ -292,6 +292,26 @@
   "@settingsDataCleared": {
     "description": "Snackbar message after clearing all data"
   },
+  "settingsResetAll": "Reset All Settings",
+  "@settingsResetAll": {
+    "description": "Reset all settings to their defaults"
+  },
+  "settingsResetAllSubtitle": "Restore every preference to its default. Sessions, recordings and exports are kept.",
+  "@settingsResetAllSubtitle": {
+    "description": "Subtitle for reset all settings tile"
+  },
+  "settingsResetAllConfirmTitle": "Reset all settings?",
+  "@settingsResetAllConfirmTitle": {
+    "description": "Reset all settings confirmation dialog title"
+  },
+  "settingsResetAllConfirmMessage": "Every setting goes back to its default value. Sessions, recordings, voice memos and downloaded maps are kept. The app will close so the new defaults take effect on next launch.",
+  "@settingsResetAllConfirmMessage": {
+    "description": "Reset all settings confirmation dialog body"
+  },
+  "settingsResetAllDone": "Settings reset — please reopen the app",
+  "@settingsResetAllDone": {
+    "description": "Snackbar message after resetting all settings"
+  },
   "cancel": "Cancel",
   "@cancel": {
     "description": "Cancel button"

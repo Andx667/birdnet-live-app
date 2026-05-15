@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:birdnet_live/l10n/app_localizations.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../shared/providers/app_providers.dart';
 import '../../shared/providers/settings_providers.dart';
@@ -684,6 +685,11 @@ class SettingsScreen extends ConsumerWidget {
                 onTap: () => _showResetOnboardingDialog(context, ref, l10n),
               ),
               ListTile(
+                title: Text(l10n.settingsResetAll),
+                subtitle: Text(l10n.settingsResetAllSubtitle),
+                onTap: () => _showResetAllSettingsDialog(context, l10n),
+              ),
+              ListTile(
                 title: Text(
                   l10n.settingsClearData,
                   style: const TextStyle(color: Colors.red),
@@ -722,6 +728,50 @@ class SettingsScreen extends ConsumerWidget {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text(l10n.settingsOnboardingReset)),
                   );
+                },
+                child: Text(l10n.confirm),
+              ),
+            ],
+          ),
+    );
+  }
+
+  void _showResetAllSettingsDialog(
+    BuildContext context,
+    AppLocalizations l10n,
+  ) {
+    showDialog<void>(
+      context: context,
+      builder:
+          (dialogContext) => AlertDialog(
+            title: Text(l10n.settingsResetAllConfirmTitle),
+            content: Text(l10n.settingsResetAllConfirmMessage),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: Text(l10n.cancel),
+              ),
+              TextButton(
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                onPressed: () async {
+                  final messenger = ScaffoldMessenger.of(context);
+                  Navigator.of(dialogContext).pop();
+                  // Clear every persisted preference. Sessions, recordings,
+                  // voice memos and downloaded map tiles live outside of
+                  // SharedPreferences and are intentionally untouched.
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.clear();
+                  messenger.showSnackBar(
+                    SnackBar(content: Text(l10n.settingsResetAllDone)),
+                  );
+                  // On Android we close the app so the next launch boots
+                  // with the freshly-reset defaults applied to every
+                  // provider. Other platforms leave the app running and
+                  // rely on the user to relaunch manually.
+                  await Future<void>.delayed(
+                    const Duration(milliseconds: 800),
+                  );
+                  await SystemNavigator.pop();
                 },
                 child: Text(l10n.confirm),
               ),
@@ -887,6 +937,7 @@ Future<void> showSettingHelpSheet(
     context: context,
     showDragHandle: true,
     isScrollControlled: true,
+    useSafeArea: true,
     builder: (ctx) {
       final theme = Theme.of(ctx);
       return SafeArea(
@@ -1258,6 +1309,7 @@ class _MicInputTile extends ConsumerWidget {
   ) {
     showModalBottomSheet<void>(
       context: context,
+      useSafeArea: true,
       builder: (context) {
         return SafeArea(
           child: RadioGroup<String?>(

@@ -1165,6 +1165,7 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       builder:
           (_) => _SessionHelpSheet(
             showContinueSurvey: widget.session.type == SessionType.survey,
@@ -1410,6 +1411,7 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
     final l10n = AppLocalizations.of(context)!;
     final value = await showModalBottomSheet<String>(
       context: context,
+      useSafeArea: true,
       builder:
           (ctx) => SafeArea(
             child: Column(

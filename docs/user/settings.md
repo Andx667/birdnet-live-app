@@ -233,6 +233,12 @@ The **About** row opens the in-app About screen.
 
 Shows the onboarding sequence again the next time the app launches.
 
+### Reset All Settings
+
+Restores every preference on this screen to its default value. Sessions, recordings, voice memos, exports and downloaded map tiles are kept untouched — only the saved preferences (sliders, switches, picker choices) get wiped. The app closes after confirmation so the new defaults take effect on next launch.
+
+Useful when you are not sure which slider you nudged that broke something, or when handing the device to someone else and you want a clean configuration without losing the data you collected.
+
 ### Clear All Data
 
 Opens a confirmation flow for permanently removing stored app data.
