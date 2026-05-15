@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.14.1] - 2026-05-15
+
+### Fixed
+
+- **Session review playback no longer stops every few seconds when you tap a cluster.** The cluster auto-pause was originally intended as a "preview" — start at the first detection, pause once playback walked past the cluster's last detection (typically 3–6 s in). In practice it just made the player feel broken: users almost always want to keep listening for the call to repeat or for context. Tapping a cluster now seeks to the cluster start and lets playback continue until you pause it or the recording ends.
+- **Quiet recordings are boosted on playback in session review too.** Both the full session recording (live / point-count / survey) and the per-cluster fallback clip player now run through `PlaybackNormalizer` before being handed to `just_audio`, matching the behavior of the clip-player sheet that is opened from the survey map. Distant or low-gain clips become audible without modifying anything on disk — original FLAC files keep their lossless compression and bit-exact dynamics.
+
 ## [0.14.0] - 2026-05-15
 
 ### Added
