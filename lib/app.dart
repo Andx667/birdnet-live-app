@@ -5,6 +5,7 @@ import 'package:birdnet_live/l10n/app_localizations.dart';
 
 import 'core/theme/app_theme.dart';
 import 'shared/providers/app_providers.dart';
+import 'features/announcements/accessibility_default_applier.dart';
 import 'features/onboarding/onboarding_screen.dart';
 import 'features/home/home_screen.dart';
 
@@ -40,7 +41,9 @@ class App extends ConsumerWidget {
       supportedLocales: AppLocalizations.supportedLocales,
 
       // Initial screen based on app state
-      home: const _AppGate(),
+      home: const AnnouncementsAccessibilityDefaultApplier(
+        child: _AppGate(),
+      ),
     );
   }
 }
