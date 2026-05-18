@@ -1103,7 +1103,8 @@ class _SpeciesTile extends ConsumerWidget {
                                   child: Icon(
                                     Icons.check_circle,
                                     size: 14,
-                                    color: Colors.green.shade600,
+                                    color:
+                                        AppSemanticColors.of(context).success,
                                   ),
                                 ),
                               if (group.allRecords.any(
@@ -1509,7 +1510,7 @@ class _ClusterRow extends ConsumerWidget {
                     size: 24,
                     color:
                         confirmed
-                            ? Colors.green.shade600
+                            ? AppSemanticColors.of(context).success
                             : theme.colorScheme.onSurface.withAlpha(100),
                   ),
                 ),

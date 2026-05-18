@@ -366,7 +366,7 @@ class _DetectedBadge extends StatelessWidget {
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(60),
+            color: theme.colorScheme.shadow.withAlpha(60),
             blurRadius: 2,
             offset: const Offset(0, 1),
           ),

@@ -23,6 +23,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:birdnet_live/l10n/app_localizations.dart';
+
+import '../../core/theme/app_semantic_colors.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:record/record.dart';
 
@@ -640,7 +642,7 @@ class _PermissionTile extends StatelessWidget {
           if (granted)
             Icon(
               Icons.check_circle_rounded,
-              color: Colors.green.shade600,
+              color: AppSemanticColors.of(context).success,
               size: 28,
             )
           else

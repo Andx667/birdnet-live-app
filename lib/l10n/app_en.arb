@@ -256,6 +256,14 @@
   "@settingsThemeSystem": {
     "description": "System theme option"
   },
+  "settingsDynamicColor": "Dynamic Color",
+  "@settingsDynamicColor": {
+    "description": "Dynamic color toggle label"
+  },
+  "settingsDynamicColorDescription": "Use your Android device's color palette when available. No effect on iPhone or iPad.",
+  "@settingsDynamicColorDescription": {
+    "description": "Dynamic color toggle description"
+  },
   "settingsResetOnboarding": "Reset Onboarding",
   "@settingsResetOnboarding": {
     "description": "Reset onboarding setting"

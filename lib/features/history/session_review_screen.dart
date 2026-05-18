@@ -61,6 +61,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/constants/app_constants.dart';
+import '../../core/theme/app_semantic_colors.dart';
 import '../../core/theme/score_colors.dart';
 import '../../shared/models/gps_point.dart';
 import '../../shared/models/taxonomy_species.dart';
@@ -71,6 +72,7 @@ import '../../shared/services/taxonomy_service.dart';
 import '../../shared/utils/timestamp_format.dart';
 import '../../shared/utils/weather_format.dart';
 import '../../shared/widgets/app_help_bottom_sheet.dart';
+import '../../shared/widgets/confirm_destructive.dart';
 import '../../shared/widgets/stat_chip.dart';
 import '../explore/explore_providers.dart';
 import '../explore/widgets/species_info_overlay.dart';
@@ -671,6 +673,9 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
             content: Text(l10n.sessionUnsavedChanges),
             actions: [
               TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: Theme.of(ctx).colorScheme.error,
+                ),
                 onPressed: () => Navigator.of(ctx).pop('discard'),
                 child: Text(l10n.sessionDiscard),
               ),
@@ -756,25 +761,14 @@ class _SessionReviewScreenState extends ConsumerState<SessionReviewScreen> {
 
   Future<void> _discard() async {
     final l10n = AppLocalizations.of(context)!;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: Text(l10n.sessionDiscardTitle),
-            content: Text(l10n.sessionDiscardMessage),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(false),
-                child: Text(l10n.cancel),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(true),
-                child: Text(l10n.sessionDiscard),
-              ),
-            ],
-          ),
+    final confirmed = await confirmDestructive(
+      context,
+      title: l10n.sessionDiscardTitle,
+      body: l10n.sessionDiscardMessage,
+      confirmLabel: l10n.sessionDiscard,
+      cancelLabel: l10n.cancel,
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
 
     final repo = ref.read(sessionRepositoryProvider);
     await repo.delete(widget.session.id);

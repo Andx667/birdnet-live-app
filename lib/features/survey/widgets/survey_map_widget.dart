@@ -19,6 +19,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../core/theme/app_semantic_colors.dart';
 import '../../../core/theme/score_colors.dart';
 import '../../../shared/models/gps_point.dart';
 import '../../../shared/providers/app_providers.dart';
@@ -318,7 +319,7 @@ class _SurveyMapWidgetState extends ConsumerState<SurveyMapWidget> {
           height: 28,
           child: Icon(
             Icons.flag_rounded,
-            color: Colors.green.shade700,
+            color: AppSemanticColors.of(context).success,
             size: 28,
           ),
         ),
@@ -575,9 +576,10 @@ class _SpeciesMarker extends ConsumerWidget {
     // confidence bucket (1.5 px for very-low up to 3.5 px for very-high) so
     // the strength of a detection survives complete loss of color vision —
     // a heavier ring still reads as "stronger" in monochrome.
+    final theme = Theme.of(context);
     final scoreColors = ScoreColors.of(context);
     final confidenceColor = scoreColors.forScore(confidence);
-    final borderColor = hasAudio ? confidenceColor : Colors.grey.shade500;
+    final borderColor = hasAudio ? confidenceColor : theme.colorScheme.outline;
     final bucket = ScoreColors.bucketIndexForScore(confidence);
     // 0 → 1.5, 1 → 2.0, 2 → 2.5, 3 → 3.0, 4 → 3.5
     final scoreBorderWidth = 1.5 + bucket * 0.5;
@@ -590,7 +592,7 @@ class _SpeciesMarker extends ConsumerWidget {
     // eliminate.
     if (useDot && !isHighlighted) {
       final dotSize = 10.0 + bucket * 2.0;
-      final fill = hasAudio ? confidenceColor : Colors.grey.shade500;
+      final fill = hasAudio ? confidenceColor : theme.colorScheme.outline;
       return Center(
         child: Container(
           width: dotSize,
@@ -599,12 +601,12 @@ class _SpeciesMarker extends ConsumerWidget {
             color: fill,
             shape: BoxShape.circle,
             border: Border.all(
-              color: Colors.white,
+              color: theme.colorScheme.surface,
               width: hasAudio ? scoreBorderWidth : 1.5,
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withAlpha(60),
+                color: theme.colorScheme.shadow.withAlpha(60),
                 blurRadius: 2,
                 offset: const Offset(0, 1),
               ),
@@ -681,15 +683,15 @@ class _SpeciesMarker extends ConsumerWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(
-          color: isHighlighted ? Colors.blue : borderColor,
+          color: isHighlighted ? theme.colorScheme.primary : borderColor,
           width: isHighlighted ? 3 : (hasAudio ? scoreBorderWidth : 2),
         ),
         boxShadow: [
           BoxShadow(
             color:
                 isHighlighted
-                    ? Colors.blue.withAlpha(100)
-                    : Colors.black.withAlpha(50),
+                    ? theme.colorScheme.primary.withAlpha(100)
+                    : theme.colorScheme.shadow.withAlpha(50),
             blurRadius: isHighlighted ? 8 : 3,
             offset: const Offset(0, 1),
           ),
@@ -704,6 +706,7 @@ class _SpeciesMarker extends ConsumerWidget {
       // grey-plumaged bird could otherwise be mistaken for an audio marker
       // whose colored border just happens to be subtle.
       return _withConfirmedBadge(
+        context,
         Opacity(opacity: 0.6, child: avatar),
         size: size,
       );
@@ -719,6 +722,7 @@ class _SpeciesMarker extends ConsumerWidget {
     final badgeOffset = badgeSize * 0.25;
 
     return _withConfirmedBadge(
+      context,
       SizedBox(
         width: size + badgeOffset,
         height: size + badgeOffset,
@@ -737,10 +741,13 @@ class _SpeciesMarker extends ConsumerWidget {
                 decoration: BoxDecoration(
                   color: badgeColor,
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 1.5),
+                  border: Border.all(
+                    color: theme.colorScheme.surface,
+                    width: 1.5,
+                  ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withAlpha(80),
+                      color: theme.colorScheme.shadow.withAlpha(80),
                       blurRadius: 3,
                       offset: const Offset(0, 1),
                     ),
@@ -749,7 +756,7 @@ class _SpeciesMarker extends ConsumerWidget {
                 child: Icon(
                   Icons.play_arrow_rounded,
                   size: badgeSize * 0.85,
-                  color: Colors.white,
+                  color: theme.colorScheme.onPrimary,
                 ),
               ),
             ),
@@ -766,8 +773,14 @@ class _SpeciesMarker extends ConsumerWidget {
   /// collide. Returns [child] unchanged when the marker is not
   /// confirmed so we don't introduce a layout overhead for the common
   /// case.
-  Widget _withConfirmedBadge(Widget child, {required double size}) {
+  Widget _withConfirmedBadge(
+    BuildContext context,
+    Widget child, {
+    required double size,
+  }) {
     if (!isConfirmed) return child;
+    final theme = Theme.of(context);
+    final semanticColors = AppSemanticColors.of(context);
     final badgeSize = (size * 0.45).clamp(12.0, 18.0);
     final pad = badgeSize * 0.25;
     return SizedBox(
@@ -785,12 +798,15 @@ class _SpeciesMarker extends ConsumerWidget {
               width: badgeSize,
               height: badgeSize,
               decoration: BoxDecoration(
-                color: Colors.green.shade600,
+                color: semanticColors.success,
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 1.5),
+                border: Border.all(
+                  color: theme.colorScheme.surface,
+                  width: 1.5,
+                ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withAlpha(80),
+                    color: theme.colorScheme.shadow.withAlpha(80),
                     blurRadius: 3,
                     offset: const Offset(0, 1),
                   ),
@@ -799,7 +815,7 @@ class _SpeciesMarker extends ConsumerWidget {
               child: Icon(
                 Icons.check_rounded,
                 size: badgeSize * 0.85,
-                color: Colors.white,
+                color: semanticColors.onSuccess,
               ),
             ),
           ),
@@ -834,10 +850,10 @@ class _ClusterBubble extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.colorScheme.primary,
         shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 2),
+        border: Border.all(color: theme.colorScheme.surface, width: 2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(70),
+            color: theme.colorScheme.shadow.withAlpha(70),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),

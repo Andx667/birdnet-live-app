@@ -49,6 +49,7 @@ abstract final class PrefKeys {
   static const String onboardingComplete = 'onboarding_complete';
   static const String termsAccepted = 'terms_accepted';
   static const String themeMode = 'theme_mode';
+  static const String dynamicColor = 'dynamic_color';
   static const String locale = 'locale';
   static const String speciesLanguage = 'species_language';
 

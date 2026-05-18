@@ -13,6 +13,8 @@ BirdNET Live reuses one Settings screen across multiple workflows. The :material
 
 Choose **Dark**, **Light**, or **System**.
 
+If **Dynamic Color** is enabled, BirdNET Live also tries to use your Android device's system palette. This only does something on supported Android devices; on iPhone and iPad the app keeps using the normal BirdNET Live theme, so turning the toggle on there changes nothing.
+
 ### App Language
 
 Sets the interface language.
