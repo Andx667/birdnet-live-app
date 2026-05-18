@@ -24,6 +24,7 @@ class HelpScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
+    final isBrandTheme = isBrandThemeColorScheme(theme.colorScheme);
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.helpTitle)),
@@ -55,25 +56,59 @@ class HelpScreen extends StatelessWidget {
             const SizedBox(height: 12),
             _HelpSection(
               icon: sessionTypeIcon(SessionType.live),
-              color: sessionTypeIconColor(SessionType.live),
+              color: sessionTypeAccentColor(theme, SessionType.live),
+              containerColor:
+                  isBrandTheme
+                      ? sessionTypeAccentColor(
+                        theme,
+                        SessionType.live,
+                      ).withAlpha(30)
+                      : sessionTypeContainerColor(theme, SessionType.live),
               title: l10n.helpLiveTitle,
               body: l10n.helpLiveBody,
             ),
             _HelpSection(
               icon: sessionTypeIcon(SessionType.pointCount),
-              color: sessionTypeIconColor(SessionType.pointCount),
+              color: sessionTypeAccentColor(theme, SessionType.pointCount),
+              containerColor:
+                  isBrandTheme
+                      ? sessionTypeAccentColor(
+                        theme,
+                        SessionType.pointCount,
+                      ).withAlpha(30)
+                      : sessionTypeContainerColor(
+                        theme,
+                        SessionType.pointCount,
+                      ),
               title: l10n.helpPointCountTitle,
               body: l10n.helpPointCountBody,
             ),
             _HelpSection(
               icon: sessionTypeIcon(SessionType.survey),
-              color: sessionTypeIconColor(SessionType.survey),
+              color: sessionTypeAccentColor(theme, SessionType.survey),
+              containerColor:
+                  isBrandTheme
+                      ? sessionTypeAccentColor(
+                        theme,
+                        SessionType.survey,
+                      ).withAlpha(30)
+                      : sessionTypeContainerColor(theme, SessionType.survey),
               title: l10n.helpSurveyTitle,
               body: l10n.helpSurveyBody,
             ),
             _HelpSection(
               icon: sessionTypeIcon(SessionType.fileUpload),
-              color: sessionTypeIconColor(SessionType.fileUpload),
+              color: sessionTypeAccentColor(theme, SessionType.fileUpload),
+              containerColor:
+                  isBrandTheme
+                      ? sessionTypeAccentColor(
+                        theme,
+                        SessionType.fileUpload,
+                      ).withAlpha(30)
+                      : sessionTypeContainerColor(
+                        theme,
+                        SessionType.fileUpload,
+                      ),
               title: l10n.helpFileAnalysisTitle,
               body: l10n.helpFileAnalysisBody,
             ),
@@ -91,12 +126,14 @@ class HelpScreen extends StatelessWidget {
             _HelpSection(
               icon: Icons.search_rounded,
               color: theme.colorScheme.primary,
+              containerColor: theme.colorScheme.primaryContainer,
               title: l10n.helpExploreTitle,
               body: l10n.helpExploreBody,
             ),
             _HelpSection(
-              icon: Icons.library_music_outlined,
-              color: theme.colorScheme.tertiary,
+              icon: Icons.library_books_outlined,
+              color: theme.colorScheme.secondary,
+              containerColor: theme.colorScheme.secondaryContainer,
               title: l10n.helpSessionsTitle,
               body: l10n.helpSessionsBody,
             ),
@@ -232,12 +269,14 @@ class _HelpSection extends StatelessWidget {
   const _HelpSection({
     required this.icon,
     required this.color,
+    required this.containerColor,
     required this.title,
     required this.body,
   });
 
   final IconData icon;
   final Color color;
+  final Color containerColor;
   final String title;
   final String body;
 
@@ -255,7 +294,7 @@ class _HelpSection extends StatelessWidget {
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: color.withAlpha(30),
+            color: containerColor,
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(icon, color: color, size: 20),

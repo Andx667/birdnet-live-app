@@ -27,6 +27,7 @@ import 'package:intl/intl.dart';
 import 'package:just_audio/just_audio.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../core/theme/app_semantic_colors.dart';
 import '../../../core/theme/score_colors.dart';
 import '../../../shared/providers/settings_providers.dart';
 import '../../explore/explore_providers.dart';
@@ -794,7 +795,7 @@ class _ConfirmToggle extends StatelessWidget {
             size: 28,
             color:
                 confirmed
-                    ? Colors.green.shade600
+                    ? AppSemanticColors.of(context).success
                     : theme.colorScheme.onSurface.withAlpha(120),
           ),
         ),

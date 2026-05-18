@@ -218,28 +218,28 @@ class _ModeGrid extends StatelessWidget {
             icon: sessionTypeIcon(SessionType.live),
             label: l10n.liveMode,
             description: l10n.liveModeDescription,
-            color: sessionTypeIconColor(SessionType.live),
+            accentColor: sessionTypeAccentColor(theme, SessionType.live),
             onTap: () => _openLive(context),
           ),
           _ModeCard(
             icon: sessionTypeIcon(SessionType.pointCount),
             label: l10n.pointCountMode,
             description: l10n.pointCountModeDescription,
-            color: sessionTypeIconColor(SessionType.pointCount),
+            accentColor: sessionTypeAccentColor(theme, SessionType.pointCount),
             onTap: () => _openPointCount(context),
           ),
           _ModeCard(
             icon: sessionTypeIcon(SessionType.survey),
             label: l10n.surveyMode,
             description: l10n.surveyModeDescription,
-            color: sessionTypeIconColor(SessionType.survey),
+            accentColor: sessionTypeAccentColor(theme, SessionType.survey),
             onTap: () => _openSurvey(context),
           ),
           _ModeCard(
             icon: sessionTypeIcon(SessionType.fileUpload),
             label: l10n.fileAnalysisMode,
             description: l10n.fileAnalysisModeDescription,
-            color: sessionTypeIconColor(SessionType.fileUpload),
+            accentColor: sessionTypeAccentColor(theme, SessionType.fileUpload),
             onTap: () => _openFileAnalysis(context),
           ),
         ],
@@ -281,29 +281,45 @@ class _ModeCard extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.description,
-    required this.color,
+    required this.accentColor,
     this.onTap,
   });
 
   final IconData icon;
   final String label;
   final String description;
-  final Color color;
+  final Color accentColor;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final isBrandTheme = isBrandThemeColorScheme(theme.colorScheme);
+    final cardColor =
+        isBrandTheme
+            ? (theme.brightness == Brightness.dark
+                ? theme.colorScheme.surfaceContainerHighest.withAlpha(120)
+                : theme.colorScheme.surfaceContainerHighest.withAlpha(180))
+            : (theme.brightness == Brightness.dark
+                ? theme.colorScheme.surfaceContainerHighest
+                : theme.colorScheme.surfaceContainerHigh);
+    final shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(20),
+      side:
+          isBrandTheme
+              ? BorderSide.none
+              : BorderSide(
+                color: theme.colorScheme.outlineVariant.withAlpha(140),
+              ),
+    );
 
     return Material(
-      color:
-          isDark
-              ? theme.colorScheme.surfaceContainerHighest.withAlpha(120)
-              : theme.colorScheme.surfaceContainerHighest.withAlpha(180),
-      borderRadius: BorderRadius.circular(20),
+      color: cardColor,
+      elevation: isBrandTheme ? 0 : 1,
+      shape: shape,
       child: InkWell(
-        borderRadius: BorderRadius.circular(20),
+        customBorder: shape,
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -315,16 +331,20 @@ class _ModeCard extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: color.withAlpha(isDark ? 50 : 30),
+                  color:
+                      isBrandTheme
+                          ? accentColor.withAlpha(isDark ? 50 : 30)
+                          : accentColor.withAlpha(36),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: Icon(icon, color: color, size: 24),
+                child: Icon(icon, color: accentColor, size: 24),
               ),
               const Spacer(),
               Text(
                 label,
                 style: theme.textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.onSurface,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,

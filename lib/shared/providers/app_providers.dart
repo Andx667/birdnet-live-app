@@ -8,14 +8,16 @@ import '../../core/constants/app_constants.dart';
 ///
 /// Must be overridden in [ProviderScope] at app startup.
 final sharedPreferencesProvider = Provider<SharedPreferences>(
-  (ref) => throw UnimplementedError(
-    'sharedPreferencesProvider must be overridden with a real instance',
-  ),
+  (ref) =>
+      throw UnimplementedError(
+        'sharedPreferencesProvider must be overridden with a real instance',
+      ),
 );
 
 /// Provider for the current [ThemeMode].
-final themeModeProvider =
-    StateNotifierProvider<ThemeModeNotifier, ThemeMode>((ref) {
+final themeModeProvider = StateNotifierProvider<ThemeModeNotifier, ThemeMode>((
+  ref,
+) {
   final prefs = ref.watch(sharedPreferencesProvider);
   return ThemeModeNotifier(prefs);
 });
@@ -39,6 +41,31 @@ class ThemeModeNotifier extends StateNotifier<ThemeMode> {
   Future<void> setThemeMode(ThemeMode mode) async {
     state = mode;
     await _prefs.setString(PrefKeys.themeMode, mode.name);
+  }
+}
+
+/// Whether to use the device's Android dynamic color palette.
+///
+/// Defaults to `false` so existing users keep the brand blue theme.
+/// On platforms that don't support dynamic color (e.g. iOS), this
+/// setting has no effect — the brand theme is always used as fallback.
+final dynamicColorProvider = StateNotifierProvider<DynamicColorNotifier, bool>((
+  ref,
+) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return DynamicColorNotifier(prefs);
+});
+
+/// Notifier for the dynamic color toggle backed by [SharedPreferences].
+class DynamicColorNotifier extends StateNotifier<bool> {
+  DynamicColorNotifier(this._prefs)
+    : super(_prefs.getBool(PrefKeys.dynamicColor) ?? false);
+
+  final SharedPreferences _prefs;
+
+  Future<void> set(bool value) async {
+    state = value;
+    await _prefs.setBool(PrefKeys.dynamicColor, value);
   }
 }
 
@@ -74,14 +101,14 @@ class LocaleNotifier extends StateNotifier<Locale?> {
 /// Provider tracking whether onboarding has been completed.
 final onboardingCompleteProvider =
     StateNotifierProvider<OnboardingNotifier, bool>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return OnboardingNotifier(prefs);
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return OnboardingNotifier(prefs);
+    });
 
 /// Notifier for onboarding completion state.
 class OnboardingNotifier extends StateNotifier<bool> {
   OnboardingNotifier(this._prefs)
-      : super(_prefs.getBool(PrefKeys.onboardingComplete) ?? false);
+    : super(_prefs.getBool(PrefKeys.onboardingComplete) ?? false);
 
   final SharedPreferences _prefs;
 
@@ -107,7 +134,7 @@ final termsAcceptedProvider = StateNotifierProvider<TermsNotifier, bool>((ref) {
 /// Notifier for terms acceptance state.
 class TermsNotifier extends StateNotifier<bool> {
   TermsNotifier(this._prefs)
-      : super(_prefs.getBool(PrefKeys.termsAccepted) ?? false);
+    : super(_prefs.getBool(PrefKeys.termsAccepted) ?? false);
 
   final SharedPreferences _prefs;
 

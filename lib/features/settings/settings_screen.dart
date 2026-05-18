@@ -125,6 +125,7 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.settings)),
@@ -138,6 +139,13 @@ class SettingsScreen extends ConsumerWidget {
                 subtitle: l10n.settingsGeneralDescription,
               ),
               _ThemeTile(l10n: l10n),
+              SwitchListTile(
+                title: Text(l10n.settingsDynamicColor),
+                subtitle: Text(l10n.settingsDynamicColorDescription),
+                value: ref.watch(dynamicColorProvider),
+                onChanged:
+                    (v) => ref.read(dynamicColorProvider.notifier).set(v),
+              ),
               _LanguageTile(l10n: l10n),
               _SpeciesLanguageTile(l10n: l10n),
               SwitchListTile(
@@ -692,7 +700,7 @@ class SettingsScreen extends ConsumerWidget {
               ListTile(
                 title: Text(
                   l10n.settingsClearData,
-                  style: const TextStyle(color: Colors.red),
+                  style: TextStyle(color: theme.colorScheme.error),
                 ),
                 onTap: () => _showClearDataDialog(context, ref, l10n),
               ),
@@ -742,39 +750,44 @@ class SettingsScreen extends ConsumerWidget {
   ) {
     showDialog<void>(
       context: context,
-      builder:
-          (dialogContext) => AlertDialog(
-            title: Text(l10n.settingsResetAllConfirmTitle),
-            content: Text(l10n.settingsResetAllConfirmMessage),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(),
-                child: Text(l10n.cancel),
+      builder: (dialogContext) {
+        final theme = Theme.of(dialogContext);
+        return AlertDialog(
+          title: Text(l10n.settingsResetAllConfirmTitle),
+          content: Text(l10n.settingsResetAllConfirmMessage),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton.tonal(
+              style: FilledButton.styleFrom(
+                backgroundColor: theme.colorScheme.errorContainer,
+                foregroundColor: theme.colorScheme.onErrorContainer,
               ),
-              TextButton(
-                style: TextButton.styleFrom(foregroundColor: Colors.red),
-                onPressed: () async {
-                  final messenger = ScaffoldMessenger.of(context);
-                  Navigator.of(dialogContext).pop();
-                  // Clear every persisted preference. Sessions, recordings,
-                  // voice memos and downloaded map tiles live outside of
-                  // SharedPreferences and are intentionally untouched.
-                  final prefs = await SharedPreferences.getInstance();
-                  await prefs.clear();
-                  messenger.showSnackBar(
-                    SnackBar(content: Text(l10n.settingsResetAllDone)),
-                  );
-                  // On Android we close the app so the next launch boots
-                  // with the freshly-reset defaults applied to every
-                  // provider. Other platforms leave the app running and
-                  // rely on the user to relaunch manually.
-                  await Future<void>.delayed(const Duration(milliseconds: 800));
-                  await SystemNavigator.pop();
-                },
-                child: Text(l10n.confirm),
-              ),
-            ],
-          ),
+              onPressed: () async {
+                final messenger = ScaffoldMessenger.of(context);
+                Navigator.of(dialogContext).pop();
+                // Clear every persisted preference. Sessions, recordings,
+                // voice memos and downloaded map tiles live outside of
+                // SharedPreferences and are intentionally untouched.
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.clear();
+                messenger.showSnackBar(
+                  SnackBar(content: Text(l10n.settingsResetAllDone)),
+                );
+                // On Android we close the app so the next launch boots
+                // with the freshly-reset defaults applied to every
+                // provider. Other platforms leave the app running and
+                // rely on the user to relaunch manually.
+                await Future<void>.delayed(const Duration(milliseconds: 800));
+                await SystemNavigator.pop();
+              },
+              child: Text(l10n.confirm),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -789,6 +802,7 @@ class SettingsScreen extends ConsumerWidget {
         final controller = TextEditingController();
         return StatefulBuilder(
           builder: (context, setState) {
+            final theme = Theme.of(context);
             final typed = controller.text.trim().toUpperCase() == 'DELETE';
             return AlertDialog(
               title: Text(l10n.settingsClearDataConfirmTitle),
@@ -813,7 +827,7 @@ class SettingsScreen extends ConsumerWidget {
                   onPressed: () => Navigator.of(context).pop(),
                   child: Text(l10n.cancel),
                 ),
-                TextButton(
+                FilledButton.tonal(
                   onPressed:
                       typed
                           ? () {
@@ -824,7 +838,10 @@ class SettingsScreen extends ConsumerWidget {
                             );
                           }
                           : null,
-                  style: TextButton.styleFrom(foregroundColor: Colors.red),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: theme.colorScheme.errorContainer,
+                    foregroundColor: theme.colorScheme.onErrorContainer,
+                  ),
                   child: Text(l10n.confirm),
                 ),
               ],

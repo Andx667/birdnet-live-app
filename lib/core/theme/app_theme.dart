@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'app_semantic_colors.dart';
 import 'score_colors.dart';
 
 // =============================================================================
@@ -28,6 +29,9 @@ import 'score_colors.dart';
 /// Call [AppTheme.dark] or [AppTheme.light] to obtain a fully-configured
 /// [ThemeData] with Material 3 enabled, the brand blue palette, and
 /// component-level overrides (buttons, cards, switches, sliders, etc.).
+///
+/// Call [AppTheme.fromColorScheme] to build a theme from an externally
+/// provided [ColorScheme] (e.g. from the `dynamic_color` package).
 abstract final class AppTheme {
   // ---------------------------------------------------------------------------
   // Brand palette constants (shared between both themes)
@@ -82,109 +86,7 @@ abstract final class AppTheme {
       outline: Color(0xFF5C5C5C),
     );
 
-    return ThemeData(
-      useMaterial3: true,
-      colorScheme: colorScheme,
-      brightness: Brightness.dark,
-      scaffoldBackgroundColor: colorScheme.surface,
-      extensions: const <ThemeExtension<dynamic>>[ScoreColors.dark],
-
-      // ── App Bar ──
-      appBarTheme: AppBarTheme(
-        backgroundColor: colorScheme.surface,
-        foregroundColor: colorScheme.onSurface,
-        elevation: 0,
-        centerTitle: false,
-      ),
-
-      // ── Bottom Navigation ──
-      navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: const Color(0xFF1E1E1E),
-        indicatorColor: colorScheme.primaryContainer,
-        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-        height: 64,
-      ),
-
-      // ── Cards ──
-      cardTheme: CardThemeData(
-        color: const Color(0xFF1E1E1E),
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-      ),
-
-      // ── List Tiles ──
-      listTileTheme: _sharedListTileTheme(),
-
-      // ── Dialogs ──
-      dialogTheme: DialogThemeData(
-        backgroundColor: const Color(0xFF1E1E1E),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-      ),
-
-      // ── Switches ──
-      switchTheme: SwitchThemeData(
-        thumbColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) {
-            return colorScheme.primary;
-          }
-          return colorScheme.outline;
-        }),
-        trackColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) {
-            return colorScheme.primaryContainer;
-          }
-          return colorScheme.surfaceContainerHighest;
-        }),
-      ),
-
-      // ── Sliders ──
-      sliderTheme: SliderThemeData(
-        activeTrackColor: colorScheme.primary,
-        inactiveTrackColor: colorScheme.surfaceContainerHighest,
-        thumbColor: colorScheme.primary,
-        overlayColor: colorScheme.primary.withAlpha(30),
-      ),
-
-      // ── Elevated Buttons (48 dp touch target) ──
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: colorScheme.primaryContainer,
-          foregroundColor: colorScheme.onPrimaryContainer,
-          minimumSize: const Size(64, 48),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      ),
-
-      // ── Text Buttons ──
-      textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(
-          foregroundColor: colorScheme.primary,
-          minimumSize: const Size(48, 48),
-        ),
-      ),
-
-      // ── Dividers ──
-      dividerTheme: const DividerThemeData(
-        color: Color(0xFF2C2C2C),
-        thickness: 1,
-      ),
-
-      // ── Snack Bars ──
-      snackBarTheme: SnackBarThemeData(
-        backgroundColor: const Color(0xFF2C2C2C),
-        contentTextStyle: const TextStyle(color: Color(0xFFE0E0E0)),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-      ),
-    );
+    return _buildThemeData(colorScheme, Brightness.dark);
   }
 
   // ─── Light Theme ───────────────────────────────────────────────────────────
@@ -214,12 +116,51 @@ abstract final class AppTheme {
       outline: Color(0xFFBDBDBD),
     );
 
+    return _buildThemeData(colorScheme, Brightness.light);
+  }
+
+  // ─── Dynamic Color ─────────────────────────────────────────────────────────
+
+  /// Build a theme from an externally provided [ColorScheme], typically
+  /// obtained from the `dynamic_color` package's [DynamicColorBuilder].
+  ///
+  /// Applies the same component-level overrides (button shapes, card radii,
+  /// touch targets, etc.) as the brand themes so the app layout and UX
+  /// remain identical — only the palette changes.
+  static ThemeData fromColorScheme(ColorScheme colorScheme) {
+    return _buildThemeData(colorScheme, colorScheme.brightness);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Shared theme builder
+  // ---------------------------------------------------------------------------
+
+  /// Internal factory that wires a [ColorScheme] into a fully-configured
+  /// [ThemeData] with component-level overrides.
+  ///
+  /// Both the brand themes ([dark], [light]) and dynamic-color themes
+  /// ([fromColorScheme]) funnel through here so every variant gets
+  /// identical structural styling (shapes, padding, touch targets).
+  static ThemeData _buildThemeData(
+    ColorScheme colorScheme,
+    Brightness brightness,
+  ) {
+    final isDark = brightness == Brightness.dark;
+    final isBrandTheme = _isBrandThemeColorScheme(colorScheme);
+
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
-      brightness: Brightness.light,
+      brightness: brightness,
       scaffoldBackgroundColor: colorScheme.surface,
-      extensions: const <ThemeExtension<dynamic>>[ScoreColors.light],
+      extensions: <ThemeExtension<dynamic>>[
+        isDark ? ScoreColors.dark : ScoreColors.light,
+        isBrandTheme
+            ? (isDark
+                ? AppSemanticColors.dark(colorScheme)
+                : AppSemanticColors.light)
+            : AppSemanticColors.harmonized(colorScheme),
+      ],
 
       // ── App Bar ──
       appBarTheme: AppBarTheme(
@@ -231,7 +172,12 @@ abstract final class AppTheme {
 
       // ── Bottom Navigation ──
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: Colors.white,
+        backgroundColor:
+            isBrandTheme
+                ? (isDark ? const Color(0xFF1E1E1E) : Colors.white)
+                : (isDark
+                    ? colorScheme.surfaceContainerHigh
+                    : colorScheme.surfaceContainerLow),
         indicatorColor: colorScheme.primaryContainer,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         height: 64,
@@ -239,24 +185,28 @@ abstract final class AppTheme {
 
       // ── Cards ──
       cardTheme: CardThemeData(
-        color: Colors.white,
-        elevation: 1,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        color:
+            isBrandTheme
+                ? (isDark ? const Color(0xFF1E1E1E) : Colors.white)
+                : (isDark
+                    ? colorScheme.surfaceContainerHigh
+                    : colorScheme.surfaceContainerLow),
+        elevation: isDark ? 0 : 1,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
 
       // ── List Tiles ──
-      // (Mirrors the dark theme so spacing/padding stay identical when
-      // toggling brightness.)
       listTileTheme: _sharedListTileTheme(),
 
       // ── Dialogs ──
       dialogTheme: DialogThemeData(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        backgroundColor:
+            isBrandTheme
+                ? (isDark ? const Color(0xFF1E1E1E) : Colors.white)
+                : (isDark
+                    ? colorScheme.surfaceContainerHigh
+                    : colorScheme.surfaceContainerLow),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
 
       // ── Switches ──
@@ -283,11 +233,13 @@ abstract final class AppTheme {
         overlayColor: colorScheme.primary.withAlpha(30),
       ),
 
-      // ── Elevated Buttons ──
+      // ── Elevated Buttons (48 dp touch target) ──
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: colorScheme.primary,
-          foregroundColor: colorScheme.onPrimary,
+          backgroundColor:
+              isDark ? colorScheme.primaryContainer : colorScheme.primary,
+          foregroundColor:
+              isDark ? colorScheme.onPrimaryContainer : colorScheme.onPrimary,
           minimumSize: const Size(64, 48),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -304,21 +256,41 @@ abstract final class AppTheme {
       ),
 
       // ── Dividers ──
-      dividerTheme: const DividerThemeData(
-        color: Color(0xFFE0E0E0),
+      dividerTheme: DividerThemeData(
+        color:
+            isBrandTheme
+                ? (isDark ? const Color(0xFF2C2C2C) : const Color(0xFFE0E0E0))
+                : colorScheme.outlineVariant,
         thickness: 1,
       ),
 
       // ── Snack Bars ──
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: const Color(0xFF323232),
-        contentTextStyle: const TextStyle(color: Colors.white),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
+        backgroundColor:
+            isBrandTheme
+                ? (isDark ? const Color(0xFF2C2C2C) : const Color(0xFF323232))
+                : (isDark
+                    ? colorScheme.surfaceContainerHighest
+                    : colorScheme.inverseSurface),
+        contentTextStyle: TextStyle(
+          color:
+              isBrandTheme
+                  ? (isDark ? const Color(0xFFE0E0E0) : Colors.white)
+                  : (isDark
+                      ? colorScheme.onSurface
+                      : colorScheme.onInverseSurface),
         ),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
+  }
+
+  static bool _isBrandThemeColorScheme(ColorScheme colorScheme) {
+    return (colorScheme.primary == brandPrimary &&
+            colorScheme.primaryContainer == brandPrimaryContainer) ||
+        (colorScheme.primary == brandPrimaryLight &&
+            colorScheme.primaryContainer == brandPrimaryContainerDark);
   }
 
   // ---------------------------------------------------------------------------
@@ -336,9 +308,7 @@ abstract final class AppTheme {
   static ListTileThemeData _sharedListTileTheme() {
     return ListTileThemeData(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       minVerticalPadding: 8,
     );
   }

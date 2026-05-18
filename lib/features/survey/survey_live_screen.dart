@@ -475,9 +475,9 @@ class _SurveyLiveScreenState extends ConsumerState<SurveyLiveScreen>
       SnackBar(
         content: Row(
           children: [
-            const Icon(
+            Icon(
               Icons.notifications_active_rounded,
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.onInverseSurface,
               size: 18,
             ),
             const SizedBox(width: 8),

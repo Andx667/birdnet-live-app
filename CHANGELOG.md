@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.14.3] - 2026-05-18
+
+### Added
+
+- **Dynamic Color (Material You) toggle in Settings.** A new switch under Settings → Appearance lets you opt into your Android device's dynamic color palette instead of the BirdNET brand theme. On Android 12+ the app's surfaces, primary accents, and chrome rebuild against the wallpaper-derived palette so BirdNET visually matches the rest of your launcher. No effect on iPhone or iPad (kept off by default everywhere so first-launch users still see the brand theme).
+
+### Changed
+
+- **Semantic UI colors routed through the theme.** Success greens, the "confirmed" checkmark, and the four session-mode accents (Live red, Point Count blue, Survey green, File Analysis orange) are no longer hardcoded across widgets. They now live in a single `AppSemanticColors` theme extension that provides the brand hues under the default theme and harmonizes them against the active palette in dynamic-color mode. Survey map markers, the audio-quality bars, the onboarding permission checks, the live and clip-player confirmed toggles, and the session review cluster checkmarks all read from this token set, so the same widgets stay legible whether you're on the brand theme, a light dynamic palette, or a dark one. No behavioral changes — purely a visual consistency pass.
+
 ## [0.14.2] - 2026-05-15
 
 ### Changed

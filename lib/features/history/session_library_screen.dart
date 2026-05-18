@@ -636,7 +636,7 @@ class _SessionLibraryScreenState extends ConsumerState<SessionLibraryScreen> {
                 ListTile(
                   leading: Icon(
                     sessionTypeIcon(m.type),
-                    color: sessionTypeIconColor(m.type),
+                    color: sessionTypeAccentColor(theme, m.type),
                   ),
                   title: Text(m.label),
                   subtitle: Text(
@@ -776,12 +776,12 @@ class _SessionTile extends ConsumerWidget {
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: sessionTypeIconColor(session.type).withAlpha(40),
+                      color: sessionTypeContainerColor(theme, session.type),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
                       sessionTypeIcon(session.type),
-                      color: sessionTypeIconColor(session.type),
+                      color: sessionTypeAccentColor(theme, session.type),
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -980,7 +980,7 @@ class _CompactSessionTile extends ConsumerWidget {
     return ListTile(
       leading: Icon(
         sessionTypeIcon(session.type),
-        color: sessionTypeIconColor(session.type),
+        color: sessionTypeAccentColor(theme, session.type),
       ),
       title: Text(
         _sessionCardTitle(l10n, session),
@@ -1181,7 +1181,7 @@ class _SpeciesGroupedView extends ConsumerWidget {
                 leading: Icon(
                   sessionTypeIcon(session.type),
                   size: 20,
-                  color: sessionTypeIconColor(session.type),
+                  color: sessionTypeAccentColor(theme, session.type),
                 ),
                 title: Text(
                   _sessionCardTitle(l10n, session),
@@ -1258,7 +1258,8 @@ class _NewSessionFab extends StatelessWidget {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final modeLabel = _sessionTypeLabel(l10n, mode);
-    final modeColor = sessionTypeIconColor(mode);
+    final modeColor = sessionTypeAccentColor(theme, mode);
+    final modeOnColor = sessionTypeOnAccentColor(theme, mode);
     // Use the surface-tinted FAB color so the white mode glyph (live red,
     // survey green, etc.) reads cleanly without competing with the app's
     // primary brand color. Keep elevation/shape consistent with FAB.
@@ -1299,7 +1300,7 @@ class _NewSessionFab extends StatelessWidget {
                         child: Icon(
                           sessionTypeIcon(mode),
                           size: 18,
-                          color: Colors.white,
+                          color: modeOnColor,
                         ),
                       ),
                       const SizedBox(width: 10),

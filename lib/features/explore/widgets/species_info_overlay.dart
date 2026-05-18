@@ -637,7 +637,7 @@ class _OverlayDetectedBadge extends StatelessWidget {
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(80),
+            color: theme.colorScheme.shadow.withAlpha(80),
             blurRadius: 3,
             offset: const Offset(0, 1),
           ),

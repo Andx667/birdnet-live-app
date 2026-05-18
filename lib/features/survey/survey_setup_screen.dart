@@ -24,6 +24,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../core/theme/app_semantic_colors.dart';
 import '../../shared/models/taxonomy_species.dart';
 import '../../shared/providers/settings_providers.dart';
 import '../../shared/widgets/app_help_bottom_sheet.dart';
@@ -524,18 +525,22 @@ class _DetailsStep extends StatelessWidget {
             // and only after the background-location permission has been
             // granted.
             Card(
-              color: const Color(0xFFD7F0DA),
+              color: AppSemanticColors.of(context).successContainer,
               child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: Row(
                   children: [
-                    const Icon(Icons.lock_outline, color: Color(0xFF1B5E20)),
+                    Icon(
+                      Icons.lock_outline,
+                      color: AppSemanticColors.of(context).onSuccessContainer,
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         l10n.surveyBackgroundGpsNotice,
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: const Color(0xFF1B5E20),
+                          color:
+                              AppSemanticColors.of(context).onSuccessContainer,
                         ),
                       ),
                     ),

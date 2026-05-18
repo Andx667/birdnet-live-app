@@ -16,6 +16,7 @@ import 'package:flutter/material.dart';
 import 'package:birdnet_live/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/theme/app_semantic_colors.dart';
 import '../../../core/theme/score_colors.dart';
 import '../../../shared/providers/settings_providers.dart';
 import '../../../shared/services/taxonomy_service.dart';
@@ -298,7 +299,7 @@ class DetectionTile extends ConsumerWidget {
                 size: 24,
                 color:
                     actions.isConfirmed
-                        ? Colors.green.shade600
+                        ? AppSemanticColors.of(context).success
                         : theme.colorScheme.onSurface.withAlpha(120),
               ),
             ),

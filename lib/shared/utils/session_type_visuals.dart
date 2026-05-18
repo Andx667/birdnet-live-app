@@ -6,24 +6,36 @@
 // and each is shown with a distinct icon throughout the UI: the home menu,
 // the help screen, the session library, the session review header, etc.
 //
-// To make modes instantly recognizable at a glance we also give each mode
-// a unique accent color that we apply to the *icon foreground* only (tile
-// backgrounds are intentionally left untouched so the visual rhythm of
-// list / grid surfaces stays calm).
-//
-// The colors are chosen to be:
-//   - clearly distinguishable on both light and dark themes,
-//   - accessible (sufficient contrast on neutral surfaces),
-//   - thematically meaningful (red = recording, blue = pinned point,
-//     green = movement / route, amber = file / archive).
+// To keep mode visuals recognizable under both the brand theme and dynamic
+// color, each mode starts from a stable base hue (red, blue, green, orange)
+// and is then harmonized with the active theme's primary color. This keeps
+// the four modes visually distinct without fighting the current palette.
 //
 // Centralizing the mapping here avoids drift between the home screen,
-// help screen, and history list views.
+// help screen, and history views.
 // =============================================================================
 
 import 'package:flutter/material.dart';
 
+import '../../core/theme/app_semantic_colors.dart';
+import '../../core/theme/app_theme.dart';
 import '../../features/live/live_session.dart';
+
+/// Theme-derived palette for a specific [SessionType].
+@immutable
+class SessionTypePalette {
+  const SessionTypePalette({
+    required this.accent,
+    required this.onAccent,
+    required this.container,
+    required this.onContainer,
+  });
+
+  final Color accent;
+  final Color onAccent;
+  final Color container;
+  final Color onContainer;
+}
 
 /// Returns the icon used to represent the given [SessionType] across the
 /// app (home menu, help, session library, review header, etc.).
@@ -40,24 +52,61 @@ IconData sessionTypeIcon(SessionType type) {
   }
 }
 
-/// Accent color used for the *icon foreground* of the given [SessionType].
-///
-/// Tile backgrounds are deliberately not colored — only the glyph itself
-/// is tinted so modes are recognizable at a glance without overwhelming
-/// the surrounding layout.
-Color sessionTypeIconColor(SessionType type) {
+/// Theme-derived colors for the given [SessionType].
+SessionTypePalette sessionTypePalette(ThemeData theme, SessionType type) {
+  final colorScheme = theme.colorScheme;
+  final semantic = AppSemanticColors.fromTheme(theme);
+  final accent = _accentForType(semantic, type);
+  final onAccent =
+      isBrandThemeColorScheme(colorScheme)
+          ? Colors.white
+          : (ThemeData.estimateBrightnessForColor(accent) == Brightness.dark
+              ? Colors.white
+              : Colors.black);
+  final container =
+      isBrandThemeColorScheme(colorScheme)
+          ? accent.withAlpha(40)
+          : Color.alphaBlend(
+            accent.withAlpha(theme.brightness == Brightness.dark ? 32 : 14),
+            colorScheme.surfaceContainerHigh,
+          );
+
+  return SessionTypePalette(
+    accent: accent,
+    onAccent: onAccent,
+    container: container,
+    onContainer: colorScheme.onSurface,
+  );
+}
+
+bool isBrandThemeColorScheme(ColorScheme colorScheme) {
+  return (colorScheme.primary == AppTheme.brandPrimary &&
+          colorScheme.primaryContainer == AppTheme.brandPrimaryContainer) ||
+      (colorScheme.primary == AppTheme.brandPrimaryLight &&
+          colorScheme.primaryContainer == AppTheme.brandPrimaryContainerDark);
+}
+
+Color _accentForType(AppSemanticColors colors, SessionType type) {
   switch (type) {
-    // Red — evokes a "record" indicator: live, real-time microphone session.
     case SessionType.live:
-      return const Color(0xFFE53935);
-    // Blue — a fixed pin / stationary observation.
+      return colors.sessionLive;
     case SessionType.pointCount:
-      return const Color(0xFF1E88E5);
-    // Green — movement along a route / transect.
+      return colors.sessionPointCount;
     case SessionType.survey:
-      return const Color(0xFF43A047);
-    // Amber — an archived audio file being analyzed offline.
+      return colors.sessionSurvey;
     case SessionType.fileUpload:
-      return const Color(0xFFFB8C00);
+      return colors.sessionFileAnalysis;
   }
 }
+
+Color sessionTypeAccentColor(ThemeData theme, SessionType type) =>
+    sessionTypePalette(theme, type).accent;
+
+Color sessionTypeOnAccentColor(ThemeData theme, SessionType type) =>
+    sessionTypePalette(theme, type).onAccent;
+
+Color sessionTypeContainerColor(ThemeData theme, SessionType type) =>
+    sessionTypePalette(theme, type).container;
+
+Color sessionTypeOnContainerColor(ThemeData theme, SessionType type) =>
+    sessionTypePalette(theme, type).onContainer;
